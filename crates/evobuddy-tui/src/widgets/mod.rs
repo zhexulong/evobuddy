@@ -1,0 +1,12 @@
+pub mod command_palette;
+pub mod dashboard;
+pub mod detail;
+pub mod handoff_form;
+pub mod help;
+pub mod peek;
+pub mod status_bar;
+pub mod structured_question;
+pub mod task_composer;
+pub mod task_room_form;
+pub mod trace;
+pub mod workspace;

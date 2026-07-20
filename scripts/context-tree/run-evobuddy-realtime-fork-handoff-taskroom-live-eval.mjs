@@ -6,6 +6,7 @@ import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { evaluateForkHandoffReleaseProof } from '../../src/core/evobuddy-fork-handoff-release-proof.mjs';
 import { produceClaudeRealtimeForkHandoffTaskRoomProof } from '../../src/core/evobuddy-claude-taskroom-producer.mjs';
+import { produceCodexRealtimeForkHandoffTaskRoomProof } from '../../src/core/evobuddy-codex-taskroom-producer.mjs';
 import { produceOpenCodeRealtimeForkHandoffTaskRoomProof } from '../../src/core/evobuddy-opencode-taskroom-producer.mjs';
 
 function defaultOpenCodeDbPath() {
@@ -17,6 +18,10 @@ function defaultClaudeProjectDir(projectRoot) {
   // Callers can still override with --claude-project-dir.
   const encoded = resolve(projectRoot).replace(/[\\/:]/g, '-');
   return resolve(homedir(), '.claude', 'projects', encoded);
+}
+
+function defaultCodexHome() {
+  return resolve(homedir(), '.codex');
 }
 
 function requireValue(argv, index, flag) {
@@ -34,6 +39,7 @@ function parseArgs(argv) {
     else if (arg === '--out') args.out = requireValue(argv, ++index, arg);
     else if (arg === '--observed-taskroom-root') args.observedTaskRoomRoot = requireValue(argv, ++index, arg);
     else if (arg === '--claude-project-dir') args.claudeProjectDir = requireValue(argv, ++index, arg);
+    else if (arg === '--codex-home') args.codexHome = requireValue(argv, ++index, arg);
     else if (arg === '--allow-retained-fixture') args.allowRetainedFixture = true;
     else throw new Error(`unknown argument: ${arg}`);
   }
@@ -106,6 +112,14 @@ export async function runEvobuddyRealtimeForkHandoffTaskRoomLiveEvalCli(argv) {
       runtime: args.runtime,
       out,
       claudeProjectDir: args.claudeProjectDir ? resolve(args.claudeProjectDir) : defaultClaudeProjectDir(args.project),
+    });
+    report = produced.report;
+  } else if (args.runtime === 'codex') {
+    const produced = await produceCodexRealtimeForkHandoffTaskRoomProof({
+      projectRoot: resolve(args.project),
+      runtime: args.runtime,
+      out,
+      codexHome: args.codexHome ? resolve(args.codexHome) : defaultCodexHome(),
     });
     report = produced.report;
   } else {

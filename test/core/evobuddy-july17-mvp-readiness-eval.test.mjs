@@ -203,6 +203,58 @@ test('adds realtime fork/handoff readiness without claiming Claude or Codex fork
   assert.ok(report.nonClaims.includes('Claude/Codex realtime fork-loop product proof complete'));
 });
 
+test('accepts multi-runtime realtime fork/handoff reports for fork-loop parity while keeping OpenCode product MVP OpenCode-only', () => {
+  const passProof = (runtime) => ({
+    status: 'pass',
+    proofScope: 'product-observed',
+    runtime,
+    reportKind: 'evobuddy-realtime-fork-handoff-taskroom-report',
+    forkObserved: { status: 'pass' },
+    handoffObserved: { status: 'pass' },
+    continuityObserved: { status: 'pass' },
+    resultReturn: { status: 'pass' },
+    evolutionHandoff: { status: 'pass' },
+  });
+  const report = evaluateEvobuddyJuly17MvpReadiness({
+    plan1Report: {
+      status: 'blocked',
+    },
+    plan1ReportPath: '/tmp/plan1-legacy.json',
+    plan2Report: {
+      projectionParity: { status: 'pass' },
+      releaseParity: { status: 'blocked', issues: ['codex: teamAgent.teamAgentSessionObserved blocked'] },
+      runtimes: {
+        codex: {
+          teamAgent: { teamAgentSessionObserved: { status: 'blocked' } },
+          subagentBuddy: { nativeMechanismObserved: { status: 'blocked' } },
+        },
+      },
+    },
+    plan2ReportPath: '/tmp/plan2.json',
+    plan3Report: {
+      status: 'blocked',
+      proofScope: 'product-observed',
+      runtime: 'opencode',
+      taskRoom: { status: 'completed' },
+    },
+    plan3ReportPath: '/tmp/plan3-legacy.json',
+    realtimeForkHandoffReport: [passProof('opencode'), passProof('claude'), passProof('codex')],
+    realtimeForkHandoffReportPath: ['/tmp/opencode-realtime.json', '/tmp/claude-realtime.json', '/tmp/codex-realtime.json'],
+  });
+
+  assert.equal(report.status, 'pass');
+  assert.equal(report.readiness.openCodeProductMvp.status, 'pass');
+  assert.equal(report.readiness.openCodeProductMvp.reportPath, '/tmp/opencode-realtime.json');
+  assert.equal(report.readiness.realtimeForkHandoffTaskRoom.status, 'pass');
+  assert.equal(report.readiness.realtimeForkHandoffTaskRoom.byRuntime.opencode.status, 'pass');
+  assert.equal(report.readiness.realtimeForkHandoffTaskRoom.byRuntime.claude.status, 'pass');
+  assert.equal(report.readiness.realtimeForkHandoffTaskRoom.byRuntime.codex.status, 'pass');
+  assert.equal(report.readiness.forkLoopProductParity.status, 'pass');
+  assert.equal(report.readiness.forkLoopProductParity.runtimes.opencode.status, 'pass');
+  assert.equal(report.readiness.forkLoopProductParity.runtimes.claude.status, 'pass');
+  assert.equal(report.readiness.forkLoopProductParity.runtimes.codex.status, 'pass');
+});
+
 test('wires openCodeProductMvp to fresh realtime fork/handoff proof while keeping plan3 legacy', () => {
   const report = evaluateEvobuddyJuly17MvpReadiness({
     plan1Report: {

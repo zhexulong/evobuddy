@@ -137,10 +137,13 @@ function summarizePlan3(report, reportPath) {
   };
 }
 
-function realtimeForkHandoffPass(report) {
+const REALTIME_FORK_HANDOFF_RUNTIMES = ['opencode', 'claude', 'codex'];
+
+function realtimeForkHandoffPass(report, expectedRuntime = null) {
   return report?.status === 'pass'
     && report?.proofScope === 'product-observed'
-    && report?.runtime === 'opencode'
+    && REALTIME_FORK_HANDOFF_RUNTIMES.includes(report?.runtime)
+    && (expectedRuntime == null || report.runtime === expectedRuntime)
     && report?.forkObserved?.status === 'pass'
     && report?.handoffObserved?.status === 'pass'
     && report?.continuityObserved?.status === 'pass'
@@ -148,7 +151,16 @@ function realtimeForkHandoffPass(report) {
     && report?.evolutionHandoff?.status === 'pass';
 }
 
-function summarizeRealtimeForkHandoff(report, reportPath) {
+function asRealtimeReportEntries(report, reportPath) {
+  if (report == null) return [];
+  if (Array.isArray(report)) {
+    const paths = Array.isArray(reportPath) ? reportPath : [reportPath];
+    return report.map((entry, index) => ({ report: entry, reportPath: paths[index] ?? paths[0] ?? null }));
+  }
+  return [{ report, reportPath: Array.isArray(reportPath) ? reportPath[0] ?? null : reportPath ?? null }];
+}
+
+function summarizeOneRealtimeForkHandoff(report, reportPath, expectedRuntime = null) {
   const blockedReasons = [];
   const failedReasons = [];
   if (!report || typeof report !== 'object' || Array.isArray(report)) {
@@ -156,31 +168,94 @@ function summarizeRealtimeForkHandoff(report, reportPath) {
   } else {
     if (report.status !== 'pass') blockedReasons.push(`realtime fork/handoff report status must be pass; received ${report.status ?? 'missing'}`);
     if (report.proofScope !== 'product-observed') failedReasons.push(`realtime fork/handoff proofScope must be product-observed; received ${report.proofScope ?? 'missing'}`);
-    if (report.runtime !== 'opencode') failedReasons.push(`realtime fork/handoff runtime must be opencode; received ${report.runtime ?? 'missing'}`);
+    if (!REALTIME_FORK_HANDOFF_RUNTIMES.includes(report.runtime)) {
+      failedReasons.push(`realtime fork/handoff runtime must be one of ${REALTIME_FORK_HANDOFF_RUNTIMES.join(', ')}; received ${report.runtime ?? 'missing'}`);
+    } else if (expectedRuntime && report.runtime !== expectedRuntime) {
+      failedReasons.push(`realtime fork/handoff runtime must be ${expectedRuntime}; received ${report.runtime ?? 'missing'}`);
+    }
     for (const gate of ['forkObserved', 'handoffObserved', 'continuityObserved', 'resultReturn', 'evolutionHandoff']) {
       if (report[gate]?.status !== 'pass') blockedReasons.push(`realtime fork/handoff ${gate} must be pass; received ${report[gate]?.status ?? 'missing'}`);
     }
   }
+  const pass = realtimeForkHandoffPass(report, expectedRuntime) && blockedReasons.length === 0 && failedReasons.length === 0;
   return {
-    status: realtimeForkHandoffPass(report) && blockedReasons.length === 0 && failedReasons.length === 0 ? 'pass' : gateStatus('pass', { blocked: blockedReasons, failed: failedReasons }),
+    status: pass ? 'pass' : gateStatus('pass', { blocked: blockedReasons, failed: failedReasons }),
     reportPath,
     runtime: report?.runtime ?? null,
-    scope: 'opencode-realtime-fork-handoff-taskroom',
-    claimCeiling: realtimeForkHandoffPass(report)
-      ? 'OpenCode realtime fork/handoff product-observed proof is satisfied; Claude/Codex fork-loop product proof remains blocked unless separately observed.'
-      : 'OpenCode realtime fork/handoff product proof is not yet satisfied.',
+    scope: `${report?.runtime ?? expectedRuntime ?? 'unknown'}-realtime-fork-handoff-taskroom`,
+    claimCeiling: pass
+      ? `${report.runtime} realtime fork/handoff product-observed proof is satisfied; other runtimes remain separately observed.`
+      : `${expectedRuntime ?? report?.runtime ?? 'runtime'} realtime fork/handoff product proof is not yet satisfied.`,
     blockedReasons,
     failedReasons,
   };
 }
 
+function summarizeRealtimeForkHandoff(report, reportPath) {
+  const entries = asRealtimeReportEntries(report, reportPath)
+    .map(({ report: entry, reportPath: path }) => summarizeOneRealtimeForkHandoff(entry, path));
+  if (entries.length === 0) {
+    return summarizeOneRealtimeForkHandoff(undefined, reportPath, 'opencode');
+  }
+  const byRuntime = {};
+  for (const entry of entries) {
+    if (entry.runtime) byRuntime[entry.runtime] = entry;
+  }
+  const openCode = byRuntime.opencode
+    ?? entries.find((entry) => entry.runtime === 'opencode')
+    ?? summarizeOneRealtimeForkHandoff(undefined, Array.isArray(reportPath) ? reportPath[0] ?? null : reportPath ?? null, 'opencode');
+  return {
+    ...openCode,
+    byRuntime,
+    attachments: entries,
+  };
+}
+
 function summarizeForkLoopProductParity(plan2Report, realtimeSummary) {
-  const runtimes = plan2Report?.forkLoopProductProof ?? {
-    opencode: realtimeSummary.status === 'pass'
-      ? { status: 'pass', provenBy: 'evobuddy-realtime-fork-handoff-taskroom-report' }
-      : { status: 'blocked', reason: 'real observed runtime evidence required for OpenCode fork-loop product proof' },
-    claude: { status: 'blocked', reason: 'real observed runtime evidence required for Claude fork-loop product proof' },
-    codex: { status: 'blocked', reason: 'real observed runtime evidence required for Codex fork-loop product proof' },
+  if (plan2Report?.forkLoopProductProof) {
+    const runtimes = plan2Report.forkLoopProductProof;
+    const blockedReasons = Object.entries(runtimes)
+      .filter(([, gate]) => gate?.status !== 'pass')
+      .map(([runtime, gate]) => `${runtime}: ${gate?.reason ?? 'fork-loop product proof blocked'}`);
+    return {
+      status: blockedReasons.length === 0 ? 'pass' : 'blocked',
+      claimCeiling: blockedReasons.length === 0
+        ? 'Three-runtime fork-loop product parity is satisfied by separately observed runtime evidence.'
+        : 'Three-runtime fork-loop product parity remains blocked; OpenCode proof does not transfer to Claude/Codex.',
+      runtimes,
+      blockedReasons,
+    };
+  }
+
+  const byRuntime = realtimeSummary?.byRuntime ?? {};
+  const proofFor = (runtime) => {
+    const attachment = byRuntime[runtime];
+    if (attachment?.status === 'pass') {
+      return {
+        status: 'pass',
+        provenBy: 'evobuddy-realtime-fork-handoff-taskroom-report',
+        reportPath: attachment.reportPath ?? null,
+      };
+    }
+    // Backward-compatible single OpenCode summary shape.
+    if (runtime === 'opencode' && realtimeSummary?.status === 'pass' && (realtimeSummary.runtime === 'opencode' || realtimeSummary.runtime == null)) {
+      return {
+        status: 'pass',
+        provenBy: 'evobuddy-realtime-fork-handoff-taskroom-report',
+        reportPath: realtimeSummary.reportPath ?? null,
+      };
+    }
+    return {
+      status: 'blocked',
+      reason: attachment?.blockedReasons?.[0]
+        ?? attachment?.failedReasons?.[0]
+        ?? `real observed runtime evidence required for ${runtime} fork-loop product proof`,
+    };
+  };
+  const runtimes = {
+    opencode: proofFor('opencode'),
+    claude: proofFor('claude'),
+    codex: proofFor('codex'),
   };
   const blockedReasons = Object.entries(runtimes)
     .filter(([, gate]) => gate?.status !== 'pass')
@@ -206,8 +281,14 @@ export function evaluateEvobuddyJuly17MvpReadiness({ plan1Report, plan1ReportPat
     .map(([name, plan]) => `${name}: ${[...plan.blockedReasons, ...plan.failedReasons][0] ?? 'not passing'}`);
   const codexNativeChildSpawnResolved = plan2Report?.runtimes?.codex?.subagentBuddy?.nativeMechanismObserved?.status === 'pass';
   const realtimeForkHandoffTaskRoom = summarizeRealtimeForkHandoff(realtimeForkHandoffReport, realtimeForkHandoffReportPath);
+  // OpenCode product MVP remains OpenCode-only even when Claude/Codex proofs are also attached.
+  const openCodeRealtimeSummary = realtimeForkHandoffTaskRoom.byRuntime?.opencode ?? (
+    realtimeForkHandoffTaskRoom.runtime && realtimeForkHandoffTaskRoom.runtime !== 'opencode'
+      ? summarizeOneRealtimeForkHandoff(undefined, realtimeForkHandoffTaskRoom.reportPath, 'opencode')
+      : realtimeForkHandoffTaskRoom
+  );
   const forkLoopProductParity = summarizeForkLoopProductParity(plan2Report, realtimeForkHandoffTaskRoom);
-  const openCodeProductMvp = summarizeOpenCodeProductMvp(plans, plan3ReportPath, realtimeForkHandoffTaskRoom);
+  const openCodeProductMvp = summarizeOpenCodeProductMvp(plans, plan3ReportPath, openCodeRealtimeSummary);
   // Top-level July-17 product status tracks the OpenCode realtime fork/handoff chain.
   // Plan 1 / Plan 3 remain legacy records; Plan 2 / three-runtime parity stay separately gated.
   const productIncomplete = openCodeProductMvp.status === 'pass'

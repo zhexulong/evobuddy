@@ -12,7 +12,7 @@ function requireValue(argv, index, flag) {
 }
 
 function parseArgs(argv) {
-  const args = {};
+  const args = { realtimeForkHandoffReports: [] };
   for (let index = 0; index < argv.length; index += 1) {
     const arg = argv[index];
     if (arg === '--project') args.project = requireValue(argv, index += 1, arg);
@@ -20,7 +20,7 @@ function parseArgs(argv) {
     else if (arg === '--plan1-report') args.plan1Report = requireValue(argv, index += 1, arg);
     else if (arg === '--plan2-report') args.plan2Report = requireValue(argv, index += 1, arg);
     else if (arg === '--plan3-report') args.plan3Report = requireValue(argv, index += 1, arg);
-    else if (arg === '--realtime-fork-handoff-report') args.realtimeForkHandoffReport = requireValue(argv, index += 1, arg);
+    else if (arg === '--realtime-fork-handoff-report') args.realtimeForkHandoffReports.push(requireValue(argv, index += 1, arg));
     else throw new Error(`unknown argument: ${arg}`);
   }
   if (!args.project) throw new Error('missing value for --project');
@@ -45,7 +45,18 @@ export function runEvobuddyJuly17MvpReadinessEvalCli(argv) {
   const plan1ReportPath = resolve(args.plan1Report);
   const plan2ReportPath = resolve(args.plan2Report);
   const plan3ReportPath = resolve(args.plan3Report);
-  const realtimeForkHandoffReportPath = args.realtimeForkHandoffReport ? resolve(args.realtimeForkHandoffReport) : undefined;
+  const realtimeForkHandoffReportPaths = args.realtimeForkHandoffReports.map((path) => resolve(path));
+  const realtimeForkHandoffReports = realtimeForkHandoffReportPaths.map((path) => readJson(path));
+  const realtimeForkHandoffReportPath = realtimeForkHandoffReportPaths.length === 0
+    ? undefined
+    : realtimeForkHandoffReportPaths.length === 1
+      ? realtimeForkHandoffReportPaths[0]
+      : realtimeForkHandoffReportPaths;
+  const realtimeForkHandoffReport = realtimeForkHandoffReports.length === 0
+    ? undefined
+    : realtimeForkHandoffReports.length === 1
+      ? realtimeForkHandoffReports[0]
+      : realtimeForkHandoffReports;
   const report = evaluateEvobuddyJuly17MvpReadiness({
     plan1Report: readJson(plan1ReportPath),
     plan1ReportPath,
@@ -53,7 +64,7 @@ export function runEvobuddyJuly17MvpReadinessEvalCli(argv) {
     plan2ReportPath,
     plan3Report: readJson(plan3ReportPath),
     plan3ReportPath,
-    realtimeForkHandoffReport: realtimeForkHandoffReportPath ? readJson(realtimeForkHandoffReportPath) : undefined,
+    realtimeForkHandoffReport,
     realtimeForkHandoffReportPath,
   });
   report.project = resolve(args.project);

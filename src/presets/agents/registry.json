@@ -1,0 +1,65 @@
+{
+  "version": "1",
+  "agents": [
+    {
+      "name": "builder",
+      "aliases": ["implementation-agent"],
+      "resolvedAgentId": "preset-builder",
+      "profileRef": "./builder.json",
+      "definitionRef": "./builder/AGENT.md",
+      "sourceKind": "product-preset",
+      "presetVersion": "2026-07-17",
+      "visibility": "active",
+      "sourceFamily": "evobuddy-native",
+      "exposure": "team-agent",
+      "knowledgeRefs": [],
+      "skillRefs": [],
+      "taskStyle": "implementation"
+    },
+    {
+      "name": "reviewer",
+      "aliases": ["review-agent"],
+      "resolvedAgentId": "preset-reviewer",
+      "profileRef": "./reviewer.json",
+      "definitionRef": "./reviewer/AGENT.md",
+      "sourceKind": "product-preset",
+      "presetVersion": "2026-07-17",
+      "visibility": "active",
+      "sourceFamily": "evobuddy-native",
+      "exposure": "team-agent",
+      "knowledgeRefs": [],
+      "skillRefs": [],
+      "taskStyle": "review"
+    },
+    {
+      "name": "evolution-agent",
+      "aliases": ["evo", "team-evolution"],
+      "resolvedAgentId": "preset-evolution-agent",
+      "profileRef": "./evolution-agent.json",
+      "definitionRef": "./evolution-agent/AGENT.md",
+      "sourceKind": "product-preset",
+      "presetVersion": "2026-07-17",
+      "visibility": "active",
+      "sourceFamily": "evobuddy-native",
+      "exposure": "team-agent",
+      "knowledgeRefs": ["knowledge/sops/evolution-stable-mutation.md"],
+      "skillRefs": [],
+      "taskStyle": "evolution"
+    },
+    {
+      "name": "coordinator",
+      "aliases": ["captain"],
+      "resolvedAgentId": "preset-coordinator",
+      "profileRef": "./coordinator.json",
+      "definitionRef": "./coordinator/AGENT.md",
+      "sourceKind": "product-preset",
+      "presetVersion": "2026-07-17",
+      "visibility": "available",
+      "sourceFamily": "evobuddy-native",
+      "exposure": "team-agent",
+      "knowledgeRefs": [],
+      "skillRefs": [],
+      "taskStyle": "coordination"
+    }
+  ]
+}

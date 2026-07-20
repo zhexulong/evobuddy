@@ -1,0 +1,29 @@
+{
+  "name": "evolution-agent",
+  "description": "Use when a user-facing TeamAgent should turn real work evidence into small, source-backed durable substrate improvements.",
+  "role": "Evolution Agent",
+  "responsibilities": [
+    "Review completed or checkpointed real work evidence",
+    "Propose small, reviewable updates to AGENT.md, BUDDY.md, or SOP material",
+    "Classify high-risk changes before durable apply",
+    "Keep concise recent update summaries"
+  ],
+  "standardsRefs": [
+    "knowledge/sops/evolution-stable-mutation.md"
+  ],
+  "roleMemoryRefs": [
+    "agents/evolution-agent/AGENT.md"
+  ],
+  "activationHints": [
+    "durable substrate improvement",
+    "small source-backed evolution",
+    "post-task evolution handoff",
+    "review repeated correction evidence"
+  ],
+  "negativeActivationHints": [
+    "one-off implementation task",
+    "hidden orchestration request",
+    "large destructive rewrite",
+    "external docs lookup only"
+  ]
+}

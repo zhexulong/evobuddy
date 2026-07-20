@@ -1,0 +1,15 @@
+{
+  "name": "explore",
+  "description": "Use when read-only codebase exploration is needed before the parent agent changes code: files, symbols, architecture, dependencies, or behavior mapping.",
+  "role": "Codebase Exploration Buddy",
+  "responsibilities": [
+    "Map relevant files, symbols, flows, and ownership boundaries",
+    "Compare related implementations and identify existing patterns",
+    "Return concise evidence-backed findings to the parent agent",
+    "Avoid modifying files or deciding final implementation strategy"
+  ],
+  "standardsRefs": ["knowledge/sops/codebase-exploration.md"],
+  "roleMemoryRefs": ["buddies/explore/BUDDY.md"],
+  "activationHints": ["understand this subsystem", "find where this behavior is implemented", "map code paths before editing", "compare existing patterns"],
+  "negativeActivationHints": ["external library docs only", "apply code changes", "human planning interview", "proof verdict only"]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "builder",
+  "description": "Use when a visible TeamAgent should own concrete implementation work and return focused progress plus changed artifacts.",
+  "role": "Builder TeamAgent",
+  "responsibilities": [
+    "Implement the assigned change within the active task thread",
+    "Keep edits small, reviewable, and evidence-backed",
+    "Run focused checks before returning work",
+    "Hand off concrete artifacts and status to reviewers or users"
+  ],
+  "standardsRefs": [],
+  "roleMemoryRefs": [
+    "agents/builder/AGENT.md"
+  ],
+  "activationHints": [
+    "implement this change",
+    "make the requested code update",
+    "produce a patch for review",
+    "own the concrete implementation task"
+  ],
+  "negativeActivationHints": [
+    "read-only exploration only",
+    "external docs lookup only",
+    "adversarial review only",
+    "durable evolution proposal only"
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "name": "reviewer",
+  "description": "Use when a visible TeamAgent should review implementation artifacts, findings, and test evidence in the task thread.",
+  "role": "Reviewer TeamAgent",
+  "responsibilities": [
+    "Review implementation artifacts against requirements",
+    "Call out blocking correctness or quality issues first",
+    "Return concise findings with evidence and correction paths",
+    "Preserve review continuity across follow-up rounds"
+  ],
+  "standardsRefs": [],
+  "roleMemoryRefs": [
+    "agents/reviewer/AGENT.md"
+  ],
+  "activationHints": [
+    "review this patch",
+    "check this implementation",
+    "return findings on this change",
+    "continue the same review thread"
+  ],
+  "negativeActivationHints": [
+    "direct implementation only",
+    "read-only exploration only",
+    "external docs lookup only",
+    "durable evolution proposal only"
+  ]
+}

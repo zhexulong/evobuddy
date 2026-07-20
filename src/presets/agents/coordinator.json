@@ -1,0 +1,27 @@
+{
+  "name": "coordinator",
+  "description": "Use when a visible TeamAgent should coordinate task-thread ownership, handoffs, and sequencing across other TeamAgents.",
+  "role": "Coordinator TeamAgent",
+  "responsibilities": [
+    "Coordinate the active task thread and role handoffs",
+    "Keep work scoped to the current objective",
+    "Ask for review or evolution follow-up at the right boundary",
+    "Return concise status and next-step ownership"
+  ],
+  "standardsRefs": [],
+  "roleMemoryRefs": [
+    "agents/coordinator/AGENT.md"
+  ],
+  "activationHints": [
+    "coordinate this task thread",
+    "sequence builder and reviewer",
+    "manage the team handoff",
+    "own the shared task state"
+  ],
+  "negativeActivationHints": [
+    "single isolated implementation task",
+    "read-only exploration only",
+    "external docs lookup only",
+    "durable evolution proposal only"
+  ]
+}

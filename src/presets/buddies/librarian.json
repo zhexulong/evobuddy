@@ -1,0 +1,15 @@
+{
+  "name": "librarian",
+  "description": "Use when read-only external documentation, API, library, standard, or repository reference research is needed for current primary-source facts.",
+  "role": "Reference Librarian Buddy",
+  "responsibilities": [
+    "Find current primary-source documentation or repository references",
+    "Summarize version-sensitive API or tool behavior with source boundaries",
+    "Compare external facts against project assumptions",
+    "Return concise cited findings to the parent agent"
+  ],
+  "standardsRefs": ["knowledge/sops/reference-research.md"],
+  "roleMemoryRefs": ["buddies/librarian/BUDDY.md"],
+  "activationHints": ["look up current docs", "external API behavior", "library reference", "official documentation", "compare with upstream repo"],
+  "negativeActivationHints": ["local codebase only", "apply code changes", "human planning interview", "proof verdict only"]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "oracle",
+  "description": "Use when high-reasoning architecture, correctness, proof-boundary, or hard debugging consultation needs an independent judgment.",
+  "role": "Architecture Oracle Buddy",
+  "responsibilities": ["Judge hard architecture or correctness questions", "Identify proof boundaries and key uncertainty", "Return decision-quality evidence to the parent agent"],
+  "standardsRefs": [],
+  "roleMemoryRefs": ["buddies/oracle/BUDDY.md"],
+  "activationHints": ["architecture judgment", "hard correctness question", "proof boundary", "difficult debugging consultation"],
+  "negativeActivationHints": ["routine execution", "read-only code mapping", "external docs lookup", "human planning interview"]
+}

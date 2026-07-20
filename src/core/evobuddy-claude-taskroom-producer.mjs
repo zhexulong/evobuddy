@@ -718,13 +718,17 @@ export async function produceClaudeRealtimeForkHandoffTaskRoomProof({
   };
   const evaluated = evaluateForkHandoffReleaseProof(releaseProofInput);
   const controls = naturalInputNegativeControls(parent);
-  const releaseProof = controls.length > 0
-    ? blockedReleaseProof({
-      blockedReasons: ['natural input names mechanism terms; this is explicit-control evidence, not natural product proof'],
-      naturalInputNegativeControls: controls,
-      releaseProof: evaluated,
-    })
-    : { ...evaluated, naturalInputNegativeControls: [] };
+  const releaseProof = {
+    ...(controls.length > 0
+      ? blockedReleaseProof({
+        blockedReasons: ['natural input names mechanism terms; this is explicit-control evidence, not natural product proof'],
+        naturalInputNegativeControls: controls,
+        releaseProof: evaluated,
+      })
+      : { ...evaluated, naturalInputNegativeControls: [] }),
+    reportKind: 'evobuddy-realtime-fork-handoff-taskroom-report',
+    runtime,
+  };
 
   await writeClaudeReleaseArtifacts(out, {
     observedRoot: built.observedRoot,

@@ -618,9 +618,13 @@ export async function produceOpenCodeRealtimeForkHandoffTaskRoomProof({
   };
   const evaluated = evaluateForkHandoffReleaseProof(releaseProofInput);
   const controls = naturalInputNegativeControls(parent);
-  const releaseProof = controls.length > 0
-    ? blockedReleaseProof({ blockedReasons: ['natural input names mechanism terms; this is explicit-control evidence, not natural product proof'], naturalInputNegativeControls: controls, releaseProof: evaluated })
-    : { ...evaluated, naturalInputNegativeControls: [] };
+  const releaseProof = {
+    ...(controls.length > 0
+      ? blockedReleaseProof({ blockedReasons: ['natural input names mechanism terms; this is explicit-control evidence, not natural product proof'], naturalInputNegativeControls: controls, releaseProof: evaluated })
+      : { ...evaluated, naturalInputNegativeControls: [] }),
+    reportKind: 'evobuddy-realtime-fork-handoff-taskroom-report',
+    runtime,
+  };
 
   await writeReleaseArtifacts(out, { observedRoot: built.observedRoot, forkHandoff, releaseProof, sessions: selectedSessions, manifest: built.exporterManifest });
   if (releaseProof.status !== 'pass') {

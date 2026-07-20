@@ -200,6 +200,8 @@ test('writes Codex realtime fork/handoff release proof artifacts from parent spa
     const proof = JSON.parse(readFileSync(join(out, 'evobuddy-fork-handoff-release-proof.json'), 'utf8'));
     assert.equal(proof.status, 'pass');
     assert.equal(proof.proofScope, 'product-observed');
+    assert.equal(proof.runtime, 'codex');
+    assert.equal(proof.reportKind, 'evobuddy-realtime-fork-handoff-taskroom-report');
     assert.equal(proof.forkObserved.status, 'pass');
     assert.equal(proof.handoffObserved.status, 'pass');
     assert.equal(proof.continuityObserved.status, 'pass');

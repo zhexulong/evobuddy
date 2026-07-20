@@ -145,6 +145,8 @@ test('writes Claude realtime fork/handoff release proof artifacts from exported 
     const proof = JSON.parse(readFileSync(join(out, 'evobuddy-fork-handoff-release-proof.json'), 'utf8'));
     assert.equal(proof.status, 'pass');
     assert.equal(proof.proofScope, 'product-observed');
+    assert.equal(proof.runtime, 'claude');
+    assert.equal(proof.reportKind, 'evobuddy-realtime-fork-handoff-taskroom-report');
     assert.equal(proof.forkObserved.status, 'pass');
     assert.equal(proof.handoffObserved.status, 'pass');
     assert.equal(proof.continuityObserved.status, 'pass');

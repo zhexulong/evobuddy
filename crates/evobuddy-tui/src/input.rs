@@ -20,6 +20,7 @@ pub enum KeyInput {
     NextField,
     RuntimeSetup,
     Trace,
+    Evidence,
     Updates,
     ToggleTaskRooms,
     ToggleUpdates,
@@ -163,6 +164,7 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
             app.push_view(ViewMode::TraceDrawer);
             WorkbenchEffect::None
         }
+        KeyInput::Evidence => app.refresh_evidence_effect(),
         KeyInput::Updates => {
             app.focus = FocusPane::Updates;
             app.push_view(ViewMode::Detail(DetailView::Updates));

@@ -129,8 +129,12 @@ fn execute_create_task_room(
         Ok(out) => out,
         Err(error) => return fail(app, format!("{error:#}")),
     };
-    let room_id = json_string_field(&stdout, &["roomId", "id"])
-        .unwrap_or_else(|| draft.objective.trim().to_string());
+    let Some(room_id) = json_string_field(&stdout, &["roomId", "id"]) else {
+        return fail(
+            app,
+            "taskroom create response missing roomId".to_string(),
+        );
+    };
     let title = json_string_field(&stdout, &["title", "objective"])
         .unwrap_or_else(|| draft.objective.trim().to_string());
     let label = if title.is_empty() {
@@ -164,8 +168,12 @@ fn execute_create_handoff(
         Ok(out) => out,
         Err(error) => return fail(app, format!("{error:#}")),
     };
-    let handoff_id =
-        json_string_field(&stdout, &["handoffId", "id"]).unwrap_or_else(|| "handoff".to_string());
+    let Some(handoff_id) = json_string_field(&stdout, &["handoffId", "id"]) else {
+        return fail(
+            app,
+            "taskroom handoff create response missing handoffId".to_string(),
+        );
+    };
     after_mutation_reload(
         app,
         deps,

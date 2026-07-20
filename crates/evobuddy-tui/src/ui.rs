@@ -134,6 +134,7 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
         KeyCode::Char('?') => Some(KeyInput::Help),
         KeyCode::Char('a') if key.modifiers.is_empty() => Some(KeyInput::Actions),
         KeyCode::Char('r') => Some(KeyInput::Trace),
+        KeyCode::Char('e') if key.modifiers.is_empty() => Some(KeyInput::Evidence),
         KeyCode::Char('u') if key.modifiers.is_empty() => Some(KeyInput::Updates),
         KeyCode::Char('b') if key.modifiers.contains(KeyModifiers::CONTROL) => {
             Some(KeyInput::ToggleTaskRooms)
@@ -299,11 +300,8 @@ fn execute_open_native_runtime(
 
     match open_result {
         RuntimeSessionResult::NeedsChoice { plan } => {
-            app.action_status = Some(format!(
-                "choose continuation ({} candidates)",
-                plan.continuation.candidate_count
-            ));
             app.restore_selection(&snapshot);
+            app.present_continuation_choice(&plan);
             return Ok(());
         }
         RuntimeSessionResult::Unsupported { reason, .. } => {
@@ -360,6 +358,18 @@ fn execute_open_native_runtime(
                 }
             }
         }
+    }
+
+    let refresh_room = room_id.to_string();
+    {
+        let mut deps = EffectDeps::production(project_root.clone());
+        let _ = execute_effect(
+            app,
+            WorkbenchEffect::RefreshEvidence {
+                room_id: refresh_room,
+            },
+            &mut deps,
+        );
     }
 
     if let Ok(state) = load_workbench_state(&BackendOptions {

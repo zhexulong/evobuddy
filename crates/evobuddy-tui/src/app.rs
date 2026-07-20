@@ -690,12 +690,61 @@ impl WorkbenchApp {
             .first()
             .map(|participant| participant.id.clone())
             .unwrap_or_default();
-        self.action_status = Some(format!("{} queued", label.to_lowercase()));
+        self.action_status = Some(format!("opening native runtime… ({})", label.to_lowercase()));
         self.push_view(ViewMode::ActionProgress);
         WorkbenchEffect::OpenNativeRuntime {
             room_id,
             instance_id,
         }
+    }
+
+    pub fn present_continuation_choice(
+        &mut self,
+        plan: &crate::session::RuntimeSessionOpenPlan,
+    ) {
+        let choices = plan
+            .continuation
+            .candidates
+            .iter()
+            .map(|candidate| StructuredQuestionChoice {
+                id: candidate.candidate_id.clone(),
+                label: candidate.label.clone(),
+            })
+            .collect::<Vec<_>>();
+        let count = choices.len();
+        self.structured_question = Some(StructuredQuestion {
+            prompt: format!(
+                "Choose continuation ({} candidate{})",
+                count,
+                if count == 1 { "" } else { "s" }
+            ),
+            choices,
+            selected_choice: 0,
+            allows_free_text: false,
+            free_text: String::new(),
+            destination_label: format!(
+                "{} · {}",
+                plan.intent.runtime, plan.intent.agent_instance_id
+            ),
+            effect_label: "Resume with selected candidate".to_string(),
+        });
+        if self.view_mode == ViewMode::ActionProgress {
+            self.pop_view();
+        }
+        self.push_view(ViewMode::StructuredQuestion);
+        self.action_status = Some(format!(
+            "choose continuation ({} candidates)",
+            plan.continuation.candidate_count
+        ));
+    }
+
+    pub fn refresh_evidence_effect(&mut self) -> WorkbenchEffect {
+        let Some(room) = self.selected_task_room() else {
+            return WorkbenchEffect::None;
+        };
+        let room_id = room.id.clone();
+        self.action_status = Some(format!("refreshing evidence for {room_id}…"));
+        WorkbenchEffect::RefreshEvidence { room_id }
     }
 
     pub fn selection_snapshot(&self) -> SelectionSnapshot {

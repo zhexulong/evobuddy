@@ -343,3 +343,168 @@ fn create_handoff_and_answer_question_effects_are_typed_and_must_be_handled() {
         "typed mutation effects must be handled by the UI executor, not discarded"
     );
 }
+
+#[test]
+fn needs_choice_presents_structured_question_with_candidate_labels() {
+    use evobuddy_tui::session::{ContinuationCandidate, ContinuationDecision, RuntimeSessionOpenPlan};
+    use evobuddy_tui::substrate::{CreateSessionRequest, SessionDisplayMetadata, SubstrateSessionRef};
+    use evobuddy_tui::views::ViewMode;
+    use std::ffi::OsString;
+    use std::path::PathBuf;
+
+    let mut app = fixture_app();
+    let plan = RuntimeSessionOpenPlan {
+        schema: "evobuddy.runtime-session-open-plan.v1".to_string(),
+        descriptor_id: "session-1".to_string(),
+        continuation: ContinuationDecision {
+            kind: "heuristic-resume".to_string(),
+            heuristic_candidate_source: Some("resume --last".to_string()),
+            candidate_count: 2,
+            candidates: vec![
+                ContinuationCandidate {
+                    candidate_id: "candidate-1".to_string(),
+                    label: "Latest".to_string(),
+                    provider_conversation_ref: Some("uuid-1".to_string()),
+                    source_ref: "session:1".to_string(),
+                    observed_at: "2026-07-20T00:00:00.000Z".to_string(),
+                    confidence: "medium".to_string(),
+                },
+                ContinuationCandidate {
+                    candidate_id: "candidate-2".to_string(),
+                    label: "Previous".to_string(),
+                    provider_conversation_ref: Some("uuid-2".to_string()),
+                    source_ref: "session:2".to_string(),
+                    observed_at: "2026-07-20T00:10:00.000Z".to_string(),
+                    confidence: "low".to_string(),
+                },
+            ],
+            requires_structured_choice: true,
+            disabled_reason: None,
+        },
+        intent: evobuddy_tui::session::RuntimeSessionIntent {
+            room_id: "taskroom:alpha".to_string(),
+            agent_instance_id: "instance-1".to_string(),
+            runtime: "codex".to_string(),
+            workspace: "/repo".to_string(),
+            launch_mode: "heuristic-resume".to_string(),
+            provider_conversation_ref: None,
+            terminal_session_ref: "tmux:codex:taskroom:alpha:instance-1".to_string(),
+            context_packet_ref: Some("context-packet:alpha".to_string()),
+            safety_mode: "workspace-write".to_string(),
+            expected_evidence_path: "/repo/.evobuddy/evidence-refresh/taskroom:alpha.json"
+                .to_string(),
+            recovery_hint: "reconcile-existing-before-creating-duplicate".to_string(),
+        },
+        create_session_request: CreateSessionRequest {
+            descriptor_id: "session-1".to_string(),
+            session_ref: SubstrateSessionRef(
+                "tmux:codex:taskroom:alpha:instance-1".to_string(),
+            ),
+            launcher_plan_ref: "launch-plan:launch-plan-1".to_string(),
+            program: PathBuf::from("codex"),
+            args: vec![OsString::from("resume")],
+            cwd: PathBuf::from("/repo"),
+            environment_policy_ref: "environment-policy:workspace-write".to_string(),
+            display: SessionDisplayMetadata {
+                participant: "Builder".to_string(),
+                runtime: "codex".to_string(),
+                workspace: "/repo".to_string(),
+                safety_mode: "workspace-write".to_string(),
+                detach_shortcut: "Ctrl+B d".to_string(),
+            },
+        },
+        runtime_capability_ref: "runtime-capability:codex-v1".to_string(),
+        launch_command_ref: "launch-command:codex:heuristic".to_string(),
+    };
+
+    app.present_continuation_choice(&plan);
+
+    assert_eq!(app.view_mode, ViewMode::StructuredQuestion);
+    let question = app.structured_question.as_ref().expect("question");
+    assert_eq!(question.choices.len(), 2);
+    assert_eq!(question.choices[0].id, "candidate-1");
+    assert_eq!(question.choices[0].label, "Latest");
+    assert_eq!(question.choices[1].id, "candidate-2");
+    assert_eq!(question.choices[1].label, "Previous");
+    assert!(
+        !question.allows_free_text,
+        "heuristic resume must not free-text pick silently"
+    );
+}
+
+#[test]
+fn refresh_evidence_runs_refresh_command_and_reloads() {
+    let mut app = fixture_app();
+    let room_id = room_id_from_app(&app);
+    let effect = WorkbenchEffect::RefreshEvidence {
+        room_id: room_id.clone(),
+    };
+    let reloaded = fixture_state();
+    let mut deps = EffectDeps {
+        project: PathBuf::from(&app.state.project_root),
+        run_command: Box::new(move |cmd: &BackendCommand| -> Result<String> {
+            assert!(
+                cmd.args.windows(2).any(|w| w == ["taskroom", "refresh"]),
+                "expected taskroom refresh argv, got {:?}",
+                cmd.args
+            );
+            assert!(
+                cmd.args.iter().any(|a| a == &room_id),
+                "refresh must include room id"
+            );
+            Ok(r#"{"status":"ok"}"#.to_string())
+        }),
+        load_state: Box::new(move || Ok(reloaded.clone())),
+        open_native: None,
+    };
+    let outcome = execute_effect(&mut app, effect, &mut deps).expect("execute");
+    assert!(matches!(
+        outcome,
+        EffectOutcome::StateReloaded | EffectOutcome::None
+    ));
+}
+
+#[test]
+fn create_without_room_id_fails_not_silent_success() {
+    let mut app = fixture_app();
+    app.task_room_form = CreateTaskRoomDraft {
+        objective: "ship".to_string(),
+        acceptance_criteria: String::new(),
+        workspace: String::new(),
+        actor: "builder".to_string(),
+        runtime: "opencode".to_string(),
+        safety_mode: "workspace-write".to_string(),
+    };
+    let effect = app.submit_task_room_form();
+    let mut deps = EffectDeps {
+        project: PathBuf::from(&app.state.project_root),
+        run_command: Box::new(|_cmd| Ok(r#"{"title":"no-id"}"#.to_string())),
+        load_state: Box::new(|| bail!("should not reload on missing roomId")),
+        open_native: None,
+    };
+    let outcome = execute_effect(&mut app, effect, &mut deps).expect("execute");
+    assert!(matches!(outcome, EffectOutcome::Failed { .. }));
+    assert!(
+        app.action_status
+            .as_deref()
+            .is_some_and(|s| s.contains("roomId") || s.contains("failed")),
+        "got {:?}",
+        app.action_status
+    );
+}
+
+#[test]
+fn open_native_progress_status_is_not_mock_queued() {
+    let mut app = fixture_app();
+    let effect = app.open_native_runtime_effect();
+    assert!(matches!(effect, WorkbenchEffect::OpenNativeRuntime { .. }));
+    let status = app.action_status.as_deref().unwrap_or("");
+    assert!(
+        !status.contains("queued"),
+        "must not use mock queue wording, got {status}"
+    );
+    assert!(
+        status.contains("opening") || status.contains("native"),
+        "got {status}"
+    );
+}

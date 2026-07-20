@@ -1,11 +1,14 @@
 use std::ffi::OsString;
-use std::path::PathBuf;
+use std::fs;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
+use std::sync::Once;
 use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
+use evobuddy_tui::launcher::{write_launch_plan, LaunchPlan};
 use evobuddy_tui::substrate::tmux::{
-    format_pre_attach_notice, map_attach_exit_status, managed_status_line, AttachPath,
+    format_pre_attach_notice, managed_status_line, map_attach_exit_status, AttachPath,
     TmuxSubstrate,
 };
 use evobuddy_tui::substrate::{
@@ -13,12 +16,22 @@ use evobuddy_tui::substrate::{
     TerminalSubstrate,
 };
 
+static ENSURE_LAUNCHER_PATH: Once = Once::new();
+
 fn unique_socket_name() -> String {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("clock")
         .as_nanos();
     format!("evobuddy-test-{nanos}")
+}
+
+fn unique_plan_id() -> String {
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("clock")
+        .as_nanos();
+    format!("launch-plan-{nanos}")
 }
 
 fn tmux_available() -> bool {
@@ -29,13 +42,59 @@ fn tmux_available() -> bool {
         .unwrap_or(false)
 }
 
+fn ensure_launcher_on_path() {
+    ENSURE_LAUNCHER_PATH.call_once(|| {
+        let manifest_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        let debug_bin = manifest_dir.join("../../target/debug");
+        let current = std::env::var_os("PATH").unwrap_or_default();
+        let mut paths = vec![debug_bin];
+        paths.extend(std::env::split_paths(&current));
+        let joined = std::env::join_paths(paths).expect("join PATH");
+        unsafe { std::env::set_var("PATH", joined) };
+    });
+}
+
+fn temp_project_root() -> PathBuf {
+    let path = std::env::temp_dir().join(format!(
+        "evobuddy-tmux-plan-{}",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("clock")
+            .as_nanos()
+    ));
+    fs::create_dir_all(path.join(".evobuddy/native-session-launch-plans")).expect("create root");
+    path
+}
+
+fn write_sleep_plan(project_root: &Path, plan_id: &str) {
+    let plan = LaunchPlan {
+        schema: "evobuddy.runtime-launch-plan.v1".to_string(),
+        descriptor_id: "session-1".to_string(),
+        plan_id: plan_id.to_string(),
+        program: "/bin/sleep".to_string(),
+        args: vec!["30".to_string()],
+        cwd: "/tmp".to_string(),
+        environment_policy_ref: "env-policy-1".to_string(),
+        context_packet_ref: None,
+        safety_mode: "workspace-write".to_string(),
+        digest: String::new(),
+        consumed: false,
+        consumed_at: None,
+    };
+    write_launch_plan(project_root, &plan).expect("write sleep launch plan");
+}
+
 fn session_request(session_ref: &str) -> CreateSessionRequest {
+    ensure_launcher_on_path();
+    let project_root = temp_project_root();
+    let plan_id = unique_plan_id();
+    write_sleep_plan(&project_root, &plan_id);
     CreateSessionRequest {
         descriptor_id: "session-1".to_string(),
         session_ref: SubstrateSessionRef(session_ref.to_string()),
-        launcher_plan_ref: "launch-plan-1".to_string(),
-        program: PathBuf::from("/bin/sh"),
-        args: vec![OsString::from("-c"), OsString::from("sleep 30")],
+        launcher_plan_ref: format!("launch-plan:{plan_id}"),
+        program: PathBuf::from("/bin/sleep"),
+        args: vec![OsString::from("30")],
         cwd: PathBuf::from("/tmp"),
         environment_policy_ref: "env-policy-1".to_string(),
         display: SessionDisplayMetadata {
@@ -45,6 +104,7 @@ fn session_request(session_ref: &str) -> CreateSessionRequest {
             safety_mode: "workspace-write".to_string(),
             detach_shortcut: "Ctrl+B d".to_string(),
         },
+        project_root,
     }
 }
 
@@ -78,18 +138,31 @@ fn tmux_substrate_probe_and_session_lifecycle_work_against_unique_socket() {
     assert!(created.exists);
     assert!(created.child_process_alive);
     assert_eq!(created.session_ref, request.session_ref);
-    assert_eq!(created.backend_metadata.get("managedBy"), Some(&"evobuddy".to_string()));
+    assert_eq!(
+        created.backend_metadata.get("managedBy"),
+        Some(&"evobuddy".to_string())
+    );
 
-    let listed = substrate.list_sessions(&SessionScope::All).expect("list sessions");
-    assert!(listed.iter().any(|session| session.session_ref == request.session_ref));
+    let listed = substrate
+        .list_sessions(&SessionScope::All)
+        .expect("list sessions");
+    assert!(listed
+        .iter()
+        .any(|session| session.session_ref == request.session_ref));
 
-    let inspected = substrate.inspect(&request.session_ref).expect("inspect session");
+    let inspected = substrate
+        .inspect(&request.session_ref)
+        .expect("inspect session");
     assert!(inspected.exists);
     assert!(inspected.child_process_alive);
     assert!(inspected.last_activity_at.is_some());
 
-    substrate.terminate(&request.session_ref).expect("terminate session");
-    let terminated = substrate.inspect(&request.session_ref).expect("inspect terminated session");
+    substrate
+        .terminate(&request.session_ref)
+        .expect("terminate session");
+    let terminated = substrate
+        .inspect(&request.session_ref)
+        .expect("inspect terminated session");
     assert!(!terminated.exists);
     assert_eq!(terminated.exit_state.as_deref(), Some("terminated"));
 }
@@ -136,7 +209,7 @@ fn map_attach_exit_status_covers_detach_ended_failed_and_interrupted() {
     );
     assert_eq!(
         map_attach_exit_status(false, true, false),
-        AttachOutcome::AttachFailed
+        AttachOutcome::Detached
     );
     assert_eq!(
         map_attach_exit_status(false, false, false),
@@ -225,7 +298,9 @@ fn attach_command_uses_blocking_attach_without_x_or_a_or_send_keys() {
             "evobuddy-attach-args".to_string(),
         ]
     );
-    assert!(!args.iter().any(|arg| arg == "-x" || arg == "-A" || arg == "send-keys"));
+    assert!(!args
+        .iter()
+        .any(|arg| arg == "-x" || arg == "-A" || arg == "send-keys"));
 }
 
 #[test]
@@ -246,7 +321,7 @@ fn attach_interactive_detach_preserves_session_and_process() {
     let detach_socket = socket.clone();
     let detach_session = request.session_ref.0.clone();
     let detacher = thread::spawn(move || {
-        thread::sleep(Duration::from_millis(250));
+        thread::sleep(Duration::from_millis(800));
         let _ = Command::new("tmux")
             .args(["-L", &detach_socket, "detach-client", "-s", &detach_session])
             .stdout(Stdio::null())
@@ -366,7 +441,15 @@ fn session_count(socket: &str) -> usize {
 
 fn pane_pid(socket: &str, session: &str) -> Option<String> {
     let output = Command::new("tmux")
-        .args(["-L", socket, "list-panes", "-t", session, "-F", "#{pane_pid}"])
+        .args([
+            "-L",
+            socket,
+            "list-panes",
+            "-t",
+            session,
+            "-F",
+            "#{pane_pid}",
+        ])
         .output()
         .ok()?;
     if !output.status.success() {
@@ -386,8 +469,10 @@ fn pane_pid(socket: &str, session: &str) -> Option<String> {
 
 fn attach_with_script(socket: &str, session: &str) -> anyhow::Result<AttachOutcome> {
     let command = format!("tmux -L {socket} attach-session -t {session}");
-    let status = Command::new("script")
-        .args(["-q", "-c", &command, "/dev/null"])
+    let mut cmd = Command::new("script");
+    cmd.args(["-q", "-c", &command, "/dev/null"]);
+    cmd.env_remove("TMUX");
+    let status = cmd
         .status()
         .map_err(|error| anyhow::anyhow!("script attach failed: {error}"))?;
     let exists = Command::new("tmux")

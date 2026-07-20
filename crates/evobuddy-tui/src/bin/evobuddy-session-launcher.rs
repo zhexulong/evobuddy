@@ -1,4 +1,4 @@
-use evobuddy_tui::launcher::load_launch_plan;
+use evobuddy_tui::launcher::consume_launch_plan;
 use std::env;
 use std::os::unix::process::CommandExt;
 use std::path::PathBuf;
@@ -14,7 +14,7 @@ fn read_arg(flag: &str) -> Option<String> {
 fn main() {
     let project_root = PathBuf::from(read_arg("--project-root").unwrap_or_default());
     let plan_id = read_arg("--plan-id").unwrap_or_default();
-    let plan = match load_launch_plan(&project_root, &plan_id) {
+    let plan = match consume_launch_plan(&project_root, &plan_id) {
         Ok(plan) => plan,
         Err(error) => {
             eprintln!("{error}");

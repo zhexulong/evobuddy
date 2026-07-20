@@ -60,7 +60,10 @@ impl TerminalSubstrate for FakeTerminalSubstrate {
             last_activity_at: Some("2026-07-20T00:00:00.000Z".to_string()),
             exit_state: None,
             backend_metadata: BTreeMap::from([
-                ("participant".to_string(), request.display.participant.clone()),
+                (
+                    "participant".to_string(),
+                    request.display.participant.clone(),
+                ),
                 ("runtime".to_string(), request.display.runtime.clone()),
                 ("taskroomStateDerived".to_string(), "false".to_string()),
             ]),

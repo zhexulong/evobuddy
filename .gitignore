@@ -44,3 +44,6 @@ coverage/
 *.bak
 *.bak-test
 .worktrees/
+
+# Documentation is local-only (not product source of truth for release)
+docs/

@@ -5,6 +5,7 @@ import { createRuntimeCapabilityDescriptor, deriveContinuationAction } from './e
 import { readEvobuddyWorkbenchArtifacts } from './evobuddy-workbench-artifacts.mjs';
 import { resolveEvobuddyProjectState } from './evobuddy-project-state.mjs';
 import { readRecentUpdateSummary } from './evobuddy-update-summary.mjs';
+import { projectTaskRoomsForWorkbench } from './evobuddy-taskroom-mutation.mjs';
 
 const TEAM_AGENT_ROLE_FALLBACKS = Object.freeze({
   builder: 'Builds and revises changes',
@@ -411,9 +412,23 @@ export async function exportEvobuddyWorkbenchState({
   const buddiesRegistry = readJsonIfExists(state.registryPath, [], undefined) ?? { version: '1', members: [] };
   const nativeSessionBlockedReasons = [];
   const nativeSessions = await buildNativeSessions(resolvedProjectRoot, nativeSessionBlockedReasons);
-  const runtimeSetup = buildRuntimeSetup(artifacts.plan2, normalizeTaskRooms(artifacts.taskRoomReports, [], generatedAt), artifacts.blockedReasons);
+
+  let durableRooms = [];
+  const durableBlockedReasons = [];
+  try {
+    durableRooms = await projectTaskRoomsForWorkbench(resolvedProjectRoot);
+  } catch (error) {
+    durableBlockedReasons.push(`failed to project durable taskrooms: ${error.message}`);
+  }
+
+  const reportRooms = normalizeTaskRooms(artifacts.taskRoomReports, [], generatedAt);
+  // Prefer durable rooms for interactive path; fixtures remain for read-only compatibility when no durable rooms.
+  const roomsForSetup = durableRooms.length > 0 ? durableRooms : reportRooms;
+  const runtimeSetup = buildRuntimeSetup(artifacts.plan2, roomsForSetup, artifacts.blockedReasons);
   const runtimeCapabilities = buildRuntimeCapabilities(runtimeSetup);
-  const taskRooms = normalizeTaskRooms(artifacts.taskRoomReports, runtimeCapabilities, generatedAt);
+  // Re-normalize report rooms with capabilities for fixture path; durable rooms already have availableActions.
+  const normalizedReportRooms = normalizeTaskRooms(artifacts.taskRoomReports, runtimeCapabilities, generatedAt);
+  const taskRooms = mergeTaskRooms(durableRooms, normalizedReportRooms, runtimeCapabilities);
   const teamAgentNames = deriveTeamAgentNames(artifacts, taskRooms);
   const focusedBuddyNames = deriveFocusedBuddyNames(artifacts, buddiesRegistry);
 
@@ -433,7 +448,27 @@ export async function exportEvobuddyWorkbenchState({
     diagnostics: {
       claimCeiling: 'TUI state visualization; not runtime proof',
       hiddenProofFieldsPresent: false,
-      blockedReasons: [...list(artifacts.blockedReasons), ...nativeSessionBlockedReasons].map((reason) => sanitizeText(reason)).filter(Boolean),
+      blockedReasons: [...list(artifacts.blockedReasons), ...nativeSessionBlockedReasons, ...durableBlockedReasons]
+        .map((reason) => sanitizeText(reason))
+        .filter(Boolean),
     },
   };
+}
+
+function mergeTaskRooms(durableRooms, reportRooms, runtimeCapabilities) {
+  const byId = new Map();
+  for (const room of reportRooms) {
+    byId.set(room.id, room);
+  }
+  for (const room of durableRooms) {
+    // Durable rooms win on id collision (interactive authority).
+    const withActions = room.availableActions?.length
+      ? room
+      : {
+        ...room,
+        availableActions: buildTaskRoomActions(room, runtimeCapabilities),
+      };
+    byId.set(room.id, withActions);
+  }
+  return [...byId.values()].sort((left, right) => String(left.id).localeCompare(String(right.id)));
 }

@@ -12,6 +12,11 @@ import { classifySessionReconciliation, commitNativeSession, listNativeSessions,
 import { createRuntimeSessionOpenPlan, getRuntimeSessionAdapter, buildManagedTerminalSessionRef } from '../../src/core/evobuddy-runtime-session-router.mjs';
 import { installOpenCodeMemberInstructions } from '../../src/install/opencode-member-instructions.mjs';
 import { generateRecentUpdateSummary, readRecentUpdateSummary } from '../../src/core/evobuddy-update-summary.mjs';
+import {
+  createHandoffFromDraft,
+  createTaskRoomFromDraft,
+} from '../../src/core/evobuddy-taskroom-mutation.mjs';
+import { listTaskRooms } from '../../src/core/evobuddy-taskroom-store.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const PACKAGE_JSON = JSON.parse(await readFile(join(REPO_ROOT, 'package.json'), 'utf8'));
@@ -34,6 +39,9 @@ function usage() {
   evobuddy buddies invoke <buddyName> --task <text> --project <path>
   evobuddy buddies sync --project <path>
   evobuddy workbench --project <path>
+  evobuddy taskroom create --project <path> --objective <text> --runtime <name> --json
+  evobuddy taskroom handoff create --project <path> --room <id> --from <id> --to <id> --body <text> --json
+  evobuddy taskroom list --project <path> --json
   evobuddy taskroom session reserve --project <path> --room <id> --instance <id> --runtime <name>
   evobuddy taskroom session plan-open --project <path> --room <id> --instance <id> --runtime <name> --json
   evobuddy evolution apply --project <path> --patch <path>
@@ -163,6 +171,14 @@ function parseFlags(argv) {
     else if (arg === '--context-packet-ref') parsed.contextPacketRef = requireValue(argv, i += 1, arg);
     else if (arg === '--provider-conversation-ref') parsed.providerConversationRef = requireValue(argv, i += 1, arg);
     else if (arg === '--safety-mode') parsed.safetyMode = requireValue(argv, i += 1, arg);
+    else if (arg === '--objective') parsed.objective = requireValue(argv, i += 1, arg);
+    else if (arg === '--title') parsed.title = requireValue(argv, i += 1, arg);
+    else if (arg === '--actor') parsed.actor = requireValue(argv, i += 1, arg);
+    else if (arg === '--from') parsed.from = requireValue(argv, i += 1, arg);
+    else if (arg === '--to') parsed.to = requireValue(argv, i += 1, arg);
+    else if (arg === '--body') parsed.body = requireValue(argv, i += 1, arg);
+    else if (arg === '--acceptance') parsed.acceptanceCriteria = requireValue(argv, i += 1, arg);
+    else if (arg === '--acceptance-criteria') parsed.acceptanceCriteria = requireValue(argv, i += 1, arg);
     else if (arg === '--json-out') parsed.jsonOut = requireValue(argv, i += 1, arg);
     else if (arg === '--input-root') parsed.inputRoot = requireValue(argv, i += 1, arg);
     else if (arg === '--aggregate-report') parsed.aggregateReport = requireValue(argv, i += 1, arg);
@@ -182,8 +198,11 @@ function parseFlags(argv) {
   return parsed;
 }
 
-function taskroomSessionHelp() {
+function taskroomHelp() {
   return `Usage:
+  evobuddy taskroom create --project <path> --objective <text> --runtime <name> [--title <text>] [--actor <name>] [--workspace <path>] [--safety-mode <mode>] [--acceptance <text>] --json
+  evobuddy taskroom handoff create --project <path> --room <id> --from <id> --to <id> --body <text> --json
+  evobuddy taskroom list --project <path> --json
   evobuddy taskroom session reserve --project <path> --room <id> --instance <id> --runtime <name> [--workspace <path>] [--participant <name>] [--json]
   evobuddy taskroom session plan-open --project <path> --room <id> --instance <id> --runtime <name> [--workspace <path>] [--mode <kind>] [--participant <name>] [--json]
   evobuddy taskroom session commit --project <path> --descriptor <id> --substrate-ref <ref> [--json]
@@ -191,6 +210,60 @@ function taskroomSessionHelp() {
   evobuddy taskroom session reconcile --project <path> [--json]
   evobuddy taskroom refresh --project <path> --room <id> [--json]
 `;
+}
+
+function taskroomSessionHelp() {
+  return taskroomHelp();
+}
+
+async function taskroomCreate(argv) {
+  if (argv.includes('--help') || argv.includes('-h')) return { stdout: taskroomHelp() };
+  const args = parseFlags(argv);
+  if (!args.project) throw new Error('missing value for --project');
+  if (!args.objective) throw new Error('missing value for --objective');
+  if (!args.runtime) throw new Error('missing value for --runtime');
+  const projectRoot = resolve(args.project);
+  await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  const room = await createTaskRoomFromDraft(projectRoot, {
+    objective: args.objective,
+    acceptanceCriteria: args.acceptanceCriteria,
+    workspace: args.workspace ? resolve(args.workspace) : projectRoot,
+    actor: args.actor,
+    runtime: args.runtime,
+    safetyMode: args.safetyMode,
+    title: args.title,
+  });
+  return { stdout: args.json ? `${JSON.stringify(room)}\n` : `${room.roomId}\n` };
+}
+
+async function taskroomHandoffCreate(argv) {
+  if (argv.includes('--help') || argv.includes('-h')) return { stdout: taskroomHelp() };
+  const args = parseFlags(argv);
+  if (!args.project) throw new Error('missing value for --project');
+  if (!args.room) throw new Error('missing value for --room');
+  if (!args.from) throw new Error('missing value for --from');
+  if (!args.to) throw new Error('missing value for --to');
+  if (!args.body) throw new Error('missing value for --body');
+  const projectRoot = resolve(args.project);
+  await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  const handoff = await createHandoffFromDraft(projectRoot, {
+    roomId: args.room,
+    from: args.from,
+    to: args.to,
+    body: args.body,
+  });
+  return { stdout: args.json ? `${JSON.stringify(handoff)}\n` : `${handoff.handoffId}\n` };
+}
+
+async function taskroomList(argv) {
+  if (argv.includes('--help') || argv.includes('-h')) return { stdout: taskroomHelp() };
+  const args = parseFlags(argv);
+  if (!args.project) throw new Error('missing value for --project');
+  const projectRoot = resolve(args.project);
+  await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  const rooms = await listTaskRooms(projectRoot);
+  const payload = { schema: 'evobuddy.taskroom-list.v1', rooms };
+  return { stdout: args.json ? `${JSON.stringify(payload)}\n` : `${rooms.map((room) => room.roomId).join('\n')}${rooms.length ? '\n' : ''}` };
 }
 
 async function taskroomSessionReserve(argv) {
@@ -269,6 +342,21 @@ async function taskroomSessionInspect(argv) {
   if (!args.descriptor) throw new Error('missing value for --descriptor');
   const descriptor = await readNativeSession(resolve(args.project), args.descriptor);
   return { stdout: args.json ? `${JSON.stringify(descriptor)}\n` : `${descriptor.descriptorId}\n` };
+}
+
+async function taskroomSessionList(argv) {
+  if (argv.includes('--help') || argv.includes('-h')) return { stdout: taskroomSessionHelp() };
+  const args = parseFlags(argv);
+  if (!args.project) throw new Error('missing value for --project');
+  const descriptors = await listNativeSessions(resolve(args.project));
+  if (args.json) {
+    return { stdout: `${JSON.stringify(descriptors)}\n` };
+  }
+  return {
+    stdout: descriptors.length === 0
+      ? ''
+      : `${descriptors.map((descriptor) => descriptor.descriptorId).join('\n')}\n`,
+  };
 }
 
 async function taskroomSessionReconcile(argv) {
@@ -612,6 +700,9 @@ async function dispatch(argv) {
   if (command === 'setup') return setupProject(argv.slice(1));
   if (command === 'doctor') return doctor(argv.slice(1));
   if (command === 'workbench') return workbench(argv.slice(1));
+  if (command === 'taskroom' && subcommand === 'create') return taskroomCreate([action, ...rest].filter((value) => value !== undefined));
+  if (command === 'taskroom' && subcommand === 'list') return taskroomList([action, ...rest].filter((value) => value !== undefined));
+  if (command === 'taskroom' && subcommand === 'handoff' && action === 'create') return taskroomHandoffCreate(rest);
   if (command === 'taskroom' && subcommand === 'session' && action === 'reserve') return taskroomSessionReserve(rest);
   if (command === 'taskroom' && subcommand === 'session' && action === 'plan-open') return taskroomSessionPlanOpen(rest);
   if (command === 'taskroom' && subcommand === 'session' && action === 'commit') return taskroomSessionCommit(rest);

@@ -1,0 +1,11 @@
+{
+  "kind": "agent-runtime-parent-invocation-harness",
+  "executorKind": "agent-runtime-parent-invocation-harness",
+  "fixture": false,
+  "invocationId": "call_XSQjQMEsBpqLmn2V6ipg0T4z",
+  "parentInvocationRef": "./explicit-member-parent-invocation.json",
+  "answer": "Agent-runtime explicit member answer: CTREE-SURVIVE-authorized-explicit-member-activation ROLE-CANARY-live-member TARGET-CANARY-live-member TARGET-CANARY-live-member.",
+  "answerDigest": "sha256:9b5a93c109a58a336053c2b084e45b58fe47ba57a9add1f0ad53da52a3d3d62c",
+  "inputDigest": "sha256:6523ea3c2531dc79fc0546e0623ebac530c3d41bedd663c79a9f193f420a70b6",
+  "executedAt": "2026-07-09T14:55:25.560Z"
+}

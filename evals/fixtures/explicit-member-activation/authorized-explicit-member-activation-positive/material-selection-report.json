@@ -1,0 +1,106 @@
+{
+  "reportId": "sha256:2a12cb4a803ba33c841cabbec",
+  "memberName": "skill-designer",
+  "activationPoint": {
+    "createdAt": "2026-07-09T12:34:56.000Z",
+    "taskRef": "cp-authorized-explicit-member-activation",
+    "turnId": "authorized-explicit-parent-turn"
+  },
+  "taskKind": "review",
+  "inputRefs": [
+    "fixtures/member-task-runs/skill-designer.json",
+    "docs/codex-native-spawn-acceptance-runbook.md",
+    "docs/role-memory/skill-designer-corrections.md"
+  ],
+  "explicitRequestedRefs": [
+    "docs/codex-native-spawn-acceptance-runbook.md"
+  ],
+  "candidates": [
+    {
+      "ref": "fixtures/member-task-runs/skill-designer.json",
+      "kind": "profile",
+      "source": "registry",
+      "lifecycleStatus": "member-profile",
+      "explicit": false,
+      "rank": 10,
+      "rankGroup": "baseline-profile",
+      "reasons": [
+        "resolved member profile"
+      ],
+      "selected": true,
+      "placement": "m0"
+    },
+    {
+      "ref": "docs/role-memory/skill-designer-corrections.md",
+      "kind": "role-memory",
+      "source": "role-history",
+      "lifecycleStatus": "active",
+      "explicit": false,
+      "rank": 11,
+      "rankGroup": "baseline-role-memory",
+      "reasons": [
+        "active role memory baseline"
+      ],
+      "selected": true,
+      "placement": "m0"
+    },
+    {
+      "ref": "docs/codex-native-spawn-acceptance-runbook.md",
+      "kind": "target",
+      "source": "task-target",
+      "lifecycleStatus": "target-material",
+      "explicit": true,
+      "rank": 12,
+      "rankGroup": "activation-target",
+      "reasons": [
+        "task target ref"
+      ],
+      "selected": true,
+      "placement": "m1"
+    },
+    {
+      "ref": "docs/codex-native-spawn-acceptance-runbook.md",
+      "kind": "requested-material",
+      "source": "requested-material",
+      "lifecycleStatus": "target-material",
+      "explicit": true,
+      "rank": 13,
+      "rankGroup": "requested-readable",
+      "reasons": [
+        "explicit requested readable material"
+      ],
+      "selected": true,
+      "placement": "m1"
+    }
+  ],
+  "finalM0Refs": [
+    "fixtures/member-task-runs/skill-designer.json",
+    "docs/role-memory/skill-designer-corrections.md"
+  ],
+  "finalM1Refs": [
+    "docs/codex-native-spawn-acceptance-runbook.md"
+  ],
+  "baselineRefs": [
+    "fixtures/member-task-runs/skill-designer.json",
+    "docs/role-memory/skill-designer-corrections.md"
+  ],
+  "invocationRequestedRefs": [
+    "docs/codex-native-spawn-acceptance-runbook.md"
+  ],
+  "compatibility": {
+    "finalM0Refs": [
+      "fixtures/member-task-runs/skill-designer.json",
+      "docs/role-memory/skill-designer-corrections.md"
+    ],
+    "finalM1Refs": [
+      "docs/codex-native-spawn-acceptance-runbook.md"
+    ]
+  },
+  "mountedRefs": [],
+  "searchableRefs": [],
+  "sourceOnlyRefs": [],
+  "trimmingDecisions": [],
+  "knownLosses": [
+    "Selection and placement are accounting only; they are not visibility proof or consumption proof."
+  ]
+}

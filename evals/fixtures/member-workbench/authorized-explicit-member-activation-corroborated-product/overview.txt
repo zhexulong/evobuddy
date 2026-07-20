@@ -1,0 +1,14 @@
+Context Tree Workbench
+
+Experts
+- Skill Designer (skill-designer) | Available | load 1/1
+
+Tasks
+- mtr-skill-designer-review-20260709123456 | Skill Designer | Returned | Review the delegated d...
+
+Selected Expert
+Name: Skill Designer (skill-designer)
+Role: Skill Designer
+Availability: Available
+Current load: 1/1
+Last task: mtr-skill-designer-review-20260709123456 — Returned

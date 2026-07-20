@@ -1,0 +1,10 @@
+Use case: infographic-diagram
+Asset type: external-facing architecture explainer, 16:9 slide image
+Primary request: A clean presentation-style architecture infographic explaining Context Tree for AI coding agents.
+Scene/backdrop: white background with subtle blue/teal/purple gradient accents.
+Subject: central parent agent session timeline, checkpoint marker, context fork to an independent reviewer/oracle agent, and returned result plus evidence.
+Style/medium: modern flat vector infographic, crisp rounded cards, arrows, small agent/session icons.
+Composition/framing: Parent Agent on the left, Checkpoint in the middle, Reviewer/Oracle on the upper right, Result + Evidence returning to the parent. Add a grey dashed side panel for weaker baselines: Manual Summary and Doc-only Review.
+Text (verbatim): "Context Tree", "Parent Agent", "Checkpoint", "Context Fork", "Reviewer / Oracle", "Result + Evidence", "Manual Summary", "Doc-only", "Weak baselines".
+Constraints: minimal readable text only; make the main flow visually dominant; show manual summary and doc-only as grey/lossy alternatives, not the target path.
+Avoid: logos, watermarks, long paragraphs, tiny text, noisy background, photorealism.

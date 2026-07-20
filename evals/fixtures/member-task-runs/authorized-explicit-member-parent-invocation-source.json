@@ -1,0 +1,21 @@
+{
+  "kind": "explicit-member-parent-invocation-source",
+  "observerKind": "parent-agent-runtime-observer",
+  "observerSurface": "runtime-tool",
+  "sourceThreadId": "parent-thread-agent-runtime-1",
+  "parentTurnId": "parent-turn-agent-runtime-1",
+  "invocationId": "explicit-invocation-agent-runtime-1",
+  "invocationSurface": "cli-called-by-agent",
+  "route": "authorized-explicit-member-activation",
+  "memberName": "skill-designer",
+  "resolvedMemberId": "mem-sd-001",
+  "expectedInputDigest": "*",
+  "sourceKind": "fixture",
+  "provenanceRefs": [
+    {
+      "kind": "fixture",
+      "ref": "evals/fixtures/member-task-runs/authorized-explicit-member-parent-invocation-source.json"
+    }
+  ],
+  "observedAt": "2026-07-09T12:00:00.000Z"
+}

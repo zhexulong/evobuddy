@@ -1,0 +1,35 @@
+{
+  "kind": "member-invocation-packet",
+  "memberName": "skill-designer",
+  "memberTaskRequestRef": "./member-task-request.json",
+  "memberContextRenderRef": "./member-context-render.json",
+  "materialSelectionReportRef": "./material-selection-report.json",
+  "task": {
+    "kind": "review",
+    "question": "Review the delegated design-analysis path through the explicit executor route and return the member result to the parent agent.",
+    "targetRefs": [
+      "docs/codex-native-spawn-acceptance-runbook.md"
+    ]
+  },
+  "expectedResultReturn": "parent-agent",
+  "preparedChildInput": {
+    "kind": "prompt-text",
+    "text": "Retained explicit member packet for the corroborated product fixture. Full prepared prompt is stored in member-task-request.json."
+  },
+  "preparedChildInputDigest": "sha256:6523ea3c2531dc79fc0546e0623ebac530c3d41bedd663c79a9f193f420a70b6",
+  "m0Refs": [
+    "fixtures/member-task-runs/skill-designer.json"
+  ],
+  "m1Refs": [
+    "fixtures/member-task-runs/skill-designer.json",
+    "docs/role-memory/skill-designer-corrections.md",
+    "docs/codex-native-spawn-acceptance-runbook.md"
+  ],
+  "targetRefs": [
+    "docs/codex-native-spawn-acceptance-runbook.md"
+  ],
+  "writeback": {
+    "expectedResultReturn": "parent-agent"
+  },
+  "invocationPacketDigest": "sha256:retained-corrob-explicit-member-packet"
+}

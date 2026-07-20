@@ -1,0 +1,201 @@
+{
+  "reportKind": "codex-context-fork-capability",
+  "workflowEvalIncluded": false,
+  "summary": {
+    "nativeForkPass": false,
+    "spawnPass": false,
+    "nativeSpawnPass": false,
+    "threadForkPass": false,
+    "summaryBaselinePass": false,
+    "regressions": [],
+    "inconclusive": [],
+    "acceptanceTiers": {
+      "provider-forced-live-runtime": "not-run",
+      "natural-skill-request": "not-run",
+      "natural-provider-driven-native-spawn": "not-run",
+      "authorized-natural-native-spawn": "not-run",
+      "authorized-explicit-member-activation": "pass"
+    },
+    "explicitMemberActivationPass": true,
+    "explicitMemberMechanismPass": true,
+    "reviewerRuntimeDiagnoses": [],
+    "nativeSpawnLifecyclePass": false,
+    "lifecycleVerdicts": [
+      {
+        "caseId": "authorized-explicit-member-activation",
+        "status": "pass",
+        "checked": true,
+        "issueCount": 0
+      }
+    ],
+    "materialSelectionModes": {
+      "nativeFork": {
+        "pass": 0,
+        "fail": 0,
+        "inconclusive": 0,
+        "invalidPass": 0
+      },
+      "nativeSessionFork": {
+        "pass": 0,
+        "fail": 0,
+        "inconclusive": 0,
+        "invalidPass": 0
+      },
+      "platformSelectedContext": {
+        "pass": 0,
+        "fail": 0,
+        "inconclusive": 0,
+        "invalidPass": 0
+      },
+      "searchableHistory": {
+        "pass": 0,
+        "fail": 0,
+        "inconclusive": 0,
+        "invalidPass": 0
+      },
+      "historySupplemented": {
+        "pass": 0,
+        "fail": 0,
+        "inconclusive": 0,
+        "invalidPass": 0
+      },
+      "stagedDocs": {
+        "pass": 0,
+        "fail": 0,
+        "inconclusive": 0,
+        "invalidPass": 0
+      },
+      "summaryOnly": {
+        "pass": 0,
+        "fail": 0,
+        "inconclusive": 0,
+        "invalidPass": 0
+      }
+    }
+  },
+  "caseResults": [
+    {
+      "caseId": "authorized-explicit-member-activation",
+      "sourceThreadId": "ses_0bcc95a31ffeVZfipxaIEjOm5R",
+      "memberName": "skill-designer",
+      "requestedMember": "skill-designer",
+      "resolvedMemberId": "mem-sd-001",
+      "expectedCanaries": [
+        "CTREE-SURVIVE-authorized-explicit-member-activation"
+      ],
+      "forbiddenCanaries": [
+        "CTREE-USER-authorized-explicit-member-activation",
+        "CTREE-DECISION-authorized-explicit-member-activation",
+        "CTREE-TOOL-authorized-explicit-member-activation",
+        "CTREE-PRECOMPACT-authorized-explicit-member-activation",
+        "CTREE-COMPACT-SUMMARY-authorized-explicit-member-activation",
+        "CTREE-POSTCOMPACT-authorized-explicit-member-activation",
+        "CTREE-ROLLBACK-authorized-explicit-member-activation"
+      ],
+      "observedAnswer": "Agent-runtime explicit member answer: CTREE-SURVIVE-authorized-explicit-member-activation ROLE-CANARY-live-member TARGET-CANARY-live-member TARGET-CANARY-live-member.",
+      "acceptanceTier": {
+        "id": "authorized-explicit-member-activation",
+        "mechanism": "authorized-explicit-member-executor",
+        "scope": "real-task-member-activation",
+        "runtimeNativeSpawn": false,
+        "autonomousTrigger": false,
+        "defaultRegression": false,
+        "productRole": "mechanism-proof"
+      },
+      "executorProof": {
+        "authority": "agent-runtime",
+        "authoritySource": "adapter-observed",
+        "fixture": false,
+        "kind": "agent-runtime-parent-invocation-harness",
+        "executorKind": "agent-runtime-parent-invocation-harness",
+        "method": "context-tree-explicit-member-executor",
+        "api": "context-tree-explicit-member-executor",
+        "executorPath": "scripts/context-tree/explicit-member-executor-agent-runtime-harness.mjs",
+        "outputRef": "./explicit-member-executor-output.json",
+        "observationRef": "./explicit-member-executor-observation.json",
+        "inputRef": "./explicit-member-executor-input.json",
+        "inputDigest": "sha256:6523ea3c2531dc79fc0546e0623ebac530c3d41bedd663c79a9f193f420a70b6",
+        "outputDigest": "sha256:9b5a93c109a58a336053c2b084e45b58fe47ba57a9add1f0ad53da52a3d3d62c",
+        "observedInputDigest": "sha256:6523ea3c2531dc79fc0546e0623ebac530c3d41bedd663c79a9f193f420a70b6",
+        "observedOutputDigest": "sha256:9b5a93c109a58a336053c2b084e45b58fe47ba57a9add1f0ad53da52a3d3d62c",
+        "answerDigest": "sha256:9b5a93c109a58a336053c2b084e45b58fe47ba57a9add1f0ad53da52a3d3d62c",
+        "parentInvocationRef": "./explicit-member-parent-invocation.json"
+      },
+      "lifecycleVerdict": {
+        "status": "pass",
+        "checked": true,
+        "issues": []
+      },
+      "explicitMemberMechanismPass": true,
+      "explicitMemberActivationPass": true,
+      "productAcceptance": "pass",
+      "verdict": "pass",
+      "failureReason": null,
+      "manifest": {
+        "verdict": "pass",
+        "recoveryMethod": "context-tree-explicit-member-executor",
+        "sourceThreadId": "ses_0bcc95a31ffeVZfipxaIEjOm5R",
+        "boundary": "unknown",
+        "codexApi": "mock",
+        "transformLayers": [],
+        "knownLosses": [
+          "explicit member activation is not native spawn evidence"
+        ],
+        "evidenceRefs": [
+          {
+            "kind": "prompt-audit",
+            "ref": "prompt-audit:explicit-member-activation",
+            "contains": [],
+            "missing": [
+              "CTREE-USER-authorized-explicit-member-activation",
+              "CTREE-DECISION-authorized-explicit-member-activation",
+              "CTREE-TOOL-authorized-explicit-member-activation",
+              "CTREE-PRECOMPACT-authorized-explicit-member-activation",
+              "CTREE-COMPACT-SUMMARY-authorized-explicit-member-activation",
+              "CTREE-POSTCOMPACT-authorized-explicit-member-activation",
+              "CTREE-SURVIVE-authorized-explicit-member-activation",
+              "CTREE-ROLLBACK-authorized-explicit-member-activation"
+            ],
+            "leaked": false
+          },
+          {
+            "kind": "explicit-member-executor-output",
+            "ref": "./explicit-member-executor-output.json"
+          },
+          {
+            "kind": "explicit-member-executor-observation",
+            "ref": "./explicit-member-executor-observation.json"
+          }
+        ],
+        "compatFallback": true
+      },
+      "evidenceRefs": [
+        {
+          "kind": "prompt-audit",
+          "ref": "prompt-audit:explicit-member-activation",
+          "contains": [],
+          "missing": [
+            "CTREE-USER-authorized-explicit-member-activation",
+            "CTREE-DECISION-authorized-explicit-member-activation",
+            "CTREE-TOOL-authorized-explicit-member-activation",
+            "CTREE-PRECOMPACT-authorized-explicit-member-activation",
+            "CTREE-COMPACT-SUMMARY-authorized-explicit-member-activation",
+            "CTREE-POSTCOMPACT-authorized-explicit-member-activation",
+            "CTREE-SURVIVE-authorized-explicit-member-activation",
+            "CTREE-ROLLBACK-authorized-explicit-member-activation"
+          ],
+          "leaked": false
+        },
+        {
+          "kind": "explicit-member-executor-output",
+          "ref": "./explicit-member-executor-output.json"
+        },
+        {
+          "kind": "explicit-member-executor-observation",
+          "ref": "./explicit-member-executor-observation.json"
+        }
+      ]
+    }
+  ],
+  "nativeSpawnArtifacts": []
+}

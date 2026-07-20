@@ -1,0 +1,21 @@
+{
+  "registryRef": "fixtures/member-task-runs/skill-designer-registry.json",
+  "requesterNodeId": "node-parent",
+  "baseCheckpointId": "cp-authorized-member-activation",
+  "checkpointAnchor": {
+    "turnId": "authorized-parent-turn",
+    "createdAt": "2026-07-08T12:34:56.000Z"
+  },
+  "checkpointLabel": "authorized member activation boundary",
+  "checkpointPurpose": "authorized delegated member review",
+  "role": "reviewer",
+  "question": "Review the delegated design-analysis path and return the member result to the parent agent.",
+  "targetRefs": ["docs/codex-native-spawn-acceptance-runbook.md"],
+  "roleHistoryRefs": ["docs/role-memory/skill-designer-corrections.md"],
+  "requestedMaterials": ["docs/codex-native-spawn-acceptance-runbook.md"],
+  "requiredRoleHistoryCanaries": ["ROLE-CANARY-live-member"],
+  "requiredTargetMaterialCanaries": ["TARGET-CANARY-live-member"],
+  "parentPrompt": "The user authorized delegation to skill-designer. Use the native spawn path to delegate this review task and return the result to the parent agent.",
+  "childPrompt": "Review the delegated design-analysis path using the provided member context.",
+  "childAnswer": "{\"answer\":\"known\",\"values\":[\"CTREE-SURVIVE-live-member-path\",\"ROLE-CANARY-live-member\",\"TARGET-CANARY-live-member\"]}"
+}

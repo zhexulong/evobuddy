@@ -1,0 +1,52 @@
+{
+  "artifactKind": "explicit-member-activation-capability-artifact",
+  "caseId": "authorized-explicit-member-activation",
+  "acceptanceMode": "authorized-explicit-member-activation",
+  "acceptanceLabel": "authorized explicit member executor route v0",
+  "acceptanceTier": {
+    "id": "authorized-explicit-member-activation",
+    "mechanism": "authorized-explicit-member-executor",
+    "scope": "real-task-member-activation",
+    "runtimeNativeSpawn": false,
+    "autonomousTrigger": false,
+    "defaultRegression": false,
+    "productRole": "mechanism-proof"
+  },
+  "sourceThreadId": "authorized-explicit-parent-thread",
+  "reviewerPrompt": "Question: Which exact CTREE-* identifiers are visible for the delegated member task result returned through the explicit member executor route?\nAnswer with exact identifiers only, or \"unknown\".\nDo not guess and do not use tools.",
+  "requestedMember": "skill-designer",
+  "resolvedMemberId": "mem-sd-001",
+  "providerForcedLiveProof": false,
+  "deterministicProviderProof": false,
+  "artifactRefs": {
+    "outputDir": ".",
+    "memberTaskRequestPath": "./member-task-request.json",
+    "memberTaskRunPath": "./member-task-run.json",
+    "memberContextRenderPath": "./member-context-render.json",
+    "materialSelectionReportPath": "./material-selection-report.json",
+    "executorInputPath": "./explicit-member-executor-input.json",
+    "executorOutputPath": "./explicit-member-executor-output.json",
+    "executorObservationPath": "./explicit-member-executor-observation.json"
+  },
+  "executorProof": {
+    "authority": "fixture",
+    "authoritySource": "fixture",
+    "fixture": true,
+    "kind": "fixture-isolated-member-executor",
+    "executorKind": "fixture-isolated-member-executor",
+    "method": "context-tree-explicit-member-executor",
+    "api": "context-tree-explicit-member-executor",
+    "executorPath": "scripts/context-tree/explicit-member-executor-fixture.mjs",
+    "outputRef": "./explicit-member-executor-output.json",
+    "observationRef": "./explicit-member-executor-observation.json",
+    "inputRef": "./explicit-member-executor-input.json",
+    "inputDigest": "sha256:87abd736510549105f212efe93d68b0502ec3a042dacf9f0f93b262f273106fd",
+    "outputDigest": "sha256:85f58193cee2b8a818372b1fdb9c2ec8c011deea4236b619228094c6c978586e",
+    "observedInputDigest": "sha256:87abd736510549105f212efe93d68b0502ec3a042dacf9f0f93b262f273106fd",
+    "observedOutputDigest": "sha256:85f58193cee2b8a818372b1fdb9c2ec8c011deea4236b619228094c6c978586e",
+    "answerDigest": "sha256:85f58193cee2b8a818372b1fdb9c2ec8c011deea4236b619228094c6c978586e"
+  },
+  "observedAnswer": "Fixture explicit member answer: CTREE-SURVIVE-authorized-explicit-member-activation ROLE-CANARY-live-member TARGET-CANARY-live-member",
+  "materialSelectionMode": "prepared-prompt",
+  "fidelity": "compiled-context-packet"
+}

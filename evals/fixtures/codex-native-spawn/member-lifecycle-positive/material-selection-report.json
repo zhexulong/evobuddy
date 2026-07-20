@@ -1,0 +1,109 @@
+{
+  "reportId": "sha256:b8e2c51b5384d3a0c794bb42f",
+  "memberName": "skill-designer",
+  "activationPoint": {
+    "checkpointId": "cp-design",
+    "createdAt": "2026-07-08T12:34:56.000Z",
+    "turnId": "static-config-turn"
+  },
+  "taskKind": "reviewer",
+  "inputRefs": [
+    "docs/members/skill-designer.json",
+    "docs/plan.md",
+    "docs/role-memory/skill-designer-corrections.md"
+  ],
+  "explicitRequestedRefs": [
+    "docs/members/skill-designer.json"
+  ],
+  "candidates": [
+    {
+      "ref": "docs/members/skill-designer.json",
+      "kind": "profile",
+      "source": "registry",
+      "lifecycleStatus": "member-profile",
+      "explicit": false,
+      "rank": 10,
+      "rankGroup": "baseline-profile",
+      "reasons": [
+        "resolved member profile"
+      ],
+      "selected": true,
+      "placement": "m0"
+    },
+    {
+      "ref": "docs/role-memory/skill-designer-corrections.md",
+      "kind": "role-memory",
+      "source": "role-history",
+      "lifecycleStatus": "active",
+      "explicit": false,
+      "rank": 11,
+      "rankGroup": "baseline-role-memory",
+      "reasons": [
+        "active role memory baseline"
+      ],
+      "selected": true,
+      "placement": "m0"
+    },
+    {
+      "ref": "docs/plan.md",
+      "kind": "target",
+      "source": "task-target",
+      "lifecycleStatus": "target-material",
+      "explicit": true,
+      "rank": 12,
+      "rankGroup": "activation-target",
+      "reasons": [
+        "task target ref"
+      ],
+      "selected": true,
+      "placement": "m1"
+    },
+    {
+      "ref": "docs/members/skill-designer.json",
+      "kind": "requested-material",
+      "source": "requested-material",
+      "lifecycleStatus": "target-material",
+      "explicit": true,
+      "rank": 13,
+      "rankGroup": "requested-readable",
+      "reasons": [
+        "explicit requested readable material"
+      ],
+      "selected": true,
+      "placement": "m1"
+    }
+  ],
+  "finalM0Refs": [
+    "docs/members/skill-designer.json",
+    "docs/role-memory/skill-designer-corrections.md"
+  ],
+  "finalM1Refs": [
+    "docs/members/skill-designer.json",
+    "docs/plan.md"
+  ],
+  "baselineRefs": [
+    "docs/members/skill-designer.json",
+    "docs/role-memory/skill-designer-corrections.md"
+  ],
+  "invocationRequestedRefs": [
+    "docs/members/skill-designer.json",
+    "docs/plan.md"
+  ],
+  "compatibility": {
+    "finalM0Refs": [
+      "docs/members/skill-designer.json",
+      "docs/role-memory/skill-designer-corrections.md"
+    ],
+    "finalM1Refs": [
+      "docs/members/skill-designer.json",
+      "docs/plan.md"
+    ]
+  },
+  "mountedRefs": [],
+  "searchableRefs": [],
+  "sourceOnlyRefs": [],
+  "trimmingDecisions": [],
+  "knownLosses": [
+    "Selection and placement are accounting only; they are not visibility proof or consumption proof."
+  ]
+}

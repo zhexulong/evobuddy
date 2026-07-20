@@ -1,0 +1,63 @@
+{
+  "renderId": "sha256:098b5ad380a7a18494cd7c775",
+  "memberName": "skill-designer",
+  "profileRef": "docs/members/skill-designer.json",
+  "activationPoint": {
+    "checkpointId": "cp-design",
+    "createdAt": "2026-07-08T12:34:56.000Z",
+    "turnId": "static-config-turn"
+  },
+  "task": {
+    "kind": "reviewer",
+    "question": "Which lifecycle artifacts and identifiers are visible?",
+    "targetRefs": [
+      "docs/plan.md"
+    ]
+  },
+  "renderSchemaVersion": "1",
+  "baselineVersion": "skill-designer-m0-v1",
+  "baselineDigest": "sha256:3b38df6dcf89bc73e2a66d1236e376bebab45af0cad28db0a6c5ea1f013fc5ea",
+  "baselineCacheKey": {
+    "renderSchemaVersion": "1",
+    "runtime": "unknown"
+  },
+  "baselineReuseStatus": "re-rendered",
+  "baselineReuseEvidenceRefs": [],
+  "baselineMaterials": [
+    {
+      "contentDigest": "sha256:7df2d885486e6e8a0d2a20607bef76e1770f370ba9454fb425455ac34966cbcd",
+      "ref": "docs/role-memory/skill-designer-corrections.md"
+    },
+    {
+      "contentDigest": "sha256:d9e12f3bbea8098ad24096b08036308e3b4a827f31e65f9f97ede598ed025147",
+      "ref": "docs/members/skill-designer.json"
+    }
+  ],
+  "deltaDigest": "sha256:7766358fc2dd955762b2b7d9054c1e9aaa65fb96896278aad5ac650ce3cfcb3c",
+  "deltaMaterials": [
+    {
+      "contentDigest": "sha256:4c0743bf32cb20ac35cfd2b85a773fd4962c40f11d86e8ccd96fdf16c0af6a11",
+      "ref": "task:question"
+    },
+    {
+      "contentDigest": "sha256:d9e12f3bbea8098ad24096b08036308e3b4a827f31e65f9f97ede598ed025147",
+      "ref": "docs/members/skill-designer.json"
+    },
+    {
+      "contentDigest": "sha256:fdff3d8b75cbb2aff76456100d328d687a460ba7d1cf3cb961ddf2d1110a5e63",
+      "ref": "docs/plan.md"
+    }
+  ],
+  "m0Refs": [
+    "docs/members/skill-designer.json",
+    "docs/role-memory/skill-designer-corrections.md"
+  ],
+  "m1Refs": [
+    "docs/members/skill-designer.json",
+    "docs/plan.md"
+  ],
+  "selectionReportRef": "./material-selection-report.json",
+  "knownLosses": [
+    "Selection and placement are accounting only; they are not visibility proof or consumption proof."
+  ]
+}

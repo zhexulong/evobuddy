@@ -1,0 +1,22 @@
+{
+  "kind": "parent-agent-tool-call-record",
+  "observerKind": "parent-agent-runtime-observer",
+  "observerSurface": "runtime-tool",
+  "route": "authorized-explicit-member-activation",
+  "sourceThreadId": "ses_0bcc95a31ffeVZfipxaIEjOm5R",
+  "parentTurnId": "msg_f475f2c25001OKH767gN0cciT1",
+  "invocationId": "call_XSQjQMEsBpqLmn2V6ipg0T4z",
+  "invocationSurface": "cli-called-by-agent",
+  "memberName": "skill-designer",
+  "resolvedMemberId": "mem-sd-001",
+  "expectedInputDigest": "sha256:6523ea3c2531dc79fc0546e0623ebac530c3d41bedd663c79a9f193f420a70b6",
+  "observedAt": "2026-07-09T14:54:19.915Z",
+  "rawCall": {
+    "callId": "call_XSQjQMEsBpqLmn2V6ipg0T4z",
+    "source": "opencode-parent-call-exporter",
+    "ref": "opencode-session:ses_0bcc95a31ffeVZfipxaIEjOm5R:msg_f475f2c25001OKH767gN0cciT1:call_XSQjQMEsBpqLmn2V6ipg0T4z",
+    "sessionExportRef": "opencode-session-export.json",
+    "sessionMessageId": "msg_f475f2c25001OKH767gN0cciT1",
+    "sessionPartId": "prt_f475f517a001uQJQf2iA3uXAlj"
+  }
+}

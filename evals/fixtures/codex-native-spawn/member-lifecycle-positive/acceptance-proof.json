@@ -1,0 +1,71 @@
+{
+  "artifactKind": "codex-native-spawn-capability-artifact",
+  "caseId": "current-boundary-spawn-canary",
+  "acceptanceMode": "provider-forced-live",
+  "acceptanceLabel": "real Codex app-server + controlled Responses provider proof",
+  "deterministicProviderProof": true,
+  "providerForcedLiveProof": true,
+  "acceptanceTier": {
+    "id": "provider-forced-live-runtime",
+    "mechanism": "provider-forced",
+    "scope": "single-parent-turn",
+    "runtimeNativeSpawn": true,
+    "autonomousTrigger": false,
+    "defaultRegression": true,
+    "productRole": "runtime-mechanism-proof"
+  },
+  "acceptanceProofPath": "./acceptance-proof.json",
+  "sourceThreadId": "019f4212-0414-7032-bed9-4be889d05b87",
+  "checkpointAnchor": {
+    "turnId": "019f4212-0493-7543-afbe-2eb1aa29b046",
+    "createdAt": "2026-07-08T12:34:56.000Z"
+  },
+  "spawnedAgentId": "019f4212-055b-79b1-8a6c-7c24a9f928bb",
+  "forkMode": "fork_turns_all",
+  "reviewerPrompt": "Which exact lifecycle artifacts and CTREE-* identifiers are visible from the spawn boundary?",
+  "childThreadId": "019f4212-055b-79b1-8a6c-7c24a9f928bb",
+  "observableChildId": "019f4212-055b-79b1-8a6c-7c24a9f928bb",
+  "waitCompletion": {
+    "completionObserved": true,
+    "timedOut": false,
+    "proof": "v1-terminal-status"
+  },
+  "observedAnswer": "{\"answer\":\"known\",\"values\":[\"CTREE-SURVIVE-live-member-path\",\"ROLE-CANARY-live-member\",\"TARGET-CANARY-live-member\"]}",
+  "checkpointManifestPath": "./checkpoint-manifest.json",
+  "spawnRunManifestPath": "./spawn-manifest.json",
+  "spawnResultManifestPath": "./spawn-result.json",
+  "artifactRefs": {
+    "outputDir": ".",
+    "checkpointManifestPath": "./checkpoint-manifest.json",
+    "spawnRunManifestPath": "./spawn-manifest.json",
+    "spawnResultManifestPath": "./spawn-result.json",
+    "memberTaskRequestPath": "./member-task-request.json",
+    "memberTaskRunPath": "./member-task-run.json"
+  },
+  "evidenceRefs": [
+    {
+      "kind": "reviewer-answer",
+      "ref": "native-spawn:019f4212-055b-79b1-8a6c-7c24a9f928bb:final",
+      "threadId": "019f4212-055b-79b1-8a6c-7c24a9f928bb",
+      "excerpt": "{\"answer\":\"known\",\"values\":[\"CTREE-SURVIVE-live-member-path\",\"ROLE-CANARY-live-member\",\"TARGET-CANARY-live-member\"]}"
+    },
+    {
+      "kind": "native-spawn-result",
+      "ref": "native-spawn:019f4212-0414-7032-bed9-4be889d05b87:019f4212-055b-79b1-8a6c-7c24a9f928bb:v1-terminal-status",
+      "sourceThreadId": "019f4212-0414-7032-bed9-4be889d05b87",
+      "childThreadId": "019f4212-055b-79b1-8a6c-7c24a9f928bb",
+      "observableChildId": "019f4212-055b-79b1-8a6c-7c24a9f928bb",
+      "waitProof": "v1-terminal-status"
+    },
+    {
+      "kind": "turn-read",
+      "ref": "thread/read:019f4212-055b-79b1-8a6c-7c24a9f928bb",
+      "threadId": "019f4212-055b-79b1-8a6c-7c24a9f928bb",
+      "turnId": "019f4212-0587-7440-a591-79f2265467c9",
+      "itemId": "item-3",
+      "source": "thread/read"
+    }
+  ],
+  "materialSelectionMode": "native-fork",
+  "fidelity": "native-context-fork"
+}

@@ -1,0 +1,21 @@
+{
+  "memberName": "skill-designer",
+  "registryRef": "/home/prosumer/agent/context-tree/fixtures/member-task-runs/skill-designer-registry.json",
+  "taskKind": "review",
+  "question": "Review the searchable-history member-task-run evidence path.",
+  "targetRefs": [
+    "docs/contracts/member-task-run-record-contract.md"
+  ],
+  "roleHistoryRefs": [
+    "docs/role-memory/skill-designer-corrections.md"
+  ],
+  "requestedMaterials": [
+    "docs/contracts/member-task-run-record-contract.md"
+  ],
+  "expectedResultReturn": "eval-runner",
+  "forceSearchableHistoryPath": true,
+  "activationPoint": {
+    "createdAt": "2026-07-07T10:30:00.000Z",
+    "taskRef": "task-4-searchable-history-member-run"
+  }
+}

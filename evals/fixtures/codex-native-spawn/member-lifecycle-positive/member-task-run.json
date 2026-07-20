@@ -1,0 +1,223 @@
+{
+  "id": "mtr-skill-designer-reviewer-20260708123456",
+  "memberName": "skill-designer",
+  "requesterRef": "node-parent",
+  "activationPoint": {
+    "turnId": "019f4212-0493-7543-afbe-2eb1aa29b046",
+    "createdAt": "2026-07-08T12:34:56.000Z",
+    "checkpointId": "cp-design"
+  },
+  "task": {
+    "kind": "reviewer",
+    "question": "Which lifecycle artifacts and identifiers are visible?",
+    "targetRefs": [
+      "docs/plan.md"
+    ]
+  },
+  "memberTaskRequestRef": "./member-task-request.json",
+  "contextSources": [
+    {
+      "kind": "parent-session",
+      "sessionRef": "019f4212-0414-7032-bed9-4be889d05b87",
+      "anchor": {
+        "turnId": "019f4212-0493-7543-afbe-2eb1aa29b046",
+        "createdAt": "2026-07-08T12:34:56.000Z"
+      }
+    },
+    {
+      "kind": "runtime-native-fork",
+      "runtimeRef": "019f4212-055b-79b1-8a6c-7c24a9f928bb",
+      "forkMode": "fork_turns_all"
+    },
+    {
+      "kind": "member-profile",
+      "memberName": "skill-designer",
+      "profileRef": "docs/members/skill-designer.json"
+    },
+    {
+      "kind": "role-history",
+      "memberName": "skill-designer",
+      "historyRef": "docs/role-memory/skill-designer-corrections.md"
+    },
+    {
+      "kind": "target-material",
+      "targetRef": "docs/plan.md"
+    }
+  ],
+  "materials": {
+    "items": [
+      {
+        "materialRef": "docs/members/skill-designer.json",
+        "sourceRef": "docs/members/skill-designer.json",
+        "selectionMode": "prepared-prompt",
+        "visibility": "intended-model-input",
+        "evidenceRefs": [
+          {
+            "kind": "prompt-audit",
+            "ref": "./member-task-request.json",
+            "digest": "sha256:11b72ebdd37fa5aa1ff09a125a5d9dca67b3bccb34da57bc14b844c20595dddd"
+          }
+        ],
+        "contentDigest": "sha256:d9e12f3bbea8098ad24096b08036308e3b4a827f31e65f9f97ede598ed025147"
+      },
+      {
+        "materialRef": "docs/role-memory/skill-designer-corrections.md",
+        "sourceRef": "docs/role-memory/skill-designer-corrections.md",
+        "selectionMode": "prepared-prompt",
+        "visibility": "intended-model-input",
+        "evidenceRefs": [
+          {
+            "kind": "prompt-audit",
+            "ref": "./member-task-request.json",
+            "digest": "sha256:11b72ebdd37fa5aa1ff09a125a5d9dca67b3bccb34da57bc14b844c20595dddd"
+          }
+        ],
+        "contentDigest": "sha256:7df2d885486e6e8a0d2a20607bef76e1770f370ba9454fb425455ac34966cbcd"
+      },
+      {
+        "materialRef": "docs/plan.md",
+        "sourceRef": "docs/plan.md",
+        "selectionMode": "prepared-prompt",
+        "visibility": "intended-model-input",
+        "evidenceRefs": [
+          {
+            "kind": "prompt-audit",
+            "ref": "./member-task-request.json",
+            "digest": "sha256:11b72ebdd37fa5aa1ff09a125a5d9dca67b3bccb34da57bc14b844c20595dddd"
+          }
+        ],
+        "contentDigest": "sha256:fdff3d8b75cbb2aff76456100d328d687a460ba7d1cf3cb961ddf2d1110a5e63"
+      },
+      {
+        "materialRef": "codex-thread:019f4212-0414-7032-bed9-4be889d05b87",
+        "sourceRef": "codex-thread:019f4212-0414-7032-bed9-4be889d05b87",
+        "selectionMode": "native-fork",
+        "visibility": "unknown",
+        "evidenceRefs": [
+          {
+            "kind": "native-spawn-result",
+            "ref": "native-spawn:019f4212-0414-7032-bed9-4be889d05b87:019f4212-055b-79b1-8a6c-7c24a9f928bb:v1-terminal-status"
+          }
+        ],
+        "digestUnavailable": "native-fork-context-not-snapshotted"
+      }
+    ],
+    "intendedInputEvidenceRefs": [
+      {
+        "kind": "prompt-audit",
+        "ref": "./member-task-request.json",
+        "digest": "sha256:11b72ebdd37fa5aa1ff09a125a5d9dca67b3bccb34da57bc14b844c20595dddd"
+      }
+    ],
+    "runtimeInputEvidenceRefs": [],
+    "providerModelInputEvidenceRefs": [],
+    "mountedEvidenceRefs": [],
+    "searchableEvidenceRefs": [],
+    "sourceOnlyRefs": []
+  },
+  "inputDigests": {
+    "preparedChildInputDigest": "sha256:11b72ebdd37fa5aa1ff09a125a5d9dca67b3bccb34da57bc14b844c20595dddd"
+  },
+  "lifecycleTrace": [
+    {
+      "event": "prepared",
+      "at": "2026-07-08T12:34:56.000Z"
+    },
+    {
+      "event": "dispatched",
+      "at": "2026-07-08T14:11:44.915Z"
+    },
+    {
+      "event": "dispatch-ack",
+      "at": "2026-07-08T14:11:45.518Z"
+    },
+    {
+      "event": "child-completed",
+      "at": "2026-07-08T14:11:45.534Z"
+    },
+    {
+      "event": "recorded",
+      "at": "2026-07-08T14:11:45.535Z"
+    }
+  ],
+  "materialSelectionMode": "native-fork",
+  "fidelity": "native-context-fork",
+  "evidenceRefs": [
+    {
+      "kind": "reviewer-answer",
+      "ref": "native-spawn:019f4212-055b-79b1-8a6c-7c24a9f928bb:final",
+      "threadId": "019f4212-055b-79b1-8a6c-7c24a9f928bb",
+      "excerpt": "{\"answer\":\"known\",\"values\":[\"CTREE-SURVIVE-live-member-path\",\"ROLE-CANARY-live-member\",\"TARGET-CANARY-live-member\"]}"
+    },
+    {
+      "kind": "native-spawn-result",
+      "ref": "native-spawn:019f4212-0414-7032-bed9-4be889d05b87:019f4212-055b-79b1-8a6c-7c24a9f928bb:v1-terminal-status",
+      "sourceThreadId": "019f4212-0414-7032-bed9-4be889d05b87",
+      "childThreadId": "019f4212-055b-79b1-8a6c-7c24a9f928bb",
+      "observableChildId": "019f4212-055b-79b1-8a6c-7c24a9f928bb",
+      "waitProof": "v1-terminal-status"
+    },
+    {
+      "kind": "turn-read",
+      "ref": "thread/read:019f4212-055b-79b1-8a6c-7c24a9f928bb",
+      "threadId": "019f4212-055b-79b1-8a6c-7c24a9f928bb",
+      "turnId": "019f4212-0587-7440-a591-79f2265467c9",
+      "itemId": "item-3",
+      "source": "thread/read"
+    }
+  ],
+  "knownLosses": [
+    "no model KV/cache",
+    "no provider prompt cache"
+  ],
+  "outcome": {
+    "status": "pass",
+    "summary": "Native spawn member task run recorded.",
+    "detail": "Execution outcome is recorded separately; specialist material proof passed."
+  },
+  "memberContextRenderRef": "./member-context-render.json",
+  "materialSelectionReportRef": "./material-selection-report.json",
+  "baselineVersion": "skill-designer-m0-v1",
+  "baselineDigest": "sha256:3b38df6dcf89bc73e2a66d1236e376bebab45af0cad28db0a6c5ea1f013fc5ea",
+  "baselineReuseStatus": "re-rendered",
+  "baselineReuseEvidenceRefs": [],
+  "deltaDigest": "sha256:7766358fc2dd955762b2b7d9054c1e9aaa65fb96896278aad5ac650ce3cfcb3c",
+  "materialProof": {
+    "status": "pass",
+    "required": {
+      "roleHistory": [
+        "ROLE-CANARY-live-member"
+      ],
+      "targetMaterial": [
+        "TARGET-CANARY-live-member"
+      ]
+    },
+    "observed": [
+      "{\"answer\":\"known\",\"values\":[\"CTREE-SURVIVE-live-member-path\",\"ROLE-CANARY-live-member\",\"TARGET-CANARY-live-member\"]}",
+      "CTREE-SURVIVE-live-member-path",
+      "ROLE-CANARY-live-member",
+      "TARGET-CANARY-live-member"
+    ],
+    "missing": {
+      "roleHistory": [],
+      "targetMaterial": []
+    },
+    "pass": true,
+    "detail": "Specialist material proof satisfied all required canaries."
+  },
+  "result": {
+    "resultRef": "./spawn-result.json",
+    "returnedTo": "parent-agent",
+    "summary": "{\"answer\":\"known\",\"values\":[\"CTREE-SURVIVE-live-member-path\",\"ROLE-CANARY-live-member\",\"TARGET-CANARY-live-member\"]}"
+  },
+  "resolvedMemberId": "mem-sd-001",
+  "runtime": {
+    "runtimeAgentId": "019f4212-055b-79b1-8a6c-7c24a9f928bb",
+    "runtimeAgentType": "codex-native-spawn"
+  },
+  "compatibilityRefs": {
+    "checkpointManifestRef": "./checkpoint-manifest.json",
+    "spawnRunManifestRef": "./spawn-manifest.json",
+    "spawnResultManifestRef": "./spawn-result.json"
+  }
+}

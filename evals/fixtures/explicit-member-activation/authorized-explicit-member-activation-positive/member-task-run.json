@@ -1,0 +1,170 @@
+{
+  "id": "mtr-skill-designer-review-20260709123456",
+  "memberName": "skill-designer",
+  "requesterRef": "node-parent-explicit",
+  "activationPoint": {
+    "createdAt": "2026-07-09T12:34:56.000Z",
+    "turnId": "authorized-explicit-parent-turn",
+    "taskRef": "cp-authorized-explicit-member-activation"
+  },
+  "task": {
+    "kind": "review",
+    "question": "Review the delegated design-analysis path through the explicit executor route and return the member result to the parent agent.",
+    "targetRefs": [
+      "docs/codex-native-spawn-acceptance-runbook.md"
+    ]
+  },
+  "memberTaskRequestRef": "./member-task-request.json",
+  "contextSources": [
+    {
+      "kind": "member-profile",
+      "memberName": "skill-designer",
+      "profileRef": "fixtures/member-task-runs/skill-designer.json"
+    },
+    {
+      "kind": "role-history",
+      "memberName": "skill-designer",
+      "historyRef": "docs/role-memory/skill-designer-corrections.md"
+    },
+    {
+      "kind": "target-material",
+      "targetRef": "docs/codex-native-spawn-acceptance-runbook.md"
+    }
+  ],
+  "materials": {
+    "items": [
+      {
+        "materialRef": "fixtures/member-task-runs/skill-designer.json",
+        "sourceRef": "fixtures/member-task-runs/skill-designer.json",
+        "selectionMode": "prepared-prompt",
+        "visibility": "intended-model-input",
+        "evidenceRefs": [
+          {
+            "kind": "prompt-audit",
+            "ref": "./member-task-request.json",
+            "digest": "sha256:a222b6d15475d1565a5d0cb6b39d316805793915643581a031300421665c7f6b"
+          }
+        ],
+        "contentDigest": "sha256:31789d87b3c92017faa2d018208ab1fe114416bdbf34cbe936bae8c5d0bf67e1"
+      },
+      {
+        "materialRef": "docs/role-memory/skill-designer-corrections.md",
+        "sourceRef": "docs/role-memory/skill-designer-corrections.md",
+        "selectionMode": "prepared-prompt",
+        "visibility": "intended-model-input",
+        "evidenceRefs": [
+          {
+            "kind": "prompt-audit",
+            "ref": "./member-task-request.json",
+            "digest": "sha256:a222b6d15475d1565a5d0cb6b39d316805793915643581a031300421665c7f6b"
+          }
+        ],
+        "contentDigest": "sha256:31609ad1a13c4166f98141f590c8b096deeefed6de1e4d2092eaedc3d7c10ec4"
+      },
+      {
+        "materialRef": "docs/codex-native-spawn-acceptance-runbook.md",
+        "sourceRef": "docs/codex-native-spawn-acceptance-runbook.md",
+        "selectionMode": "prepared-prompt",
+        "visibility": "intended-model-input",
+        "evidenceRefs": [
+          {
+            "kind": "prompt-audit",
+            "ref": "./member-task-request.json",
+            "digest": "sha256:a222b6d15475d1565a5d0cb6b39d316805793915643581a031300421665c7f6b"
+          }
+        ],
+        "contentDigest": "sha256:646e271d97f31dd25d6c7ce14223713c96a6b3969763786addcd04bdf24e08cd"
+      }
+    ],
+    "intendedInputEvidenceRefs": [
+      {
+        "kind": "prompt-audit",
+        "ref": "./member-task-request.json",
+        "digest": "sha256:a222b6d15475d1565a5d0cb6b39d316805793915643581a031300421665c7f6b"
+      }
+    ],
+    "runtimeInputEvidenceRefs": [
+      {
+        "kind": "prompt-audit",
+        "ref": "./explicit-member-executor-observation.json"
+      }
+    ],
+    "providerModelInputEvidenceRefs": [],
+    "mountedEvidenceRefs": [],
+    "searchableEvidenceRefs": [],
+    "sourceOnlyRefs": []
+  },
+  "inputDigests": {
+    "preparedChildInputDigest": "sha256:87abd736510549105f212efe93d68b0502ec3a042dacf9f0f93b262f273106fd",
+    "runtimeInputDigest": "sha256:87abd736510549105f212efe93d68b0502ec3a042dacf9f0f93b262f273106fd"
+  },
+  "lifecycleTrace": [
+    {
+      "event": "prepared",
+      "at": "2026-07-09T12:34:56.000Z"
+    },
+    {
+      "event": "explicit-executor-input-written",
+      "at": "2026-07-09T12:34:56.000Z"
+    },
+    {
+      "event": "explicit-executor-output-observed",
+      "at": "2026-07-09T12:34:56.000Z"
+    }
+  ],
+  "materialSelectionMode": "prepared-prompt",
+  "fidelity": "compiled-context-packet",
+  "evidenceRefs": [
+    {
+      "kind": "explicit-member-executor-output",
+      "ref": "./explicit-member-executor-output.json"
+    },
+    {
+      "kind": "explicit-member-executor-observation",
+      "ref": "./explicit-member-executor-observation.json"
+    }
+  ],
+  "knownLosses": [
+    "explicit member executor route is not native spawn evidence"
+  ],
+  "outcome": {
+    "status": "pass",
+    "summary": "Explicit member executor returned answer to parent agent."
+  },
+  "memberContextRenderRef": "./member-context-render.json",
+  "materialSelectionReportRef": "./material-selection-report.json",
+  "baselineVersion": "skill-designer-m0-v1",
+  "baselineDigest": "sha256:76c4ef92e5d27a1c0004b5c0dfafe5ac2e03500e2c6db066eee822b4f6023a8e",
+  "baselineReuseStatus": "re-rendered",
+  "deltaDigest": "sha256:b575a3ef0b97342e401fa99b40965ab511442b61344943012f348d1c0b3430b7",
+  "materialProof": {
+    "status": "pass",
+    "required": {
+      "roleHistory": [
+        "ROLE-CANARY-live-member"
+      ],
+      "targetMaterial": [
+        "TARGET-CANARY-live-member"
+      ]
+    },
+    "observed": [
+      "CTREE-SURVIVE-authorized-explicit-member-activation",
+      "ROLE-CANARY-live-member",
+      "TARGET-CANARY-live-member"
+    ],
+    "missing": {
+      "roleHistory": [],
+      "targetMaterial": []
+    },
+    "pass": true,
+    "detail": "Material proof recomputed from explicit-member-executor-output.json answer."
+  },
+  "result": {
+    "resultRef": "./explicit-member-executor-output.json",
+    "returnedTo": "parent-agent",
+    "summary": "Fixture explicit member answer: CTREE-SURVIVE-authorized-explicit-member-activation ROLE-CANARY-live-member TARGET-CANARY-live-member",
+    "resultDigest": "sha256:85f58193cee2b8a818372b1fdb9c2ec8c011deea4236b619228094c6c978586e",
+    "fullOutputRef": "./explicit-member-executor-output.json"
+  },
+  "resolvedMemberId": "mem-sd-001"
+}

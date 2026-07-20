@@ -1,0 +1,58 @@
+{
+  "renderId": "sha256:e271c587e4b304a9bf62947ed",
+  "memberName": "skill-designer",
+  "profileRef": "fixtures/member-task-runs/skill-designer.json",
+  "activationPoint": {
+    "createdAt": "2026-07-09T12:34:56.000Z",
+    "taskRef": "cp-authorized-explicit-member-activation",
+    "turnId": "authorized-explicit-parent-turn"
+  },
+  "task": {
+    "kind": "review",
+    "question": "Review the delegated design-analysis path through the explicit executor route and return the member result to the parent agent.",
+    "targetRefs": [
+      "docs/codex-native-spawn-acceptance-runbook.md"
+    ]
+  },
+  "renderSchemaVersion": "1",
+  "baselineVersion": "skill-designer-m0-v1",
+  "baselineDigest": "sha256:76c4ef92e5d27a1c0004b5c0dfafe5ac2e03500e2c6db066eee822b4f6023a8e",
+  "baselineCacheKey": {
+    "renderSchemaVersion": "1",
+    "runtime": "unknown"
+  },
+  "baselineReuseStatus": "re-rendered",
+  "baselineReuseEvidenceRefs": [],
+  "baselineMaterials": [
+    {
+      "contentDigest": "sha256:31609ad1a13c4166f98141f590c8b096deeefed6de1e4d2092eaedc3d7c10ec4",
+      "ref": "docs/role-memory/skill-designer-corrections.md"
+    },
+    {
+      "contentDigest": "sha256:31789d87b3c92017faa2d018208ab1fe114416bdbf34cbe936bae8c5d0bf67e1",
+      "ref": "fixtures/member-task-runs/skill-designer.json"
+    }
+  ],
+  "deltaDigest": "sha256:c82beb76bfb5906b861fefff85ca24f3b2f845232cc8e8078d03d1be070819c8",
+  "deltaMaterials": [
+    {
+      "contentDigest": "sha256:25b1655fd3ccce26bcc91b65eece5a36d81ff65add93dd84323cd7f8ca1b36c4",
+      "ref": "docs/codex-native-spawn-acceptance-runbook.md"
+    },
+    {
+      "contentDigest": "sha256:8b22e4b8cc25857bc4a2e8ce352c36162e653a15d938b8cdc35e8ada4175a122",
+      "ref": "task:question"
+    }
+  ],
+  "m0Refs": [
+    "fixtures/member-task-runs/skill-designer.json",
+    "docs/role-memory/skill-designer-corrections.md"
+  ],
+  "m1Refs": [
+    "docs/codex-native-spawn-acceptance-runbook.md"
+  ],
+  "selectionReportRef": "./material-selection-report.json",
+  "knownLosses": [
+    "Selection and placement are accounting only; they are not visibility proof or consumption proof."
+  ]
+}

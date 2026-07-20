@@ -1,0 +1,18 @@
+{
+  "kind": "explicit-member-executor-observation",
+  "authoritySource": "adapter-observed",
+  "fixture": false,
+  "executorKind": "agent-runtime-parent-invocation-harness",
+  "invocationId": "call_XSQjQMEsBpqLmn2V6ipg0T4z",
+  "parentInvocationRef": "./explicit-member-parent-invocation.json",
+  "inputRef": "./explicit-member-executor-input.json",
+  "outputRef": "./explicit-member-executor-output.json",
+  "inputDigest": "sha256:6523ea3c2531dc79fc0546e0623ebac530c3d41bedd663c79a9f193f420a70b6",
+  "outputDigest": "sha256:9b5a93c109a58a336053c2b084e45b58fe47ba57a9add1f0ad53da52a3d3d62c",
+  "answerDigest": "sha256:9b5a93c109a58a336053c2b084e45b58fe47ba57a9add1f0ad53da52a3d3d62c",
+  "startedAt": "2026-07-09T14:55:25.403Z",
+  "completedAt": "2026-07-09T14:55:25.564Z",
+  "status": "completed",
+  "executionRef": "process:1555364",
+  "observedAt": "2026-07-09T14:55:25.564Z"
+}

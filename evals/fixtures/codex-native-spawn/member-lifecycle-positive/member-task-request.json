@@ -1,0 +1,89 @@
+{
+  "id": "mtreq-skill-designer-reviewer-20260708123456",
+  "preparedAt": "2026-07-08T12:34:56.000Z",
+  "memberName": "skill-designer",
+  "resolvedMemberId": "mem-sd-001",
+  "activationPoint": {
+    "turnId": "static-config-turn",
+    "createdAt": "2026-07-08T12:34:56.000Z",
+    "checkpointId": "cp-design"
+  },
+  "task": {
+    "kind": "reviewer",
+    "question": "Which lifecycle artifacts and identifiers are visible?",
+    "targetRefs": [
+      "docs/plan.md"
+    ]
+  },
+  "profileRef": "docs/members/skill-designer.json",
+  "roleHistoryRefs": [
+    "docs/role-memory/skill-designer-corrections.md"
+  ],
+  "targetRefs": [
+    "docs/plan.md"
+  ],
+  "requestedMaterials": [
+    "docs/members/skill-designer.json"
+  ],
+  "expectedResultReturn": "parent-agent",
+  "preparedChildInput": {
+    "kind": "prompt-text",
+    "text": "Fixture-only prompt text omitted for brevity."
+  },
+  "preparedChildInputDigest": "sha256:11b72ebdd37fa5aa1ff09a125a5d9dca67b3bccb34da57bc14b844c20595dddd",
+  "materialSnapshots": [
+    {
+      "kind": "member-profile",
+      "materialRef": "docs/members/skill-designer.json",
+      "sourceRef": "docs/members/skill-designer.json",
+      "contentDigest": "sha256:d9e12f3bbea8098ad24096b08036308e3b4a827f31e65f9f97ede598ed025147"
+    },
+    {
+      "kind": "role-history",
+      "materialRef": "docs/role-memory/skill-designer-corrections.md",
+      "sourceRef": "docs/role-memory/skill-designer-corrections.md",
+      "contentDigest": "sha256:7df2d885486e6e8a0d2a20607bef76e1770f370ba9454fb425455ac34966cbcd"
+    },
+    {
+      "kind": "target-material",
+      "materialRef": "docs/plan.md",
+      "sourceRef": "docs/plan.md",
+      "contentDigest": "sha256:fdff3d8b75cbb2aff76456100d328d687a460ba7d1cf3cb961ddf2d1110a5e63"
+    },
+    {
+      "kind": "requested-material",
+      "materialRef": "docs/members/skill-designer.json",
+      "sourceRef": "docs/members/skill-designer.json",
+      "contentDigest": "sha256:d9e12f3bbea8098ad24096b08036308e3b4a827f31e65f9f97ede598ed025147"
+    }
+  ],
+  "materialSelectionReportRef": "./material-selection-report.json",
+  "memberContextRenderRef": "./member-context-render.json",
+  "baselineDigest": "sha256:3b38df6dcf89bc73e2a66d1236e376bebab45af0cad28db0a6c5ea1f013fc5ea",
+  "deltaDigest": "sha256:7766358fc2dd955762b2b7d9054c1e9aaa65fb96896278aad5ac650ce3cfcb3c",
+  "baselineReuseStatus": "re-rendered",
+  "lifecycleTrace": [
+    {
+      "event": "prepared",
+      "at": "2026-07-08T12:34:56.000Z"
+    },
+    {
+      "event": "dispatched",
+      "at": "2026-07-08T14:11:44.915Z"
+    },
+    {
+      "event": "dispatch-ack",
+      "at": "2026-07-08T14:11:45.518Z"
+    },
+    {
+      "event": "child-completed",
+      "at": "2026-07-08T14:11:45.534Z"
+    },
+    {
+      "event": "recorded",
+      "at": "2026-07-08T14:11:45.535Z"
+    }
+  ],
+  "requestPromptText": "Fixture-only prompt text omitted for brevity.",
+  "requestPromptDigest": "sha256:55437ca8f6b192025d7c13cafa302f1620cc69ac1405645eab979437d539684a"
+}

@@ -1,0 +1,220 @@
+{
+  "id": "mtr-skill-designer-review-20260708123456",
+  "memberName": "skill-designer",
+  "requesterRef": "node-parent",
+  "activationPoint": {
+    "turnId": "019f42b1-20e6-7550-bcd1-0c6dd25a5734",
+    "createdAt": "2026-07-08T12:34:56.000Z",
+    "checkpointId": "cp-authorized-member-activation"
+  },
+  "task": {
+    "kind": "review",
+    "question": "Review the delegated design-analysis path and return the member result to the parent agent.",
+    "targetRefs": [
+      "docs/codex-native-spawn-acceptance-runbook.md"
+    ]
+  },
+  "memberTaskRequestRef": "./member-task-request.json",
+  "contextSources": [
+    {
+      "kind": "parent-session",
+      "sessionRef": "019f42b1-201a-7c63-b10b-4e0d98fb2c87",
+      "anchor": {
+        "turnId": "019f42b1-20e6-7550-bcd1-0c6dd25a5734",
+        "createdAt": "2026-07-08T12:34:56.000Z"
+      }
+    },
+    {
+      "kind": "runtime-native-fork",
+      "runtimeRef": "019f42b1-ace1-7513-9a6f-221e08d14e42",
+      "forkMode": "fork_turns_all"
+    },
+    {
+      "kind": "member-profile",
+      "memberName": "skill-designer",
+      "profileRef": "fixtures/member-task-runs/skill-designer.json"
+    },
+    {
+      "kind": "role-history",
+      "memberName": "skill-designer",
+      "historyRef": "docs/role-memory/skill-designer-corrections.md"
+    },
+    {
+      "kind": "target-material",
+      "targetRef": "docs/codex-native-spawn-acceptance-runbook.md"
+    }
+  ],
+  "materials": {
+    "items": [
+      {
+        "materialRef": "fixtures/member-task-runs/skill-designer.json",
+        "sourceRef": "fixtures/member-task-runs/skill-designer.json",
+        "selectionMode": "prepared-prompt",
+        "visibility": "intended-model-input",
+        "evidenceRefs": [
+          {
+            "kind": "prompt-audit",
+            "ref": "./member-task-request.json",
+            "digest": "sha256:961e227d7fd9ca11820894f217165823fffc0cdd603201939b3484308d1a56ce"
+          }
+        ],
+        "contentDigest": "sha256:31789d87b3c92017faa2d018208ab1fe114416bdbf34cbe936bae8c5d0bf67e1"
+      },
+      {
+        "materialRef": "docs/role-memory/skill-designer-corrections.md",
+        "sourceRef": "docs/role-memory/skill-designer-corrections.md",
+        "selectionMode": "prepared-prompt",
+        "visibility": "intended-model-input",
+        "evidenceRefs": [
+          {
+            "kind": "prompt-audit",
+            "ref": "./member-task-request.json",
+            "digest": "sha256:961e227d7fd9ca11820894f217165823fffc0cdd603201939b3484308d1a56ce"
+          }
+        ],
+        "contentDigest": "sha256:adf2ec09fca973c0f2fe6192a5192eb7c476bb376181af67a48873a84a730305"
+      },
+      {
+        "materialRef": "docs/codex-native-spawn-acceptance-runbook.md",
+        "sourceRef": "docs/codex-native-spawn-acceptance-runbook.md",
+        "selectionMode": "prepared-prompt",
+        "visibility": "intended-model-input",
+        "evidenceRefs": [
+          {
+            "kind": "prompt-audit",
+            "ref": "./member-task-request.json",
+            "digest": "sha256:961e227d7fd9ca11820894f217165823fffc0cdd603201939b3484308d1a56ce"
+          }
+        ],
+        "contentDigest": "sha256:8cabdbe1e07e469019bcac5b9798e267e5346e1ada768fccac4e83d8a7e4bd2f"
+      },
+      {
+        "materialRef": "codex-thread:019f42b1-201a-7c63-b10b-4e0d98fb2c87",
+        "sourceRef": "codex-thread:019f42b1-201a-7c63-b10b-4e0d98fb2c87",
+        "selectionMode": "native-fork",
+        "visibility": "unknown",
+        "evidenceRefs": [
+          {
+            "kind": "native-spawn-result",
+            "ref": "native-spawn:019f42b1-201a-7c63-b10b-4e0d98fb2c87:019f42b1-ace1-7513-9a6f-221e08d14e42:v1-terminal-status"
+          }
+        ],
+        "digestUnavailable": "native-fork-context-not-snapshotted"
+      }
+    ],
+    "intendedInputEvidenceRefs": [
+      {
+        "kind": "prompt-audit",
+        "ref": "./member-task-request.json",
+        "digest": "sha256:961e227d7fd9ca11820894f217165823fffc0cdd603201939b3484308d1a56ce"
+      }
+    ],
+    "runtimeInputEvidenceRefs": [],
+    "providerModelInputEvidenceRefs": [],
+    "mountedEvidenceRefs": [],
+    "searchableEvidenceRefs": [],
+    "sourceOnlyRefs": []
+  },
+  "inputDigests": {
+    "preparedChildInputDigest": "sha256:961e227d7fd9ca11820894f217165823fffc0cdd603201939b3484308d1a56ce"
+  },
+  "lifecycleTrace": [
+    {
+      "event": "prepared",
+      "at": "2026-07-08T12:34:56.000Z"
+    },
+    {
+      "event": "dispatched",
+      "at": "2026-07-08T17:05:32.397Z"
+    },
+    {
+      "event": "dispatch-ack",
+      "at": "2026-07-08T17:06:26.609Z"
+    },
+    {
+      "event": "child-completed",
+      "at": "2026-07-08T17:06:26.651Z"
+    },
+    {
+      "event": "recorded",
+      "at": "2026-07-08T17:06:26.666Z"
+    }
+  ],
+  "materialSelectionMode": "native-fork",
+  "fidelity": "native-context-fork",
+  "evidenceRefs": [
+    {
+      "kind": "reviewer-answer",
+      "ref": "native-spawn:019f42b1-ace1-7513-9a6f-221e08d14e42:final",
+      "threadId": "019f42b1-ace1-7513-9a6f-221e08d14e42",
+      "excerpt": "Delegated review complete. No issues found in the inherited activation path.\n\nCTREE-SURVIVE-live-member-path  \nROLE-CANARY-live-member  \nTARGET-CANARY-live-member"
+    },
+    {
+      "kind": "native-spawn-result",
+      "ref": "native-spawn:019f42b1-201a-7c63-b10b-4e0d98fb2c87:019f42b1-ace1-7513-9a6f-221e08d14e42:v1-terminal-status",
+      "sourceThreadId": "019f42b1-201a-7c63-b10b-4e0d98fb2c87",
+      "childThreadId": "019f42b1-ace1-7513-9a6f-221e08d14e42",
+      "observableChildId": "019f42b1-ace1-7513-9a6f-221e08d14e42",
+      "waitProof": "v1-terminal-status"
+    },
+    {
+      "kind": "turn-read",
+      "ref": "thread/read:019f42b1-ace1-7513-9a6f-221e08d14e42",
+      "threadId": "019f42b1-ace1-7513-9a6f-221e08d14e42",
+      "turnId": "019f42b1-ad2e-7250-b03f-117acefa494a",
+      "itemId": "item-4",
+      "source": "thread/read"
+    }
+  ],
+  "knownLosses": [
+    "no model KV/cache",
+    "no provider prompt cache"
+  ],
+  "outcome": {
+    "status": "pass",
+    "summary": "Native spawn member task run recorded.",
+    "detail": "Execution outcome is recorded separately; specialist material proof passed."
+  },
+  "memberContextRenderRef": "./member-context-render.json",
+  "materialSelectionReportRef": "./material-selection-report.json",
+  "baselineVersion": "skill-designer-m0-v1",
+  "baselineDigest": "sha256:c533c7e8db55a643e40146156dcfe2060ee2df2007059847adecee0c5a3402a3",
+  "baselineReuseStatus": "re-rendered",
+  "baselineReuseEvidenceRefs": [],
+  "deltaDigest": "sha256:18da157e7b1dafae51f080b42db480336b324ddfe24a819f6ad5c08de82b0334",
+  "materialProof": {
+    "status": "pass",
+    "required": {
+      "roleHistory": [
+        "ROLE-CANARY-live-member"
+      ],
+      "targetMaterial": [
+        "TARGET-CANARY-live-member"
+      ]
+    },
+    "observed": [
+      "Delegated review complete. No issues found in the inherited activation path.\n\nCTREE-SURVIVE-live-member-path  \nROLE-CANARY-live-member  \nTARGET-CANARY-live-member"
+    ],
+    "missing": {
+      "roleHistory": [],
+      "targetMaterial": []
+    },
+    "pass": true,
+    "detail": "Specialist material proof satisfied all required canaries."
+  },
+  "result": {
+    "resultRef": "./spawn-result.json",
+    "returnedTo": "parent-agent",
+    "summary": "Delegated review complete. No issues found in the inherited activation path.\n\nCTREE-SURVIVE-live-member-path  \nROLE-CANARY-live-member  \nTARGET-CANARY-live-member"
+  },
+  "resolvedMemberId": "mem-sd-001",
+  "runtime": {
+    "runtimeAgentId": "019f42b1-ace1-7513-9a6f-221e08d14e42",
+    "runtimeAgentType": "codex-native-spawn"
+  },
+  "compatibilityRefs": {
+    "checkpointManifestRef": "./checkpoint-manifest.json",
+    "spawnRunManifestRef": "./spawn-manifest.json",
+    "spawnResultManifestRef": "./spawn-result.json"
+  }
+}

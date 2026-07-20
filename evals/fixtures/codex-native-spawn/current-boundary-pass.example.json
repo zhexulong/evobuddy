@@ -1,0 +1,28 @@
+{
+  "artifactKind": "codex-native-spawn-capability-artifact",
+  "caseId": "current-boundary-spawn-canary",
+  "sourceThreadId": "example-parent-thread",
+  "checkpointAnchor": {
+    "turnId": "example-parent-turn-current-boundary",
+    "createdAt": "2026-07-06T12:00:00.000Z"
+  },
+  "spawnedAgentId": "example-native-agent",
+  "forkMode": "fork_context",
+  "reviewerPrompt": "Which exact CTREE-* identifiers are visible from the spawn boundary?",
+  "observedAnswer": "{\"answer\":\"known\",\"values\":[\"CTREE-SURVIVE-example\"]}",
+  "evidenceRefs": [
+    {
+      "kind": "reviewer-answer",
+      "ref": "native-spawn:example-native-agent:final",
+      "threadId": "example-native-agent",
+      "excerpt": "{\"answer\":\"known\",\"values\":[\"CTREE-SURVIVE-example\"]}"
+    },
+    {
+      "kind": "native-spawn-result",
+      "ref": "native-spawn:example-native-agent:wait-agent",
+      "threadId": "example-native-agent",
+      "contains": ["CTREE-SURVIVE-example"],
+      "missing": []
+    }
+  ]
+}

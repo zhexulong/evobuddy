@@ -1,0 +1,23 @@
+{
+  "kind": "explicit-member-parent-invocation-source",
+  "observerKind": "parent-agent-runtime-observer",
+  "observerSurface": "runtime-tool",
+  "sourceThreadId": "ses_0bcc95a31ffeVZfipxaIEjOm5R",
+  "parentTurnId": "msg_f475f2c25001OKH767gN0cciT1",
+  "invocationId": "call_XSQjQMEsBpqLmn2V6ipg0T4z",
+  "invocationSurface": "cli-called-by-agent",
+  "route": "authorized-explicit-member-activation",
+  "memberName": "skill-designer",
+  "resolvedMemberId": "mem-sd-001",
+  "expectedInputDigest": "sha256:6523ea3c2531dc79fc0546e0623ebac530c3d41bedd663c79a9f193f420a70b6",
+  "sourceKind": "observed-parent-agent-call",
+  "parentCallRecordRef": "./parent-call-record.json",
+  "provenanceRefs": [
+    {
+      "kind": "parent-agent-tool-call",
+      "ref": "./parent-call-record.json",
+      "digest": "sha256:320da3724c25ed7b3a60f55dccb926d892d88505b1eef96c78029406c6e27ff0"
+    }
+  ],
+  "observedAt": "2026-07-09T14:54:19.915Z"
+}

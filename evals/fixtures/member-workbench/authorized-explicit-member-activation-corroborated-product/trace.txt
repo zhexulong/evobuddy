@@ -1,0 +1,36 @@
+Context Tree Workbench
+
+Trace detail
+Task: mtr-skill-designer-review-20260709123456
+Parent call: observed
+Executor: input + output + observation
+Result returned: parent-agent
+Material path: docs/codex-native-spawn-acceptance-runbook.md, docs/role-memory/skill-designer-corrections.md, fixtures/member-task-runs/skill-designer.json
+Digest state: aligned
+Native spawn: unknown
+Natural spawn: unknown
+
+Limitations
+- explicit member executor route is not native spawn evidence
+- incomplete lifecycle
+- parent source is observed-parent-agent-call
+- runtime unknown
+
+Artifact refs
+- acceptanceProofPath: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product/acceptance-proof.json
+- checkpointManifestPath: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product/checkpoint-manifest.json
+- explicitExecutorInputPath: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product/explicit-member-executor-input.json
+- explicitExecutorObservationPath: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product/explicit-member-executor-observation.json
+- explicitExecutorOutputPath: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product/explicit-member-executor-output.json
+- explicitParentInvocationPath: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product/explicit-member-parent-invocation.json
+- explicitParentInvocationSourcePath: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product/explicit-member-parent-invocation-source.json
+- materialSelectionReportPath: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product/material-selection-report.json
+- memberContextRenderPath: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product/member-context-render.json
+- memberDreamerRunPath: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product/member-dreamer-run.json
+- memberRoleMemoryPath: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product/member-role-memory.json
+- requestPath: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product/member-task-request.json
+- roleMemoryCandidatePath: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product/role-memory-candidate.json
+- runPath: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product/member-task-run.json
+- runRoot: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product
+- spawnManifestPath: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product/spawn-manifest.json
+- spawnResultPath: ../explicit-member-activation/authorized-explicit-member-activation-corroborated-product/spawn-result.json

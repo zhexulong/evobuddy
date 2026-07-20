@@ -1,0 +1,11 @@
+{
+  "kind": "explicit-member-executor-observation",
+  "authoritySource": "fixture",
+  "fixture": true,
+  "executorKind": "fixture-isolated-member-executor",
+  "inputRef": "./explicit-member-executor-input.json",
+  "outputRef": "./explicit-member-executor-output.json",
+  "inputDigest": "sha256:87abd736510549105f212efe93d68b0502ec3a042dacf9f0f93b262f273106fd",
+  "outputDigest": "sha256:85f58193cee2b8a818372b1fdb9c2ec8c011deea4236b619228094c6c978586e",
+  "observedAt": "2026-07-09T12:34:56.000Z"
+}

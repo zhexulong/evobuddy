@@ -1,0 +1,21 @@
+{
+  "memberName": "skill-designer",
+  "registryRef": "fixtures/member-task-runs/skill-designer-registry.json",
+  "requesterNodeId": "node-parent-explicit",
+  "baseCheckpointId": "cp-authorized-explicit-member-activation",
+  "checkpointAnchor": {
+    "turnId": "authorized-explicit-parent-turn",
+    "createdAt": "2026-07-09T12:34:56.000Z"
+  },
+  "sourceThreadId": "authorized-explicit-parent-thread",
+  "taskKind": "review",
+  "question": "Review the delegated design-analysis path through the explicit executor route and return the member result to the parent agent.",
+  "targetRefs": ["docs/codex-native-spawn-acceptance-runbook.md"],
+  "roleHistoryRefs": ["docs/role-memory/skill-designer-corrections.md"],
+  "requestedMaterials": ["docs/codex-native-spawn-acceptance-runbook.md"],
+  "requiredRoleHistoryCanaries": ["ROLE-CANARY-live-member"],
+  "requiredTargetMaterialCanaries": ["TARGET-CANARY-live-member"],
+  "fixture": {
+    "answer": "Fixture explicit member answer: CTREE-SURVIVE-authorized-explicit-member-activation ROLE-CANARY-live-member TARGET-CANARY-live-member"
+  }
+}

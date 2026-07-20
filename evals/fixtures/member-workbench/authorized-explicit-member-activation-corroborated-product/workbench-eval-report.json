@@ -1,0 +1,68 @@
+{
+  "reportKind": "context-tree-workbench-live-eval",
+  "version": "1",
+  "inputRoot": "../explicit-member-activation/authorized-explicit-member-activation-corroborated-product",
+  "freshArtifactInput": false,
+  "renderedOutputs": {
+    "overview": "./overview.txt",
+    "expert": "./expert.txt",
+    "task": "./task.txt",
+    "trace": "./trace.txt"
+  },
+  "checks": {
+    "forbiddenFirstLevelLabels": {
+      "status": "pass",
+      "forbidden": [
+        "MECHANISM PASS",
+        "PRODUCT PENDING",
+        "PRODUCT PASS",
+        "nativeSpawnPass",
+        "authorized-natural-native-spawn",
+        "authorized-explicit-member-activation"
+      ],
+      "findings": []
+    },
+    "expertGrouping": {
+      "status": "pass",
+      "expertCount": 1,
+      "duplicateKeys": [],
+      "requiredOverviewPanes": [
+        "Experts",
+        "Tasks",
+        "Selected Expert"
+      ],
+      "missingPanes": []
+    },
+    "runKindMapping": {
+      "status": "pass",
+      "requiredTaskLabels": [
+        "Run kind",
+        "Returned to"
+      ],
+      "missing": [],
+      "findings": []
+    },
+    "traceCompleteness": {
+      "status": "pass",
+      "requiredTraceLabels": [
+        "Parent call",
+        "Executor",
+        "Material path",
+        "Native spawn",
+        "Natural spawn",
+        "Artifact refs",
+        "Digests"
+      ],
+      "missing": []
+    },
+    "filterBehavior": {
+      "status": "pass",
+      "selectedExpert": "skill-designer",
+      "selectedTask": "mtr-skill-designer-review-20260709123456",
+      "expertVisible": true,
+      "taskVisible": true
+    }
+  },
+  "verdict": "pass",
+  "issues": []
+}

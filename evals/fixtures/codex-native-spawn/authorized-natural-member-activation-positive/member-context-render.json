@@ -1,0 +1,58 @@
+{
+  "renderId": "sha256:b6faf35d0c1d250b53a64f1c2",
+  "memberName": "skill-designer",
+  "profileRef": "fixtures/member-task-runs/skill-designer.json",
+  "activationPoint": {
+    "checkpointId": "cp-authorized-member-activation",
+    "createdAt": "2026-07-08T12:34:56.000Z",
+    "turnId": "authorized-parent-turn"
+  },
+  "task": {
+    "kind": "review",
+    "question": "Review the delegated design-analysis path and return the member result to the parent agent.",
+    "targetRefs": [
+      "docs/codex-native-spawn-acceptance-runbook.md"
+    ]
+  },
+  "renderSchemaVersion": "1",
+  "baselineVersion": "skill-designer-m0-v1",
+  "baselineDigest": "sha256:c533c7e8db55a643e40146156dcfe2060ee2df2007059847adecee0c5a3402a3",
+  "baselineCacheKey": {
+    "renderSchemaVersion": "1",
+    "runtime": "unknown"
+  },
+  "baselineReuseStatus": "re-rendered",
+  "baselineReuseEvidenceRefs": [],
+  "baselineMaterials": [
+    {
+      "contentDigest": "sha256:31789d87b3c92017faa2d018208ab1fe114416bdbf34cbe936bae8c5d0bf67e1",
+      "ref": "fixtures/member-task-runs/skill-designer.json"
+    },
+    {
+      "contentDigest": "sha256:adf2ec09fca973c0f2fe6192a5192eb7c476bb376181af67a48873a84a730305",
+      "ref": "docs/role-memory/skill-designer-corrections.md"
+    }
+  ],
+  "deltaDigest": "sha256:18da157e7b1dafae51f080b42db480336b324ddfe24a819f6ad5c08de82b0334",
+  "deltaMaterials": [
+    {
+      "contentDigest": "sha256:8cabdbe1e07e469019bcac5b9798e267e5346e1ada768fccac4e83d8a7e4bd2f",
+      "ref": "docs/codex-native-spawn-acceptance-runbook.md"
+    },
+    {
+      "contentDigest": "sha256:a7961576610f256564aee2df677bb0154ddcff37af8a2defbaafc4ebce9caba0",
+      "ref": "task:question"
+    }
+  ],
+  "m0Refs": [
+    "fixtures/member-task-runs/skill-designer.json",
+    "docs/role-memory/skill-designer-corrections.md"
+  ],
+  "m1Refs": [
+    "docs/codex-native-spawn-acceptance-runbook.md"
+  ],
+  "selectionReportRef": "./material-selection-report.json",
+  "knownLosses": [
+    "Selection and placement are accounting only; they are not visibility proof or consumption proof."
+  ]
+}

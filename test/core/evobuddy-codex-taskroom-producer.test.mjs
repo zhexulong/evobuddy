@@ -268,3 +268,70 @@ test('blocks Codex realtime fork/handoff proof when required TeamAgent spawn evi
     rmSync(out, { recursive: true, force: true });
   }
 });
+
+test('prefers a complete Codex parent with spawn evidence over newer child rollouts', async () => {
+  const out = mkdtempSync(join(tmpdir(), 'evobuddy-codex-fork-handoff-parent-'));
+  try {
+    const base = codexTaskroomExportFixture();
+    const completeParent = structuredClone(base.corpus.sessions[0]);
+    completeParent.sessionId = 'codex-parent-complete';
+    completeParent.sessionRef = 'codex-thread:codex-parent-complete';
+    // Child rollouts appear first (fresher mtime order) and have no spawn evidence.
+    const newerChild = {
+      sessionId: 'codex-child-newer',
+      sessionRef: 'codex-thread:codex-child-newer',
+      runtime: 'codex',
+      isSubagent: false,
+      updatedAt: '2026-07-19T00:00:00.000Z',
+      messages: [
+        { role: 'user', digest: 'sha256:child-user', text: '<environment_context>\n  <cwd>/repo</cwd>\n</environment_context>' },
+        { role: 'assistant', digest: 'sha256:child-1', text: 'Child finished a delegated note.' },
+      ],
+    };
+    const result = await produceCodexRealtimeForkHandoffTaskRoomProof({
+      projectRoot: REPO_ROOT,
+      runtime: 'codex',
+      out,
+      codexHome: '/tmp/codex-home',
+      exportSessionCorpus: async () => ({
+        corpus: {
+          source: 'codex-jsonl-session-corpus-export',
+          projectIdentity: '/repo',
+          sessions: [newerChild, completeParent],
+        },
+        manifest: base.manifest,
+      }),
+    });
+    assert.equal(result.status, 'pass', JSON.stringify(result.blockedReasons ?? result.issues));
+    const observed = JSON.parse(readFileSync(join(out, 'observed-taskroom-root.json'), 'utf8'));
+    assert.equal(observed.taskRoomLoop.resultReturn.observedParentThreadRef, 'codex-thread:codex-parent-complete');
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test('ignores Codex environment_context noise when scoring natural-input controls', async () => {
+  const out = mkdtempSync(join(tmpdir(), 'evobuddy-codex-fork-handoff-envnoise-'));
+  try {
+    const fixture = codexTaskroomExportFixture({
+      naturalUserText: 'Review the current design and make the smallest focused correction.',
+    });
+    fixture.corpus.sessions[0].messages = [
+      { role: 'user', digest: 'sha256:env', text: '<environment_context>\n  <cwd>/repo</cwd>\n</environment_context>' },
+      { role: 'user', digest: 'sha256:task', text: 'Review the current design and make the smallest focused correction.' },
+      { role: 'assistant', digest: 'sha256:parent-1', text: 'Parent coordinated builder and reviewer work and returned the result.' },
+    ];
+    const result = await produceCodexRealtimeForkHandoffTaskRoomProof({
+      projectRoot: REPO_ROOT,
+      runtime: 'codex',
+      out,
+      codexHome: '/tmp/codex-home',
+      exportSessionCorpus: async () => fixture,
+    });
+    assert.equal(result.status, 'pass', JSON.stringify(result.blockedReasons ?? result.issues));
+    const proof = JSON.parse(readFileSync(join(out, 'evobuddy-fork-handoff-release-proof.json'), 'utf8'));
+    assert.deepEqual(proof.naturalInputNegativeControls, []);
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});

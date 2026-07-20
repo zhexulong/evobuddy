@@ -32,15 +32,63 @@ function userMessages(session) {
 
 const NATURAL_INPUT_MECHANISM_TERMS = ['TeamAgent', 'fork', 'handoff', 'TaskRoom', 'builder', 'reviewer', 'spawn', 'agent team'];
 
+function isCodexNoiseUserMessage(text) {
+  const value = String(text ?? '');
+  // Codex rollouts often prefix environment_context / subagent_notification rows as user-role.
+  // Those must not hide the real first task prompt for natural-input controls.
+  if (/^\s*<environment_context>/i.test(value)) return true;
+  if (/^\s*<subagent_notification>/i.test(value)) return true;
+  if (/^\s*<stdin>/i.test(value)) return true;
+  return false;
+}
+
+function naturalTaskUserText(parent) {
+  const lineage = nonEmptyString(parent?.promptLineage?.receivedPromptText) ? parent.promptLineage.receivedPromptText : null;
+  if (lineage) return lineage;
+  return userMessages(parent)
+    .map((message) => message.text)
+    .find((text) => nonEmptyString(text) && !isCodexNoiseUserMessage(text)) ?? null;
+}
+
 function naturalInputNegativeControls(parent) {
   // Natural-use gate checks the task prompt, not later transcript noise.
-  const lineage = nonEmptyString(parent?.promptLineage?.receivedPromptText) ? parent.promptLineage.receivedPromptText : null;
-  const firstUser = userMessages(parent).map((message) => message.text).find((text) => nonEmptyString(text)) ?? null;
-  const text = lineage ?? firstUser ?? '';
+  const text = naturalTaskUserText(parent) ?? '';
   if (!text) return [];
   return NATURAL_INPUT_MECHANISM_TERMS
     .filter((term) => new RegExp(`\\b${term}\\b`, 'i').test(text))
     .map((term) => ({ term, reason: 'natural input names mechanism terms' }));
+}
+
+function requiredTeamAgentCoverage(session) {
+  const required = ['builder', 'reviewer', 'evolution-agent'];
+  const present = required.filter((memberName) => selectMemberEvidence(session, memberName));
+  return {
+    presentCount: present.length,
+    missing: required.filter((memberName) => !present.includes(memberName)),
+    complete: present.length === required.length,
+  };
+}
+
+/**
+ * Codex exports every rollout as isSubagent=false. Prefer the parent that already
+ * carries complete TeamAgent spawn evidence over a newer child thread with none.
+ */
+export function selectFreshestCodexTaskroomParent(sessions) {
+  const list = Array.isArray(sessions) ? sessions.filter(Boolean) : [];
+  if (list.length === 0) return null;
+  const ranked = list.map((session, index) => {
+    const coverage = requiredTeamAgentCoverage(session);
+    return { session, index, ...coverage };
+  });
+  const withAny = ranked.filter((entry) => entry.presentCount > 0);
+  const pool = withAny.length > 0 ? withAny : ranked;
+  return pool
+    .sort((left, right) => {
+      if (Number(right.complete) !== Number(left.complete)) return Number(right.complete) - Number(left.complete);
+      if (right.presentCount !== left.presentCount) return right.presentCount - left.presentCount;
+      // Preserve freshest-first export order as the final tie-break.
+      return left.index - right.index;
+    })[0]?.session ?? null;
 }
 
 function artifactRef(label) {
@@ -480,7 +528,7 @@ export async function produceCodexRealtimeForkHandoffTaskRoomProof({
     projectIdentity: projectRoot,
   });
   const sessions = Array.isArray(exportResult?.corpus?.sessions) ? exportResult.corpus.sessions : [];
-  const parent = sessions.find((session) => session?.isSubagent === false) ?? sessions[0] ?? null;
+  const parent = selectFreshestCodexTaskroomParent(sessions);
   if (!parent) {
     return blockResult(['fresh Codex taskroom evidence is missing a parent session'], undefined, {
       source: 'exported-codex-fork-handoff-proof-blocked',
@@ -500,6 +548,7 @@ export async function produceCodexRealtimeForkHandoffTaskRoomProof({
     return blockResult([`fresh Codex taskroom evidence is missing required TeamAgent session(s): ${missingAgents.join(', ')}`], undefined, {
       source: 'exported-codex-fork-handoff-proof-blocked',
       exporterManifest: exportResult?.manifest,
+      selectedParentSessionId: parent.sessionId ?? null,
     });
   }
 

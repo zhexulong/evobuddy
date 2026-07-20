@@ -20,6 +20,51 @@ Setup creates inspectable state under `.evobuddy/`, including `.evobuddy/release
 
 Those synced definitions are the normal native Buddy entrypoint for a parent agent. The parent agent should use the installed native Buddy definition for the selected Buddy and return the child result back to the parent conversation.
 
+## Current MVP release authority
+
+This is the **current product MVP release authority**. It reconciles already-closed
+Sisyphus foundation readiness with three distinct product-observed realtime
+fork/handoff proofs. Legacy reports remain inspectable evidence, but their
+broader blocked gates are **non-claims** for this MVP unless the release claim
+explicitly includes them.
+
+```bash
+npm run evobuddy:eval-product-mvp-release-authority -- \
+  --project /home/prosumer/agent/context-tree \
+  --out /tmp/evobuddy-product-mvp-release-authority \
+  --sisyphus-readiness-report /tmp/evobuddy-product-release-readiness-sisyphus/product-release-readiness-report.json \
+  --realtime-fork-handoff-report /tmp/evobuddy-realtime-fork-handoff-live/evobuddy-fork-handoff-release-proof.json \
+  --realtime-fork-handoff-report /tmp/evobuddy-claude-realtime-fork-handoff-live/evobuddy-fork-handoff-release-proof.json \
+  --realtime-fork-handoff-report /tmp/evobuddy-codex-realtime-fork-handoff-live/evobuddy-fork-handoff-release-proof.json \
+  --july17-readiness-report /tmp/evobuddy-realtime-fork-handoff-aggregate-three-runtime/evobuddy-july17-mvp-readiness-report.json
+```
+
+What a `verdict: "pass"` means for this authority:
+
+- Sisyphus-style foundation readiness is green at `scope: foundation-readiness-only`.
+- Required natural-use MVP families are `implementation-plan-review` and `code-review`
+  (debugging remains outside the MVP pass claim unless a future report closes it).
+- Realtime fork/handoff TaskRoom product proof is closed independently for OpenCode,
+  Claude, and Codex (no cross-runtime transfer).
+- Projection/doctor/sync child gates from the Sisyphus readiness report are pass.
+
+What this authority does **not** claim:
+
+- complete OMO replacement or workflow/orchestrator superiority;
+- all scenario families pass;
+- complete legacy Plan 2 / Plan 3 three-runtime TaskRoom parity when those older
+  reports still target a broader shape;
+- adapter-only invocation as native proof;
+- retained fixtures alone as product-observed proof.
+
+MVP authority has **no fixture mode**. Paths under `fixtures/`, retained-only
+artifacts, and placeholder refs such as `/tmp/product/...` are rejected as
+product-observed authority inputs. Use them only for unit/CLI regression coverage.
+
+Older gates below remain documented as legacy or broader gates. A blocked July17
+`releaseReadiness` or broader `threeRuntimeParity` field is preserved under
+`legacyBoundaries` / `nonClaims` and does not rewrite history into a pass.
+
 ## Release commands
 
 ### Fresh OpenCode release-grade benchmark chain

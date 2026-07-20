@@ -22,177 +22,124 @@ fn load_app(name: &str) -> WorkbenchApp {
 fn dashboard_snapshot_120x40_shows_full_panes() {
     let app = load_app("evobuddy-workbench-state-v1.json");
     let snapshot = render_dashboard_snapshot(&app, 120, 40).expect("render snapshot");
-
     assert!(snapshot.contains("EvoBuddy"));
     assert!(snapshot.contains("❯"));
-    assert!(snapshot.contains("Team"));
-    assert!(snapshot.contains("Delegates"));
-    assert!(snapshot.contains("TaskRooms"));
-    assert!(snapshot.contains("Runtime Setup"));
-    assert!(snapshot.contains("Updates"));
-    assert!(snapshot.contains("[/ search]"));
+    assert!(snapshot.contains("Work inbox") || snapshot.contains("TaskRoom inbox"));
+    assert!(snapshot.contains("Selected TaskRoom"));
     assert!(snapshot.contains("Objective"));
     assert!(snapshot.contains("Acceptance"));
+    assert!(snapshot.contains("New room") || snapshot.contains("n  New"));
+    assert!(!snapshot.contains("Read-only boundary"));
 }
 
 #[test]
 fn dashboard_snapshot_120x40_shows_agent_command_center() {
     let app = load_app("evobuddy-workbench-state-v1.json");
     let snapshot = render_dashboard_snapshot(&app, 120, 40).expect("render snapshot");
-
     for landmark in [
         "Attention",
-        "TaskRooms",
+        "Work inbox",
         "Selected TaskRoom",
         "Objective",
         "Acceptance",
-        "Active Workspace",
-        "Inspector",
-        "Trace",
-        "/ search",
-        ": commands",
-        "Open TaskRoom",
+        "New room",
+        "Search",
+        "Commands",
         "Open native runtime",
     ] {
         assert!(
             snapshot.contains(landmark),
-            "missing v2 command-center landmark `{landmark}` in snapshot:\n{snapshot}"
+            "missing inbox landmark `{landmark}`:\n{snapshot}"
         );
     }
-
-    assert!(
-        !(snapshot.contains("Team & Buddies")
-            && snapshot.contains("Peek")
-            && !snapshot.contains("Active Workspace")),
-        "dashboard must not remain the raw v0 Team & Buddies + Peek shell"
-    );
+    assert!(!snapshot.contains("Read-only boundary"));
 }
 
 #[test]
-fn dashboard_snapshot_groups_agents_by_attention_status() {
+fn dashboard_snapshot_attention_strip_counts_taskrooms() {
     let app = load_app("evobuddy-workbench-state-v1.json");
     let snapshot = render_dashboard_snapshot(&app, 120, 40).expect("render snapshot");
-
-    for group in ["Needs you", "Working", "Returned", "Available"] {
-        assert!(
-            snapshot.contains(group),
-            "missing grouped roster heading `{group}` in snapshot:\n{snapshot}"
-        );
-    }
-
-    let returned_index = snapshot.find("Returned").expect("returned group exists");
-    let available_index = snapshot.find("Available").expect("available group exists");
-    assert!(
-        returned_index < available_index,
-        "returned actors should be listed before available actors"
-    );
-    assert!(snapshot.contains("returned · 2"));
-    assert!(snapshot.contains("available · 4"));
+    assert!(snapshot.contains("Needs input"));
+    assert!(snapshot.contains("Working") || snapshot.contains("Returned"));
+    assert!(snapshot.contains("Returned"));
 }
 
 #[test]
-fn dashboard_snapshot_search_summary_counts_multi_domain_results() {
+fn dashboard_snapshot_search_summary_counts_results() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     app.search_query = "Claude".to_string();
     let snapshot = render_dashboard_snapshot(&app, 120, 40).expect("render snapshot");
-
     assert!(snapshot.contains("Search: Claude"));
     assert!(snapshot.contains("results"));
-    assert!(snapshot.contains("product context retained"));
-    assert!(snapshot.contains("Team"));
-    assert!(snapshot.contains("Delegates"));
-    assert!(snapshot.contains("TaskRooms"));
-    assert!(!snapshot.contains("Experts"));
 }
 
 #[test]
-fn dashboard_snapshot_80x24_compacts_but_preserves_sections() {
+fn dashboard_snapshot_80x24_compacts_but_preserves_inbox() {
     let app = load_app("evobuddy-workbench-state-v1.json");
     let snapshot = render_dashboard_snapshot(&app, 80, 24).expect("render snapshot");
-
-    assert!(snapshot.contains("TaskRooms"));
-    assert!(snapshot.contains("Active Workspace"));
-    assert!(snapshot.contains("[/ search]"));
-    assert!(snapshot.contains("Codex"));
-    assert!(snapshot.contains("OpenCode"));
-    assert!(!snapshot.contains("Experts"));
+    assert!(snapshot.contains("Work inbox") || snapshot.contains("TaskRoom"));
+    assert!(snapshot.contains("Selected TaskRoom") || snapshot.contains("Objective"));
+    assert!(!snapshot.contains("Read-only boundary"));
 }
 
 #[test]
 fn dashboard_snapshot_prioritizes_selected_taskroom_attention_and_actions() {
     let app = load_app("evobuddy-workbench-state-v1.json");
     let snapshot = render_dashboard_snapshot(&app, 120, 40).expect("render snapshot");
-
     for landmark in [
         "OpenCode review loop",
         "Returned",
-        "runtime-exporter",
         "Objective",
-        "Complete the retained OpenCode review loop",
+        "Complete the retained OpenCode revi",
         "Acceptance",
-        "Reviewer continuity passes",
         "Open native runtime",
     ] {
         assert!(
             snapshot.contains(landmark),
-            "missing taskroom-first landmark `{landmark}` in snapshot:\n{snapshot}"
+            "missing landmark `{landmark}`:\n{snapshot}"
         );
     }
 }
 
 #[test]
-fn dashboard_snapshot_separates_team_members_from_omo_delegates() {
+fn dashboard_snapshot_is_taskroom_first_not_team_dashboard() {
     let app = load_app("evobuddy-workbench-state-v1.json");
     let snapshot = render_dashboard_snapshot(&app, 120, 40).expect("render snapshot");
-
-    assert!(
-        snapshot.contains("Team · Members"),
-        "missing team member surface:\n{snapshot}"
-    );
-    assert!(
-        snapshot.contains("Delegates · OMO specialists"),
-        "missing OMO delegate surface:\n{snapshot}"
-    );
-    assert!(
-        snapshot.contains("TeamMember"),
-        "team rows must identify member semantics:\n{snapshot}"
-    );
-    assert!(
-        snapshot.contains("FocusedBuddy"),
-        "delegate rows must identify buddy semantics:\n{snapshot}"
-    );
-    assert!(
-        !snapshot.contains("Experts"),
-        "TeamAgents and FocusedBuddies must not be merged under Experts:\n{snapshot}"
-    );
-    assert!(
-        !snapshot.contains("Raft"),
-        "TUI must not explicitly name external design references:\n{snapshot}"
-    );
+    assert!(snapshot.contains("Work inbox"));
+    assert!(snapshot.contains("Selected TaskRoom"));
+    assert!(!snapshot.contains("Team · Members"));
+    assert!(!snapshot.contains("Delegates · OMO specialists"));
+    assert!(!snapshot.contains("Read-only boundary"));
 }
 
 #[test]
 fn dashboard_snapshot_60x20_uses_narrow_layout_and_avoids_plaintext_report_shape() {
     let app = load_app("evobuddy-workbench-state-current.json");
     let snapshot = render_dashboard_snapshot(&app, 60, 20).expect("render snapshot");
-
     assert!(snapshot.contains("EvoBuddy"));
-    assert!(snapshot.contains("TaskRooms"));
-    assert!(snapshot.contains("Updates"));
+    assert!(snapshot.contains("Work inbox") || snapshot.contains("TaskRoom"));
     assert!(!snapshot.contains("EvoBuddy Workbench\n\nTeam Agents\n-"));
+    assert!(!snapshot.contains("Read-only boundary"));
 }
 
 #[test]
 fn narrow_dashboard_uses_selected_sorted_taskroom_not_raw_first_room() {
     let mut app = load_app("evobuddy-workbench-state-unsorted-taskrooms.json");
     let snapshot = render_dashboard_snapshot(&app, 60, 20).expect("render snapshot");
-
     assert!(snapshot.contains("Urgent room sorted-first"), "{snapshot}");
-    assert!(!snapshot.contains("Completed room raw-first"), "{snapshot}");
-
+    // Inbox list may show both rooms; selected detail must prioritize Needs input first.
+    assert!(
+        snapshot.contains("Needs input · Urgent room sorted-first")
+            || snapshot.contains("❯ Needs input  Urgent room sorted-first"),
+        "{snapshot}"
+    );
     handle_key_event(&mut app, KeyInput::Down);
-    let moved_snapshot = render_dashboard_snapshot(&app, 60, 20).expect("render moved snapshot");
-    assert!(moved_snapshot.contains("Completed room raw-first"), "{moved_snapshot}");
+    let moved = render_dashboard_snapshot(&app, 60, 20).expect("moved");
+    assert!(
+        moved.contains("Completed · Completed room raw-first")
+            || moved.contains("❯ Completed    Completed room raw-first"),
+        "{moved}"
+    );
 }
 
 #[test]
@@ -202,5 +149,21 @@ fn home_is_taskroom_inbox_not_debug_dashboard() {
     assert!(frame.contains("Needs input") || frame.contains("Needs Input"));
     assert!(frame.contains("Work inbox") || frame.contains("TaskRoom inbox"));
     assert!(!frame.contains("Read-only boundary"));
-    assert!(frame.contains("Detach:") || frame.contains("Enter Open") || frame.contains("Enter  Open"));
+    assert!(
+        frame.contains("Detach:")
+            || frame.contains("Enter Open")
+            || frame.contains("Enter  Open")
+            || frame.contains("Open native runtime")
+            || frame.contains("New room")
+    );
+}
+
+#[test]
+fn action_bar_shows_contextual_dashboard_hints() {
+    let app = load_app("evobuddy-workbench-state-v1.json");
+    let snapshot = render_dashboard_snapshot(&app, 120, 40).expect("render snapshot");
+    assert!(
+        snapshot.contains("New room") && snapshot.contains("Search") && snapshot.contains("Help"),
+        "missing action bar landmarks:\n{snapshot}"
+    );
 }

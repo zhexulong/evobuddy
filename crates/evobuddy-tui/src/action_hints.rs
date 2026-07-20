@@ -1,0 +1,128 @@
+use crate::app::WorkbenchApp;
+use crate::views::ViewMode;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct ActionHint {
+    pub key: &'static str,
+    pub label: String,
+    pub enabled: bool,
+    pub disabled_reason: Option<String>,
+}
+
+pub fn action_hints(app: &WorkbenchApp) -> Vec<ActionHint> {
+    match &app.view_mode {
+        ViewMode::TaskRoomForm | ViewMode::HandoffForm => vec![
+            hint("Enter", "Submit", true, None),
+            hint("Tab", "Next field", true, None),
+            hint("Esc", "Cancel", true, None),
+        ],
+        ViewMode::StructuredQuestion => vec![
+            hint("Enter", "Confirm", true, None),
+            hint("1-9", "Choose", true, None),
+            hint("Esc", "Cancel", true, None),
+        ],
+        ViewMode::TaskRoomWorkspace => task_room_workspace_hints(app),
+        ViewMode::TeamMemberWorkspace | ViewMode::FocusedBuddyWorkspace => agent_detail_hints(app),
+        ViewMode::Search => vec![
+            hint("Enter", "Open", true, None),
+            hint("Esc", "Back", true, None),
+            hint("/", "Search", true, None),
+        ],
+        ViewMode::CommandPalette => vec![
+            hint("Enter", "Run", true, None),
+            hint("Esc", "Back", true, None),
+        ],
+        ViewMode::Help | ViewMode::TraceDrawer | ViewMode::Detail(_) | ViewMode::ActionProgress => {
+            vec![
+                hint("Esc", "Back", true, None),
+                hint("?", "Help", true, None),
+            ]
+        }
+        ViewMode::Dashboard => dashboard_hints(app),
+    }
+}
+
+fn dashboard_hints(app: &WorkbenchApp) -> Vec<ActionHint> {
+    let mut hints = vec![
+        open_hint(app),
+        hint("n", "New room", true, None),
+        hint("/", "Search", true, None),
+        hint(":", "Commands", true, None),
+        hint("?", "Help", true, None),
+    ];
+    if app.selected_task_room().is_some() {
+        hints.insert(1, hint("h", "Handoff", true, None));
+    }
+    hints
+}
+
+fn task_room_workspace_hints(app: &WorkbenchApp) -> Vec<ActionHint> {
+    vec![
+        open_hint(app),
+        hint("h", "Handoff", true, None),
+        hint("e", "Evidence", true, None),
+        hint("r", "Trace", true, None),
+        hint("Esc", "Back", true, None),
+    ]
+}
+
+fn agent_detail_hints(app: &WorkbenchApp) -> Vec<ActionHint> {
+    let open = open_hint(app);
+    vec![
+        open,
+        hint("c", "Continue with context", true, None),
+        ActionHint {
+            key: "x",
+            label: "Stop".to_string(),
+            enabled: false,
+            disabled_reason: Some(
+                "stop confirms process/session only; code review stays agent-owned".to_string(),
+            ),
+        },
+        hint("Esc", "Back", true, None),
+    ]
+}
+
+fn open_hint(app: &WorkbenchApp) -> ActionHint {
+    match app.selected_task_room() {
+        Some(room) => {
+            if let Some(action) = room.available_actions.iter().find(|a| a.enabled) {
+                hint("Enter", action.label.clone(), true, None)
+            } else if let Some(action) = room.available_actions.first() {
+                ActionHint {
+                    key: "Enter",
+                    label: action.label.clone(),
+                    enabled: false,
+                    disabled_reason: action.disabled_reason.clone(),
+                }
+            } else {
+                ActionHint {
+                    key: "Enter",
+                    label: "Open".to_string(),
+                    enabled: false,
+                    disabled_reason: Some("no runtime action available".to_string()),
+                }
+            }
+        }
+        None => ActionHint {
+            key: "Enter",
+            label: "Open".to_string(),
+            enabled: false,
+            disabled_reason: Some("no TaskRoom selected".to_string()),
+        },
+    }
+}
+
+fn hint(
+    key: &'static str,
+    label: impl Into<String>,
+    enabled: bool,
+    disabled_reason: Option<String>,
+) -> ActionHint {
+    ActionHint {
+        key,
+        label: label.into(),
+        enabled,
+        disabled_reason,
+    }
+}

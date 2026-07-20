@@ -1,3 +1,4 @@
+pub mod action_hints;
 pub mod app;
 pub mod backend;
 pub mod effects;

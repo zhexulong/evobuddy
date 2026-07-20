@@ -105,6 +105,23 @@ It does **not** raise the claim ceiling to any of the following unless separate 
 - Claude TaskRoom loop complete;
 - all EvoBuddy release gates complete.
 
+## Native runtime capability acceptance
+
+Per-runtime capability probing for OpenCode, Claude Code, Codex CLI, and Gemini CLI is not a universal client. It records substrate availability, install/auth honesty, exact-resume vs context-continuation labels, needs-input source, evidence source, and live scenario status for Examples 1, 3, and 5.
+
+```bash
+npm run evobuddy:eval-native-runtime-capabilities:live -- \
+  --project <project> \
+  --out <out>
+```
+
+Rules:
+
+- Unavailable runtimes are explicit `blocked` entries with reasons, not synthetic passes.
+- Exact resume is never required of every runtime; unsupported exact resume must not be mislabeled.
+- Permission prompts are never automated; needs-input is source-qualified or blocked as unknown.
+- Safe/no-op workspaces only; claim ceiling is capability probe + declared sources, not TaskRoom completion proof.
+
 ## Adapter boundary
 
 `evobuddy buddies invoke` is adapter glue only. It can help when a native Buddy surface is unavailable, but adapter-only evidence does not satisfy native or benchmark release sufficiency. The readiness command proves foundation readiness only, not OMO replacement, no-orchestrator sufficiency, or natural-use benchmark success.

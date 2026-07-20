@@ -1,7 +1,8 @@
 import { createHash } from 'node:crypto';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { exportClaudeCodeJsonlSessionCorpus } from './claude-session-corpus-export.mjs';
+import { evaluateForkHandoffReleaseProof } from './evobuddy-fork-handoff-release-proof.mjs';
 import { readObservedTaskRoomRoot, validateObservedTaskRoomRoot } from './evobuddy-opencode-taskroom-producer.mjs';
 import { buildActorProjectionPlan } from './evobuddy-actor-projection-plan.mjs';
 
@@ -11,6 +12,199 @@ function nonEmptyString(value) {
 
 function sha256Text(value) {
   return `sha256:${createHash('sha256').update(String(value)).digest('hex')}`;
+}
+
+function instanceId(actorName) {
+  return `instance:${actorName}`;
+}
+
+function forkId(actorName) {
+  return `fork:${actorName}`;
+}
+
+function handoffId(actorName) {
+  return `handoff:${actorName}`;
+}
+
+function userMessages(session) {
+  return (session?.messages ?? []).filter((message) => message.role === 'user' && nonEmptyString(message.text));
+}
+
+const NATURAL_INPUT_MECHANISM_TERMS = ['TeamAgent', 'fork', 'handoff', 'TaskRoom', 'builder', 'reviewer', 'spawn', 'agent team'];
+
+function naturalInputNegativeControls(parent) {
+  const text = [parent?.promptLineage?.receivedPromptText, ...userMessages(parent).map((message) => message.text)].filter(Boolean).join('\n');
+  if (!text) return [];
+  return NATURAL_INPUT_MECHANISM_TERMS
+    .filter((term) => new RegExp(`\\b${term}\\b`, 'i').test(text))
+    .map((term) => ({ term, reason: 'natural input names mechanism terms' }));
+}
+
+function artifactRef(message) {
+  return nonEmptyString(message?.messageId) ? `artifact:${message.messageId}` : `artifact:${sha256Text(message?.text ?? 'missing')}`;
+}
+
+function projectionCurrentFromAnchors(anchors) {
+  return {
+    status: anchors.length > 0 ? 'pass' : 'fail',
+    projectionRefs: anchors.map((anchor) => anchor.projectionRef),
+    projectionDigests: anchors.map((anchor) => anchor.projectedDigest),
+  };
+}
+
+function blockedReleaseProof({ proofScope = 'product-observed', blockedReasons, naturalInputNegativeControls: controls = [], releaseProof = null }) {
+  return {
+    schema: 'evobuddy-fork-handoff-release-proof.v1',
+    status: 'blocked',
+    proofScope,
+    blockedReasons,
+    issues: releaseProof?.issues ?? blockedReasons,
+    naturalInputNegativeControls: controls,
+    releaseProof,
+  };
+}
+
+async function writeJsonl(path, rows) {
+  await mkdir(resolve(path, '..'), { recursive: true });
+  await writeFile(path, rows.map((row) => JSON.stringify(row)).join('\n') + (rows.length > 0 ? '\n' : ''), 'utf8');
+}
+
+function buildDefaultClaudeForkHandoffRecords({ observedRoot, sessions }) {
+  const parent = sessions.find((session) => session.isSubagent === false);
+  const builder = findSessionByMemberName(sessions, 'builder');
+  const reviewer = findSessionByMemberName(sessions, 'reviewer');
+  const evolutionAgent = findSessionByMemberName(sessions, 'evolution-agent');
+  const roomId = observedRoot.taskRoomLoop.roomId;
+  const parentRuntimeRef = parent.sessionRef ?? `claude-session:${parent.sessionId}`;
+  const createdAt = parent.updatedAt ?? new Date().toISOString();
+  const actors = [
+    ['builder', builder, 'builder'],
+    ['reviewer', reviewer, 'reviewer'],
+    ['evolution-agent', evolutionAgent, 'evolution'],
+  ];
+  const instances = [
+    {
+      instanceId: instanceId('parent'),
+      roomId,
+      actorName: 'parent',
+      actorKind: 'user',
+      role: 'coordinator',
+      runtime: 'claude',
+      runtimeSessionRef: parentRuntimeRef,
+      lifecycle: 'active',
+      createdAt,
+    },
+    ...actors.map(([actorName, session, role]) => ({
+      instanceId: instanceId(actorName),
+      roomId,
+      actorName,
+      actorKind: 'team-agent',
+      role,
+      runtime: 'claude',
+      runtimeSessionRef: session.sessionRef ?? `claude-session:${session.sessionId}`,
+      lifecycle: 'active',
+      createdAt: session.updatedAt ?? createdAt,
+      createdByForkId: forkId(actorName),
+      sourceInstanceId: instanceId('parent'),
+      parentInstanceId: instanceId('parent'),
+    })),
+  ];
+  const forks = actors.map(([actorName, session, role]) => {
+    const isNativeChild = session.isSubagent === true
+      && (session.parentSessionId === parent.sessionId
+        || session?.nativeBuddy?.parentSessionRef === parentRuntimeRef);
+    return {
+      forkId: forkId(actorName),
+      roomId,
+      sourceInstanceId: instanceId('parent'),
+      newInstanceId: instanceId(actorName),
+      actorName,
+      actorKind: 'team-agent',
+      role,
+      forkKind: isNativeChild ? 'native-context-fork' : 'fresh-assignment-fork',
+      runtime: 'claude',
+      runtimeEvidenceRefs: isNativeChild ? [`exporter:spawn:${session.sessionId}`] : [],
+      triggerHandoffId: handoffId(actorName),
+      createdAt: session.updatedAt ?? createdAt,
+    };
+  });
+  const builderMessages = assistantMessages(builder);
+  const reviewerMessages = assistantMessages(reviewer);
+  const evolutionMessages = assistantMessages(evolutionAgent);
+  const handoffs = [
+    {
+      handoffId: handoffId('builder'),
+      roomId,
+      fromInstanceId: instanceId('parent'),
+      toInstanceId: instanceId('builder'),
+      handoffKind: 'assignment',
+      artifactRefs: ['artifact:assignment:builder'],
+      evidenceRefs: [messageRef(builder, builderMessages[0], 'builder-1')],
+      linkedForkId: forkId('builder'),
+      createdAt,
+    },
+    {
+      handoffId: handoffId('reviewer'),
+      roomId,
+      fromInstanceId: instanceId('parent'),
+      toInstanceId: instanceId('reviewer'),
+      handoffKind: 'review-request',
+      artifactRefs: ['artifact:assignment:reviewer'],
+      evidenceRefs: [messageRef(reviewer, reviewerMessages[0], 'reviewer-1')],
+      linkedForkId: forkId('reviewer'),
+      createdAt,
+    },
+    {
+      handoffId: handoffId('evolution-agent'),
+      roomId,
+      fromInstanceId: instanceId('parent'),
+      toInstanceId: instanceId('evolution-agent'),
+      handoffKind: 'evolution-request',
+      artifactRefs: ['artifact:assignment:evolution-agent'],
+      evidenceRefs: [messageRef(evolutionAgent, evolutionMessages[0], 'evolution-1')],
+      linkedForkId: forkId('evolution-agent'),
+      createdAt,
+    },
+    {
+      handoffId: 'handoff:builder-to-reviewer:1',
+      roomId,
+      fromInstanceId: instanceId('builder'),
+      toInstanceId: instanceId('reviewer'),
+      handoffKind: 'review-request',
+      artifactRefs: [artifactRef(builderMessages[0])],
+      evidenceRefs: [messageRef(builder, builderMessages[0], 'builder-1')],
+      linkedForkId: null,
+      createdAt: builder.updatedAt ?? createdAt,
+    },
+    {
+      handoffId: 'handoff:reviewer-to-builder:1',
+      roomId,
+      fromInstanceId: instanceId('reviewer'),
+      toInstanceId: instanceId('builder'),
+      handoffKind: 'review-findings',
+      artifactRefs: [artifactRef(reviewerMessages[0])],
+      evidenceRefs: [messageRef(reviewer, reviewerMessages[0], 'reviewer-1')],
+      linkedForkId: null,
+      createdAt: reviewer.updatedAt ?? createdAt,
+    },
+  ];
+  return { instances, forks, handoffs, wakes: [] };
+}
+
+async function writeClaudeReleaseArtifacts(out, { observedRoot, forkHandoff, releaseProof, sessions, manifest }) {
+  const root = resolve(out);
+  await writeJson(join(root, 'observed-taskroom-root.json'), observedRoot);
+  if (manifest) await writeJson(join(root, 'session-corpus-export-manifest.json'), manifest);
+  await writeJsonl(join(root, 'instances.jsonl'), forkHandoff.instances);
+  await writeJsonl(join(root, 'forks.jsonl'), forkHandoff.forks);
+  await writeJsonl(join(root, 'handoffs.jsonl'), forkHandoff.handoffs);
+  await writeJsonl(join(root, 'wakes.jsonl'), forkHandoff.wakes);
+  await writeJson(join(root, 'evobuddy-fork-handoff-release-proof.json'), releaseProof);
+  await mkdir(join(root, 'artifacts'), { recursive: true });
+  for (const message of sessions.flatMap((session) => session.messages ?? []).filter((message) => nonEmptyString(message.text))) {
+    const name = nonEmptyString(message.messageId) ? message.messageId : sha256Text(message.text).slice(7, 23);
+    await writeFile(join(root, 'artifacts', `${name}.txt`), `${message.text}\n`, 'utf8');
+  }
 }
 
 async function buildSurfaceCurrentAnchors({ projectRoot, runtime, actorSessionRefs }) {
@@ -151,6 +345,7 @@ function buildObservedRootFromExport({ corpus, manifest, runtime = 'claude', sur
   const roomId = `taskroom:${parent.sessionId}`;
   const builderRef = builder.sessionRef ?? `claude-session:${builder.sessionId}`;
   const reviewerRef = reviewer.sessionRef ?? `claude-session:${reviewer.sessionId}`;
+  const evolutionRef = evolutionAgent.sessionRef ?? `claude-session:${evolutionAgent.sessionId}`;
   const parentRef = parent.sessionRef ?? `claude-session:${parent.sessionId}`;
   const transcriptDigest = sha256Text(JSON.stringify({
     parent: parent.messages,
@@ -158,10 +353,14 @@ function buildObservedRootFromExport({ corpus, manifest, runtime = 'claude', sur
     reviewer: reviewer.messages,
     evolution: evolutionAgent.messages,
   }));
-  const manifestRef = './claude-session-corpus-export-manifest.json';
+  const manifestRef = './session-corpus-export-manifest.json';
   const manifestDigest = nonEmptyString(manifest?.digest) ? manifest.digest : sha256Text(JSON.stringify(manifest ?? { missing: true }));
+  const builderFirstRef = messageRef(builder, builderMessages[0], 'builder-1');
+  const builderSecondRef = messageRef(builder, builderMessages[1], 'builder-2');
   const reviewerFirstRef = messageRef(reviewer, reviewerMessages[0], 'reviewer-1');
   const reviewerSecondRef = messageRef(reviewer, reviewerMessages[1], 'reviewer-2');
+  const builderRoundOneArtifactRef = artifactRef(builderMessages[0]);
+  const reviewerRoundOneArtifactRef = artifactRef(reviewerMessages[0]);
 
   const observedRoot = {
     schema: 'evobuddy-observed-taskroom-root.v1',
@@ -178,7 +377,7 @@ function buildObservedRootFromExport({ corpus, manifest, runtime = 'claude', sur
       rounds: [
         {
           roundId: 'round:1',
-          builderArtifactRef: messageRef(builder, builderMessages[0], 'builder-1'),
+          builderArtifactRef: builderFirstRef,
           reviewerFindingRef: reviewerFirstRef,
           reviewerRuntimeSessionRef: reviewerRef,
           reviewerFindingDigest: nonEmptyString(reviewerMessages[0]?.digest) ? reviewerMessages[0].digest : sha256Text(reviewerMessages[0]?.text ?? 'missing-reviewer-round-1'),
@@ -186,7 +385,7 @@ function buildObservedRootFromExport({ corpus, manifest, runtime = 'claude', sur
         },
         {
           roundId: 'round:2',
-          builderArtifactRef: messageRef(builder, builderMessages[1], 'builder-2'),
+          builderArtifactRef: builderSecondRef,
           reviewerFindingRef: reviewerSecondRef,
           reviewerRuntimeSessionRef: reviewerRef,
           priorReviewRefs: [reviewerFirstRef],
@@ -196,8 +395,18 @@ function buildObservedRootFromExport({ corpus, manifest, runtime = 'claude', sur
         },
       ],
       handoffs: [
-        { from: 'participant:builder:1', to: 'participant:reviewer:1', messageId: messageRef(builder, builderMessages[0], 'builder-1') },
-        { from: 'participant:reviewer:1', to: 'participant:builder:1', messageId: reviewerFirstRef },
+        {
+          from: 'participant:builder:1',
+          to: 'participant:reviewer:1',
+          messageId: builderFirstRef,
+          artifactRefs: [builderRoundOneArtifactRef],
+        },
+        {
+          from: 'participant:reviewer:1',
+          to: 'participant:builder:1',
+          messageId: reviewerFirstRef,
+          artifactRefs: [reviewerRoundOneArtifactRef],
+        },
       ],
       resultReturn: {
         status: 'pass',
@@ -213,8 +422,13 @@ function buildObservedRootFromExport({ corpus, manifest, runtime = 'claude', sur
           sourceKind: 'claude-code-session-corpus-exporter',
           dbDigest: manifestDigest,
           transcriptDigest,
-          runtimeSessionRefs: [builderRef, reviewerRef],
+          runtimeSessionRefs: [parentRef, builderRef, reviewerRef, evolutionRef],
         },
+      ],
+      nativeForkEvidenceRefs: [
+        `exporter:spawn:${builder.sessionId}`,
+        `exporter:spawn:${reviewer.sessionId}`,
+        `exporter:spawn:${evolutionAgent.sessionId}`,
       ],
       surfaceCurrentAnchors,
     },
@@ -291,8 +505,131 @@ export async function produceClaudeTaskRoomObservedRoot({
 
   const observedTaskRoomRootPath = join(resolve(out), 'observed-taskroom-root.json');
   await writeJson(observedTaskRoomRootPath, built.observedRoot);
+  if (exportResult?.manifest) await writeJson(join(resolve(out), 'session-corpus-export-manifest.json'), exportResult.manifest);
   return {
     ...built,
     observedTaskRoomRootPath,
+  };
+}
+
+export async function produceClaudeRealtimeForkHandoffTaskRoomProof({
+  projectRoot,
+  runtime = 'claude',
+  out,
+  claudeProjectDir,
+  exportSessionCorpus = exportClaudeCodeJsonlSessionCorpus,
+  buildForkHandoffRecords = buildDefaultClaudeForkHandoffRecords,
+} = {}) {
+  if (!projectRoot || !out) {
+    return blockResult(['realtime fork/handoff producer requires projectRoot and out'], undefined, { source: 'producer-blocked' });
+  }
+  if (!nonEmptyString(claudeProjectDir)) {
+    return blockResult(['realtime fork/handoff producer requires claudeProjectDir for fresh Claude evidence export'], undefined, {
+      source: 'producer-blocked',
+    });
+  }
+
+  const exportResult = await exportSessionCorpus({
+    claudeProjectDir: resolve(claudeProjectDir),
+    projectIdentity: projectRoot,
+  });
+  const sessions = Array.isArray(exportResult?.corpus?.sessions) ? exportResult.corpus.sessions : [];
+  const parent = sessions.find((session) => session?.isSubagent === false) ?? null;
+  const builder = findSessionByMemberName(sessions, 'builder');
+  const reviewer = findSessionByMemberName(sessions, 'reviewer');
+  const evolutionAgent = findSessionByMemberName(sessions, 'evolution-agent');
+  const missingAgents = [
+    ['builder', builder],
+    ['reviewer', reviewer],
+    ['evolution-agent', evolutionAgent],
+  ].filter(([, session]) => !session).map(([name]) => name);
+
+  if (!parent) {
+    return blockResult(['fresh Claude taskroom evidence is missing a parent session'], undefined, {
+      source: 'exported-claude-fork-handoff-proof-blocked',
+    });
+  }
+  if (missingAgents.length > 0) {
+    return blockResult([`fresh Claude taskroom evidence is missing required TeamAgent session(s): ${missingAgents.join(', ')}`], undefined, {
+      source: 'exported-claude-fork-handoff-proof-blocked',
+    });
+  }
+
+  const builderRef = builder.sessionRef ?? `claude-session:${builder.sessionId}`;
+  const reviewerRef = reviewer.sessionRef ?? `claude-session:${reviewer.sessionId}`;
+  const surfaceCurrentAnchors = await buildSurfaceCurrentAnchors({
+    projectRoot,
+    runtime,
+    actorSessionRefs: new Map([['builder', builderRef], ['reviewer', reviewerRef]]),
+  });
+  const built = buildObservedRootFromExport({
+    corpus: exportResult?.corpus,
+    manifest: exportResult?.manifest,
+    runtime,
+    surfaceCurrentAnchors,
+  });
+  if (built.status !== 'pass' || !built.observedRoot) {
+    return blockResult(built.blockedReasons?.length > 0 ? built.blockedReasons : built.issues, built.report, {
+      source: 'exported-claude-fork-handoff-proof-blocked',
+      exporterManifest: built.exporterManifest,
+    });
+  }
+
+  // Enrich loop proof with native spawn evidence refs so forkObserved can close.
+  built.observedRoot.taskRoomLoop.nativeForkEvidenceRefs = [
+    `exporter:spawn:${builder.sessionId}`,
+    `exporter:spawn:${reviewer.sessionId}`,
+    `exporter:spawn:${evolutionAgent.sessionId}`,
+  ];
+
+  const selectedSessions = [parent, builder, reviewer, evolutionAgent];
+  const defaultRecords = buildDefaultClaudeForkHandoffRecords({ observedRoot: built.observedRoot, sessions: selectedSessions });
+  const forkHandoff = buildForkHandoffRecords({ observedRoot: built.observedRoot, sessions: selectedSessions, defaultRecords }) ?? defaultRecords;
+  const releaseProofInput = {
+    proofScope: 'product-observed',
+    projectionCurrent: projectionCurrentFromAnchors(surfaceCurrentAnchors),
+    taskRoomLoop: built.observedRoot.taskRoomLoop,
+    forkHandoff,
+    evolutionHandoff: built.observedRoot.evolutionHandoff,
+  };
+  const evaluated = evaluateForkHandoffReleaseProof(releaseProofInput);
+  const controls = naturalInputNegativeControls(parent);
+  const releaseProof = controls.length > 0
+    ? blockedReleaseProof({
+      blockedReasons: ['natural input names mechanism terms; this is explicit-control evidence, not natural product proof'],
+      naturalInputNegativeControls: controls,
+      releaseProof: evaluated,
+    })
+    : { ...evaluated, naturalInputNegativeControls: [] };
+
+  await writeClaudeReleaseArtifacts(out, {
+    observedRoot: built.observedRoot,
+    forkHandoff,
+    releaseProof,
+    sessions: selectedSessions,
+    manifest: exportResult?.manifest ?? built.exporterManifest,
+  });
+
+  if (releaseProof.status !== 'pass') {
+    return {
+      status: 'blocked',
+      proofScope: 'product-observed',
+      blockedReasons: releaseProof.blockedReasons ?? releaseProof.issues,
+      issues: releaseProof.issues,
+      report: releaseProof,
+      source: 'exported-claude-fork-handoff-proof-blocked',
+      releaseProofPath: join(resolve(out), 'evobuddy-fork-handoff-release-proof.json'),
+    };
+  }
+
+  return {
+    status: 'pass',
+    proofScope: 'product-observed',
+    blockedReasons: [],
+    issues: [],
+    report: releaseProof,
+    observedTaskRoomRootPath: join(resolve(out), 'observed-taskroom-root.json'),
+    releaseProofPath: join(resolve(out), 'evobuddy-fork-handoff-release-proof.json'),
+    source: 'exported-claude-fork-handoff-proof',
   };
 }

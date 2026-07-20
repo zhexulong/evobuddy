@@ -5,10 +5,18 @@ import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { evaluateForkHandoffReleaseProof } from '../../src/core/evobuddy-fork-handoff-release-proof.mjs';
+import { produceClaudeRealtimeForkHandoffTaskRoomProof } from '../../src/core/evobuddy-claude-taskroom-producer.mjs';
 import { produceOpenCodeRealtimeForkHandoffTaskRoomProof } from '../../src/core/evobuddy-opencode-taskroom-producer.mjs';
 
 function defaultOpenCodeDbPath() {
   return resolve(homedir(), '.local/share/opencode/opencode.db');
+}
+
+function defaultClaudeProjectDir(projectRoot) {
+  // Claude Code stores project transcripts under ~/.claude/projects/<encoded-path>.
+  // Callers can still override with --claude-project-dir.
+  const encoded = resolve(projectRoot).replace(/[\\/:]/g, '-');
+  return resolve(homedir(), '.claude', 'projects', encoded);
 }
 
 function requireValue(argv, index, flag) {
@@ -25,6 +33,7 @@ function parseArgs(argv) {
     else if (arg === '--runtime') args.runtime = requireValue(argv, ++index, arg);
     else if (arg === '--out') args.out = requireValue(argv, ++index, arg);
     else if (arg === '--observed-taskroom-root') args.observedTaskRoomRoot = requireValue(argv, ++index, arg);
+    else if (arg === '--claude-project-dir') args.claudeProjectDir = requireValue(argv, ++index, arg);
     else if (arg === '--allow-retained-fixture') args.allowRetainedFixture = true;
     else throw new Error(`unknown argument: ${arg}`);
   }
@@ -90,6 +99,14 @@ export async function runEvobuddyRealtimeForkHandoffTaskRoomLiveEvalCli(argv) {
     report.naturalInputNegativeControls ??= [];
   } else if (args.runtime === 'opencode') {
     const produced = await produceOpenCodeRealtimeForkHandoffTaskRoomProof({ projectRoot: resolve(args.project), runtime: args.runtime, out, dbPath: defaultOpenCodeDbPath() });
+    report = produced.report;
+  } else if (args.runtime === 'claude') {
+    const produced = await produceClaudeRealtimeForkHandoffTaskRoomProof({
+      projectRoot: resolve(args.project),
+      runtime: args.runtime,
+      out,
+      claudeProjectDir: args.claudeProjectDir ? resolve(args.claudeProjectDir) : defaultClaudeProjectDir(args.project),
+    });
     report = produced.report;
   } else {
     report = {

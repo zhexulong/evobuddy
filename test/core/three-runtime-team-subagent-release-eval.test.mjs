@@ -214,6 +214,58 @@ test('tracks OpenCode realtime fork/handoff without claiming Claude or Codex for
   assert.equal(report.releaseParity.status, 'blocked');
 });
 
+test('accepts Claude realtime fork/handoff proof without transferring OpenCode parity', () => {
+  const projectionOnly = {
+    teamAgent: {
+      surfaceCurrent: { status: 'pass' },
+      teamAgentSessionObserved: { status: 'blocked' },
+      teamAgentResultObserved: { status: 'blocked' },
+    },
+    subagentBuddy: {
+      surfaceCurrent: { status: 'pass' },
+      nativeMechanismObserved: { status: 'blocked' },
+      naturalUseObserved: { status: 'blocked' },
+      childResultReturnObserved: { status: 'blocked' },
+    },
+  };
+  const report = evaluateThreeRuntimeTeamSubagentRelease({
+    runtimes: { opencode: projectionOnly, claude: projectionOnly, codex: projectionOnly },
+    projectionParity: { status: 'pass' },
+    realtimeForkHandoffTaskRoom: [
+      {
+        status: 'pass',
+        proofScope: 'product-observed',
+        runtime: 'opencode',
+        reportKind: 'evobuddy-realtime-fork-handoff-taskroom-report',
+        forkObserved: { status: 'pass' },
+        handoffObserved: { status: 'pass' },
+        continuityObserved: { status: 'pass' },
+        resultReturn: { status: 'pass' },
+        evolutionHandoff: { status: 'pass' },
+      },
+      {
+        status: 'pass',
+        proofScope: 'product-observed',
+        runtime: 'claude',
+        reportKind: 'evobuddy-realtime-fork-handoff-taskroom-report',
+        forkObserved: { status: 'pass' },
+        handoffObserved: { status: 'pass' },
+        continuityObserved: { status: 'pass' },
+        resultReturn: { status: 'pass' },
+        evolutionHandoff: { status: 'pass' },
+      },
+    ],
+    realtimeForkHandoffReportPath: ['/tmp/opencode-realtime.json', '/tmp/claude-realtime.json'],
+  });
+
+  assert.equal(report.forkLoopProductProof.opencode.status, 'pass');
+  assert.equal(report.forkLoopProductProof.claude.status, 'pass');
+  assert.equal(report.forkLoopProductProof.codex.status, 'blocked');
+  assert.equal(report.realtimeForkHandoffTaskRoom.byRuntime.claude.status, 'claude-product-proof-attached');
+  assert.equal(report.realtimeForkHandoffTaskRoom.byRuntime.claude.reportPath, '/tmp/claude-realtime.json');
+  assert.match(report.forkLoopProductProof.codex.reason, /real observed runtime evidence/i);
+});
+
 test('keeps legacy plan3 taskroom reports separate from realtime fork/handoff reports', () => {
   const report = evaluateThreeRuntimeTeamSubagentRelease({
     runtimes: { opencode: fullPass, claude: fullPass, codex: fullPass },

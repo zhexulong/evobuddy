@@ -39,14 +39,14 @@ function notRunGroup(kind) {
 }
 
 function parseArgs(argv) {
-  const args = { taskroomReports: [], runtimeReports: { opencode: [], claude: [], codex: [] } };
+  const args = { taskroomReports: [], realtimeForkHandoffReports: [], runtimeReports: { opencode: [], claude: [], codex: [] } };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--project') args.project = requireValue(argv, i += 1, arg);
     else if (arg === '--out') args.out = requireValue(argv, i += 1, arg);
     else if (arg === '--projection-doctor-report') args.projectionDoctorReport = requireValue(argv, i += 1, arg);
     else if (arg === '--taskroom-report') args.taskroomReports.push(requireValue(argv, i += 1, arg));
-    else if (arg === '--realtime-fork-handoff-report') args.realtimeForkHandoffReport = requireValue(argv, i += 1, arg);
+    else if (arg === '--realtime-fork-handoff-report') args.realtimeForkHandoffReports.push(requireValue(argv, i += 1, arg));
     else if (/^--(opencode|claude|codex)-report$/.test(arg)) args.runtimeReports[arg.slice(2, -7)].push(requireValue(argv, i += 1, arg));
     else throw new Error(`unknown argument: ${arg}`);
   }
@@ -159,8 +159,18 @@ export async function runThreeRuntimeTeamSubagentLiveEvalCli(argv) {
   const taskRooms = await Promise.all(taskRoomReportPaths.map((reportPath) => readJson(reportPath)));
   const taskRoomReportPath = taskRoomReportPaths.length === 0 ? undefined : taskRoomReportPaths.length === 1 ? taskRoomReportPaths[0] : taskRoomReportPaths;
   const taskRoom = taskRooms.length === 0 ? undefined : taskRooms.length === 1 ? taskRooms[0] : taskRooms;
-  const realtimeForkHandoffReportPath = args.realtimeForkHandoffReport ? resolve(args.realtimeForkHandoffReport) : undefined;
-  const realtimeForkHandoffTaskRoom = realtimeForkHandoffReportPath ? await readJson(realtimeForkHandoffReportPath) : undefined;
+  const realtimeForkHandoffReportPaths = args.realtimeForkHandoffReports.map((reportPath) => resolve(reportPath));
+  const realtimeForkHandoffReports = await Promise.all(realtimeForkHandoffReportPaths.map((reportPath) => readJson(reportPath)));
+  const realtimeForkHandoffReportPath = realtimeForkHandoffReportPaths.length === 0
+    ? undefined
+    : realtimeForkHandoffReportPaths.length === 1
+      ? realtimeForkHandoffReportPaths[0]
+      : realtimeForkHandoffReportPaths;
+  const realtimeForkHandoffTaskRoom = realtimeForkHandoffReports.length === 0
+    ? undefined
+    : realtimeForkHandoffReports.length === 1
+      ? realtimeForkHandoffReports[0]
+      : realtimeForkHandoffReports;
   const report = evaluateThreeRuntimeTeamSubagentRelease({ runtimes, projectionParity, taskRoom, taskRoomReportPath, realtimeForkHandoffTaskRoom, realtimeForkHandoffReportPath });
   report.reportKind = 'three-runtime-team-subagent-release-report';
   const reportPath = join(resolve(args.out), 'three-runtime-team-subagent-release-report.json');

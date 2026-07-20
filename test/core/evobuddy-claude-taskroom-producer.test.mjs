@@ -3,9 +3,94 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
-import { produceClaudeTaskRoomObservedRoot } from '../../src/core/evobuddy-claude-taskroom-producer.mjs';
+import { produceClaudeRealtimeForkHandoffTaskRoomProof, produceClaudeTaskRoomObservedRoot } from '../../src/core/evobuddy-claude-taskroom-producer.mjs';
 
 const REPO_ROOT = resolve(import.meta.dirname, '../..');
+
+function claudeTaskroomExportFixture() {
+  return {
+    corpus: {
+      source: 'claude-code-jsonl-session-corpus-export',
+      projectIdentity: '/repo',
+      sessions: [
+        {
+          sessionId: 'claude-parent',
+          sessionRef: 'claude-session:claude-parent',
+          runtime: 'claude-code',
+          isSubagent: false,
+          updatedAt: '2026-07-18T00:00:00.000Z',
+          messages: [
+            { role: 'user', digest: 'sha256:parent-user-1', sourceRef: { path: '/tmp/root.jsonl', line: 0 }, text: 'Review the current design and make the smallest focused correction.' },
+            { role: 'assistant', digest: 'sha256:parent-1', sourceRef: { path: '/tmp/root.jsonl', line: 1 }, text: 'Parent taskroom setup' },
+            { role: 'assistant', digest: 'sha256:parent-2', sourceRef: { path: '/tmp/root.jsonl', line: 2 }, text: 'Builder and reviewer results returned to parent' },
+          ],
+          nativeBuddy: {
+            parentSessionRef: 'claude-session:claude-parent',
+            resultReturn: {
+              returnedToParent: true,
+              resultRef: 'claude-session:claude-parent:result',
+              resultDigest: 'sha256:result-return',
+            },
+          },
+        },
+        {
+          sessionId: 'claude-builder',
+          sessionRef: 'claude-session:claude-builder',
+          runtime: 'claude-code',
+          isSubagent: true,
+          parentSessionId: 'claude-parent',
+          updatedAt: '2026-07-18T00:01:00.000Z',
+          nativeBuddy: {
+            memberName: 'builder',
+            parentSessionRef: 'claude-session:claude-parent',
+          },
+          messages: [
+            { role: 'assistant', messageId: 'msg-builder-1', digest: 'sha256:builder-1', sourceRef: { path: '/tmp/subagents/builder.jsonl', line: 1 }, text: 'Patch round 1' },
+            { role: 'assistant', messageId: 'msg-builder-2', digest: 'sha256:builder-2', sourceRef: { path: '/tmp/subagents/builder.jsonl', line: 2 }, text: 'Patch round 2' },
+          ],
+        },
+        {
+          sessionId: 'claude-reviewer',
+          sessionRef: 'claude-session:claude-reviewer',
+          runtime: 'claude-code',
+          isSubagent: true,
+          parentSessionId: 'claude-parent',
+          updatedAt: '2026-07-18T00:02:00.000Z',
+          nativeBuddy: {
+            memberName: 'reviewer',
+            parentSessionRef: 'claude-session:claude-parent',
+          },
+          messages: [
+            { role: 'assistant', messageId: 'msg-reviewer-1', digest: 'sha256:reviewer-1', sourceRef: { path: '/tmp/subagents/reviewer.jsonl', line: 1 }, text: 'Findings round 1' },
+            { role: 'assistant', messageId: 'msg-reviewer-2', digest: 'sha256:reviewer-2', sourceRef: { path: '/tmp/subagents/reviewer.jsonl', line: 2 }, text: 'Findings round 2 with prior review context' },
+          ],
+        },
+        {
+          sessionId: 'claude-evolution',
+          sessionRef: 'claude-session:claude-evolution',
+          runtime: 'claude-code',
+          isSubagent: true,
+          parentSessionId: 'claude-parent',
+          updatedAt: '2026-07-18T00:03:00.000Z',
+          nativeBuddy: {
+            memberName: 'evolution-agent',
+            parentSessionRef: 'claude-session:claude-parent',
+          },
+          messages: [
+            { role: 'assistant', messageId: 'msg-evolution-1', digest: 'sha256:evolution-1', sourceRef: { path: '/tmp/subagents/evolution-agent.jsonl', line: 1 }, text: 'Propose SOP improvement' },
+          ],
+        },
+      ],
+    },
+    manifest: {
+      digest: 'sha256:claude-manifest',
+      source: {
+        kind: 'claude-code-jsonl',
+        claudeProjectDir: '/tmp/claude-project',
+      },
+    },
+  };
+}
 
 test('blocks Claude producer when no claudeProjectDir is available for fresh evidence export', async () => {
   const result = await produceClaudeTaskRoomObservedRoot({ projectRoot: process.cwd(), out: '/tmp/unused-claude-taskroom-root' });
@@ -22,84 +107,7 @@ test('builds observed taskroom root from exported Claude taskroom sessions', asy
       runtime: 'claude',
       out,
       claudeProjectDir: '/tmp/claude-project',
-      exportSessionCorpus: async () => ({
-        corpus: {
-          source: 'claude-code-jsonl-session-corpus-export',
-          projectIdentity: '/repo',
-          sessions: [
-            {
-              sessionId: 'claude-parent',
-              sessionRef: 'claude-session:claude-parent',
-              runtime: 'claude-code',
-              isSubagent: false,
-              updatedAt: '2026-07-18T00:00:00.000Z',
-              nativeBuddy: {
-                parentSessionRef: 'claude-session:claude-parent',
-                resultReturn: {
-                  returnedToParent: true,
-                  resultRef: 'claude-session:claude-parent:result',
-                  resultDigest: 'sha256:result-return',
-                },
-              },
-              messages: [
-                { role: 'assistant', digest: 'sha256:parent-1', sourceRef: { path: '/tmp/root.jsonl', line: 1 }, text: 'Parent taskroom setup' },
-                { role: 'assistant', digest: 'sha256:parent-2', sourceRef: { path: '/tmp/root.jsonl', line: 2 }, text: 'Builder and reviewer results returned to parent' },
-              ],
-            },
-            {
-              sessionId: 'claude-builder',
-              sessionRef: 'claude-session:claude-builder',
-              runtime: 'claude-code',
-              isSubagent: true,
-              updatedAt: '2026-07-18T00:01:00.000Z',
-              nativeBuddy: {
-                memberName: 'builder',
-                parentSessionRef: 'claude-session:claude-parent',
-              },
-              messages: [
-                { role: 'assistant', digest: 'sha256:builder-1', sourceRef: { path: '/tmp/subagents/builder.jsonl', line: 1 }, text: 'Patch round 1' },
-                { role: 'assistant', digest: 'sha256:builder-2', sourceRef: { path: '/tmp/subagents/builder.jsonl', line: 2 }, text: 'Patch round 2' },
-              ],
-            },
-            {
-              sessionId: 'claude-reviewer',
-              sessionRef: 'claude-session:claude-reviewer',
-              runtime: 'claude-code',
-              isSubagent: true,
-              updatedAt: '2026-07-18T00:02:00.000Z',
-              nativeBuddy: {
-                memberName: 'reviewer',
-                parentSessionRef: 'claude-session:claude-parent',
-              },
-              messages: [
-                { role: 'assistant', digest: 'sha256:reviewer-1', sourceRef: { path: '/tmp/subagents/reviewer.jsonl', line: 1 }, text: 'Findings round 1' },
-                { role: 'assistant', digest: 'sha256:reviewer-2', sourceRef: { path: '/tmp/subagents/reviewer.jsonl', line: 2 }, text: 'Findings round 2 with prior review context' },
-              ],
-            },
-            {
-              sessionId: 'claude-evolution',
-              sessionRef: 'claude-session:claude-evolution',
-              runtime: 'claude-code',
-              isSubagent: true,
-              updatedAt: '2026-07-18T00:03:00.000Z',
-              nativeBuddy: {
-                memberName: 'evolution-agent',
-                parentSessionRef: 'claude-session:claude-parent',
-              },
-              messages: [
-                { role: 'assistant', digest: 'sha256:evolution-1', sourceRef: { path: '/tmp/subagents/evolution-agent.jsonl', line: 1 }, text: 'Propose SOP improvement' },
-              ],
-            },
-          ],
-        },
-        manifest: {
-          digest: 'sha256:claude-manifest',
-          source: {
-            kind: 'claude-code-jsonl',
-            claudeProjectDir: '/tmp/claude-project',
-          },
-        },
-      }),
+      exportSessionCorpus: async () => claudeTaskroomExportFixture(),
     });
 
     assert.equal(result.status, 'pass');
@@ -116,6 +124,66 @@ test('builds observed taskroom root from exported Claude taskroom sessions', asy
     assert.equal(written.taskRoomLoop.exporterRefs[0].sourceKind, 'claude-code-session-corpus-exporter');
     assert.equal(written.taskRoomLoop.resultReturn.observedParentThreadRef, 'claude-session:claude-parent');
     assert.equal(written.evolutionHandoff.agentName, 'evolution-agent');
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test('writes Claude realtime fork/handoff release proof artifacts from exported sessions', async () => {
+  const out = mkdtempSync(join(tmpdir(), 'evobuddy-claude-fork-handoff-'));
+  try {
+    const result = await produceClaudeRealtimeForkHandoffTaskRoomProof({
+      projectRoot: REPO_ROOT,
+      runtime: 'claude',
+      out,
+      claudeProjectDir: '/tmp/claude-project',
+      exportSessionCorpus: async () => claudeTaskroomExportFixture(),
+    });
+
+    assert.equal(result.status, 'pass');
+    assert.equal(result.source, 'exported-claude-fork-handoff-proof');
+    const proof = JSON.parse(readFileSync(join(out, 'evobuddy-fork-handoff-release-proof.json'), 'utf8'));
+    assert.equal(proof.status, 'pass');
+    assert.equal(proof.proofScope, 'product-observed');
+    assert.equal(proof.forkObserved.status, 'pass');
+    assert.equal(proof.handoffObserved.status, 'pass');
+    assert.equal(proof.continuityObserved.status, 'pass');
+    assert.equal(proof.resultReturn.status, 'pass');
+    assert.equal(proof.evolutionHandoff.status, 'pass');
+    assert.deepEqual(proof.naturalInputNegativeControls, []);
+
+    const forks = readFileSync(join(out, 'forks.jsonl'), 'utf8').trim().split('\n').map((line) => JSON.parse(line));
+    const handoffs = readFileSync(join(out, 'handoffs.jsonl'), 'utf8').trim().split('\n').map((line) => JSON.parse(line));
+    const instances = readFileSync(join(out, 'instances.jsonl'), 'utf8').trim().split('\n').map((line) => JSON.parse(line));
+    assert.equal(instances.length, 4);
+    assert.equal(forks.length, 3);
+    assert.ok(forks.every((fork) => fork.runtime === 'claude'));
+    assert.ok(forks.every((fork) => fork.forkKind === 'native-context-fork'));
+    assert.ok(handoffs.length >= 3);
+    assert.equal(JSON.parse(readFileSync(join(out, 'session-corpus-export-manifest.json'), 'utf8')).digest, 'sha256:claude-manifest');
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test('blocks Claude realtime fork/handoff proof when natural input names mechanism terms', async () => {
+  const out = mkdtempSync(join(tmpdir(), 'evobuddy-claude-fork-handoff-mech-'));
+  try {
+    const fixture = claudeTaskroomExportFixture();
+    fixture.corpus.sessions[0].messages[0].text = 'Please open a TaskRoom and fork a builder/reviewer agent team.';
+    const result = await produceClaudeRealtimeForkHandoffTaskRoomProof({
+      projectRoot: REPO_ROOT,
+      runtime: 'claude',
+      out,
+      claudeProjectDir: '/tmp/claude-project',
+      exportSessionCorpus: async () => fixture,
+    });
+    assert.equal(result.status, 'blocked');
+    assert.ok(result.blockedReasons.some((reason) => /mechanism terms|natural input/i.test(reason)));
+    const proof = JSON.parse(readFileSync(join(out, 'evobuddy-fork-handoff-release-proof.json'), 'utf8'));
+    assert.equal(proof.status, 'blocked');
+    assert.ok(Array.isArray(proof.naturalInputNegativeControls));
+    assert.ok(proof.naturalInputNegativeControls.length > 0);
   } finally {
     rmSync(out, { recursive: true, force: true });
   }

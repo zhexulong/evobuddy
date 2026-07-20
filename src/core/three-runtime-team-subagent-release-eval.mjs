@@ -122,10 +122,12 @@ function normalizeTaskRoom(taskRoom, taskRoomReportPath) {
   };
 }
 
+const REALTIME_FORK_HANDOFF_RUNTIMES = ['opencode', 'claude', 'codex'];
+
 function realtimeForkHandoffPass(entry) {
   return entry?.status === 'pass'
     && entry?.proofScope === 'product-observed'
-    && entry?.runtime === 'opencode'
+    && REALTIME_FORK_HANDOFF_RUNTIMES.includes(entry?.runtime)
     && entry?.forkObserved?.status === 'pass'
     && entry?.handoffObserved?.status === 'pass'
     && entry?.continuityObserved?.status === 'pass'
@@ -133,17 +135,26 @@ function realtimeForkHandoffPass(entry) {
     && entry?.evolutionHandoff?.status === 'pass';
 }
 
-function normalizeRealtimeForkHandoffTaskRoom(report, reportPath) {
+function asReportArray(report, reportPath) {
+  if (report == null) return [];
+  if (Array.isArray(report)) {
+    const paths = Array.isArray(reportPath) ? reportPath : [reportPath];
+    return report.map((entry, index) => ({ report: entry, reportPath: paths[index] ?? paths[0] ?? null }));
+  }
+  return [{ report, reportPath: Array.isArray(reportPath) ? reportPath[0] ?? null : reportPath ?? null }];
+}
+
+function normalizeOneRealtimeForkHandoffReport(report, reportPath) {
   if (!report) {
     return {
       status: 'blocked',
-      reason: 'missing OpenCode realtime fork/handoff product-observed report',
+      reason: 'missing realtime fork/handoff product-observed report',
       reportPath: reportPath ?? null,
     };
   }
   if (realtimeForkHandoffPass(report)) {
     return {
-      status: 'opencode-product-proof-attached',
+      status: `${report.runtime}-product-proof-attached`,
       proofScope: report.proofScope,
       runtime: report.runtime,
       reportKind: report.reportKind ?? null,
@@ -155,14 +166,12 @@ function normalizeRealtimeForkHandoffTaskRoom(report, reportPath) {
         resultReturn: report.resultReturn,
         evolutionHandoff: report.evolutionHandoff,
       },
-      note: 'OpenCode realtime fork/handoff product proof is attached; this does not claim Claude/Codex fork-loop parity.',
+      note: `${report.runtime} realtime fork/handoff product proof is attached; this does not transfer product proof to other runtimes.`,
     };
   }
   return {
     status: 'blocked',
-    reason: report.runtime && report.runtime !== 'opencode'
-      ? 'only OpenCode realtime fork/handoff product proof is currently accepted by this aggregate section'
-      : report.blockedReasons?.[0] ?? report.issues?.[0] ?? 'OpenCode realtime fork/handoff product proof did not pass',
+    reason: report.blockedReasons?.[0] ?? report.issues?.[0] ?? 'realtime fork/handoff product proof did not pass',
     proofScope: report.proofScope ?? null,
     runtime: report.runtime ?? null,
     reportKind: report.reportKind ?? null,
@@ -170,14 +179,50 @@ function normalizeRealtimeForkHandoffTaskRoom(report, reportPath) {
   };
 }
 
-function buildForkLoopProductProof(realtimeForkHandoffTaskRoom) {
-  const opencodePass = realtimeForkHandoffTaskRoom?.status === 'opencode-product-proof-attached';
+function normalizeRealtimeForkHandoffTaskRoom(report, reportPath) {
+  const entries = asReportArray(report, reportPath)
+    .map(({ report: entry, reportPath: path }) => normalizeOneRealtimeForkHandoffReport(entry, path));
+  if (entries.length === 0) {
+    return {
+      status: 'blocked',
+      reason: 'missing realtime fork/handoff product-observed report',
+      reportPath: reportPath ?? null,
+      byRuntime: {},
+    };
+  }
+  const byRuntime = {};
+  for (const entry of entries) {
+    if (entry.runtime) byRuntime[entry.runtime] = entry;
+  }
+  const opencode = byRuntime.opencode ?? entries.find((entry) => entry.runtime === 'opencode') ?? entries[0];
+  // Preserve OpenCode-first top-level shape for existing consumers, while exposing per-runtime attachments.
   return {
-    opencode: opencodePass
-      ? { status: 'pass', provenBy: 'evobuddy-realtime-fork-handoff-taskroom-report' }
-      : { status: 'blocked', reason: realtimeForkHandoffTaskRoom?.reason ?? 'real observed runtime evidence required for OpenCode fork-loop product proof' },
-    claude: { status: 'blocked', reason: 'real observed runtime evidence required for Claude fork-loop product proof' },
-    codex: { status: 'blocked', reason: 'real observed runtime evidence required for Codex fork-loop product proof' },
+    ...opencode,
+    byRuntime,
+    attachments: entries,
+  };
+}
+
+function buildForkLoopProductProof(realtimeForkHandoffTaskRoom) {
+  const byRuntime = realtimeForkHandoffTaskRoom?.byRuntime ?? {};
+  const proofFor = (runtime) => {
+    const attachment = byRuntime[runtime];
+    if (attachment?.status === `${runtime}-product-proof-attached`) {
+      return { status: 'pass', provenBy: 'evobuddy-realtime-fork-handoff-taskroom-report', reportPath: attachment.reportPath ?? null };
+    }
+    // Backward-compatible single OpenCode attachment shape.
+    if (runtime === 'opencode' && realtimeForkHandoffTaskRoom?.status === 'opencode-product-proof-attached') {
+      return { status: 'pass', provenBy: 'evobuddy-realtime-fork-handoff-taskroom-report', reportPath: realtimeForkHandoffTaskRoom.reportPath ?? null };
+    }
+    return {
+      status: 'blocked',
+      reason: attachment?.reason ?? `real observed runtime evidence required for ${runtime} fork-loop product proof`,
+    };
+  };
+  return {
+    opencode: proofFor('opencode'),
+    claude: proofFor('claude'),
+    codex: proofFor('codex'),
   };
 }
 

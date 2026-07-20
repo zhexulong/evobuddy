@@ -1,0 +1,43 @@
+# Dependencies / build
+node_modules/
+target/
+dist/
+build/
+*.tsbuildinfo
+Cargo.lock.bak
+
+# Runtime / local project state
+.context-tree/
+.evobuddy/
+.opencode/
+.claude/
+.codex/
+.sisyphus/
+.omo/
+.superpowers/
+
+# Generated projection/install reports at repo root
+context-tree-*-report.json
+context-tree-*-projections.json
+evobuddy-*-report.json
+evobuddy-*-projections.json
+missing-parent-invocation.json
+
+# Local agent / IDE noise
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+
+# Large third-party references (kept local, not product source)
+ref/
+
+# Temporary / coverage
+tmp/
+/tmp/
+coverage/
+.nyc_output/
+*.tmp
+*.bak
+*.bak-test

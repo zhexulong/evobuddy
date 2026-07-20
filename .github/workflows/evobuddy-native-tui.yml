@@ -1,0 +1,74 @@
+name: EvoBuddy native TUI
+
+on:
+  push:
+    branches: [main, master, 'feat/**']
+    paths:
+      - 'crates/evobuddy-tui/**'
+      - 'src/core/evobuddy-*.mjs'
+      - 'src/adapters/*native-session*.mjs'
+      - 'src/eval/evobuddy-native-tui-release-gates.mjs'
+      - 'scripts/context-tree/run-evobuddy-*-tui*.mjs'
+      - 'scripts/context-tree/run-evobuddy-native-*.mjs'
+      - 'scripts/context-tree/run-evobuddy-tmux-*.mjs'
+      - 'scripts/context-tree/run-evobuddy-launch-attach-*.mjs'
+      - 'scripts/evobuddy/evobuddy.mjs'
+      - 'test/**/evobuddy-*.test.mjs'
+      - 'test/adapters/native-session-adapters.test.mjs'
+      - 'test/security/**'
+      - 'fixtures/evobuddy-workbench/**'
+      - 'docs/contracts/evobuddy-*.md'
+      - 'docs/evobuddy-native-*.md'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'package.json'
+      - '.github/workflows/evobuddy-native-tui.yml'
+  pull_request:
+    paths:
+      - 'crates/evobuddy-tui/**'
+      - 'src/core/evobuddy-*.mjs'
+      - 'src/adapters/*native-session*.mjs'
+      - 'src/eval/evobuddy-native-tui-release-gates.mjs'
+      - 'scripts/context-tree/run-evobuddy-*-tui*.mjs'
+      - 'scripts/context-tree/run-evobuddy-native-*.mjs'
+      - 'scripts/context-tree/run-evobuddy-tmux-*.mjs'
+      - 'scripts/context-tree/run-evobuddy-launch-attach-*.mjs'
+      - 'scripts/evobuddy/evobuddy.mjs'
+      - 'test/**/evobuddy-*.test.mjs'
+      - 'test/adapters/native-session-adapters.test.mjs'
+      - 'test/security/**'
+      - 'fixtures/evobuddy-workbench/**'
+      - 'docs/contracts/evobuddy-*.md'
+      - 'docs/evobuddy-native-*.md'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+      - 'package.json'
+      - '.github/workflows/evobuddy-native-tui.yml'
+
+jobs:
+  rust-tui:
+    name: cargo test/clippy -p evobuddy-tui
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: .
+      - name: cargo test -p evobuddy-tui
+        run: cargo test -p evobuddy-tui
+      - name: cargo clippy -p evobuddy-tui
+        run: cargo clippy -p evobuddy-tui --all-targets -- -D warnings
+
+  node-focused:
+    name: focused Node native-TUI suite
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - name: npm run test:native-tui
+        run: npm run test:native-tui

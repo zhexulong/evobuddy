@@ -40,7 +40,13 @@ function descriptorInput(overrides = {}) {
 describe('evobuddy native session store', () => {
   it('serializes concurrent reserve attempts on the same agentInstanceId', async () => {
     const projectRoot = mkdtempSync(join(tmpdir(), 'evobuddy-native-session-concurrent-'));
-    const resume = Promise.withResolvers();
+    let resumeResolve;
+    const resume = {
+      promise: new Promise((resolve) => {
+        resumeResolve = resolve;
+      }),
+      resolve: (value) => resumeResolve(value),
+    };
     let firstEntered = false;
     try {
       await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });

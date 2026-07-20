@@ -176,9 +176,11 @@ describe('evobuddy launch/attach usability eval CLI', () => {
         encoding: 'utf8',
         timeout: 120000,
       });
-      assert.equal(result.status, 0, result.stderr || result.stdout);
+      assert.ok(result.stdout, result.stderr || 'missing stdout');
       const summary = JSON.parse(result.stdout);
       assert.ok(['pass', 'blocked', 'fail'].includes(summary.status));
+      // Measurement can legitimately exit 1 when status=fail (e.g. NO-GO thresholds).
+      assert.equal(result.status, summary.status === 'fail' ? 1 : 0, result.stderr || result.stdout);
       const report = JSON.parse(
         readFileSync(join(out, 'evobuddy-launch-attach-usability-eval-report.json'), 'utf8'),
       );

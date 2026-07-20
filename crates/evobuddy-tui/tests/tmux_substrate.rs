@@ -374,6 +374,19 @@ fn attach_interactive_maps_killed_session_to_session_ended() {
             .stdout(Stdio::null())
             .stderr(Stdio::null())
             .status();
+        for _ in 0..40 {
+            let still = Command::new("tmux")
+                .args(["-L", &kill_socket, "has-session", "-t", &kill_session])
+                .stdout(Stdio::null())
+                .stderr(Stdio::null())
+                .status()
+                .map(|status| status.success())
+                .unwrap_or(false);
+            if !still {
+                break;
+            }
+            thread::sleep(Duration::from_millis(25));
+        }
     });
 
     let outcome = attach_with_script(&socket, &request.session_ref.0);
@@ -467,6 +480,16 @@ fn pane_pid(socket: &str, session: &str) -> Option<String> {
     }
 }
 
+fn has_session(socket: &str, session: &str) -> bool {
+    Command::new("tmux")
+        .args(["-L", socket, "has-session", "-t", session])
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .status()
+        .map(|status| status.success())
+        .unwrap_or(false)
+}
+
 fn attach_with_script(socket: &str, session: &str) -> anyhow::Result<AttachOutcome> {
     let command = format!("tmux -L {socket} attach-session -t {session}");
     let mut cmd = Command::new("script");
@@ -475,12 +498,15 @@ fn attach_with_script(socket: &str, session: &str) -> anyhow::Result<AttachOutco
     let status = cmd
         .status()
         .map_err(|error| anyhow::anyhow!("script attach failed: {error}"))?;
-    let exists = Command::new("tmux")
-        .args(["-L", socket, "has-session", "-t", session])
-        .stdout(Stdio::null())
-        .stderr(Stdio::null())
-        .status()
-        .map(|status| status.success())
-        .unwrap_or(false);
+    let mut exists = has_session(socket, session);
+    if exists {
+        for _ in 0..20 {
+            thread::sleep(Duration::from_millis(25));
+            exists = has_session(socket, session);
+            if !exists {
+                break;
+            }
+        }
+    }
     Ok(map_attach_exit_status(status.success(), exists, false))
 }

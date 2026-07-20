@@ -57,6 +57,8 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: .
+      - name: Install tmux for substrate tests
+        run: sudo apt-get update && sudo apt-get install -y tmux
       - name: cargo test -p evobuddy-tui
         run: cargo test -p evobuddy-tui
       - name: cargo clippy -p evobuddy-tui
@@ -69,6 +71,6 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
       - name: npm run test:native-tui
         run: npm run test:native-tui

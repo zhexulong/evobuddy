@@ -274,3 +274,28 @@ fn taskroom_first_home_exposes_contextual_actions_from_selected_room() {
     assert_eq!(app.view_mode, ViewMode::TaskRoomWorkspace);
     assert!(app.durable_writes.is_empty());
 }
+
+#[test]
+fn create_task_room_effect_is_executed_not_discarded() {
+    let mut app = load_app("evobuddy-workbench-state-v1.json");
+    let effect = app.submit_task_room_form();
+    assert!(matches!(effect, WorkbenchEffect::CreateTaskRoom(_)));
+    assert!(
+        !app.durable_writes.is_empty()
+            || app.action_status.as_deref() != Some("taskroom creation queued"),
+        "CreateTaskRoom must be executed (durable path), not discarded after mock queue status"
+    );
+}
+
+#[test]
+fn open_native_runtime_is_not_the_only_executed_effect() {
+    let handled = effect_names_handled_by_ui_gate();
+    assert!(handled.contains(&"CreateTaskRoom"));
+    assert!(handled.contains(&"CreateHandoff"));
+    assert!(handled.contains(&"AnswerQuestion"));
+    assert!(handled.contains(&"RefreshEvidence"));
+}
+
+fn effect_names_handled_by_ui_gate() -> Vec<&'static str> {
+    vec!["OpenNativeRuntime"]
+}

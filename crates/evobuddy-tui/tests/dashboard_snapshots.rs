@@ -194,3 +194,13 @@ fn narrow_dashboard_uses_selected_sorted_taskroom_not_raw_first_room() {
     let moved_snapshot = render_dashboard_snapshot(&app, 60, 20).expect("render moved snapshot");
     assert!(moved_snapshot.contains("Completed room raw-first"), "{moved_snapshot}");
 }
+
+#[test]
+fn home_is_taskroom_inbox_not_debug_dashboard() {
+    let app = load_app("evobuddy-workbench-state-v1.json");
+    let frame = render_dashboard_snapshot(&app, 120, 40).expect("render snapshot");
+    assert!(frame.contains("Needs input") || frame.contains("Needs Input"));
+    assert!(frame.contains("Work inbox") || frame.contains("TaskRoom inbox"));
+    assert!(!frame.contains("Read-only boundary"));
+    assert!(frame.contains("Detach:") || frame.contains("Enter Open") || frame.contains("Enter  Open"));
+}

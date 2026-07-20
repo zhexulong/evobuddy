@@ -1,0 +1,92 @@
+{
+  "schema": "evobuddy.workbench.state.v1",
+  "projectRoot": "/repo",
+  "generatedAt": "2026-07-19T00:00:00.000Z",
+  "actors": {
+    "teamAgents": [
+      { "id": "builder", "displayName": "Builder", "status": "Working", "role": "Builds changes", "taskRoomIds": ["taskroom:completed:1", "taskroom:urgent:2"] }
+    ],
+    "focusedBuddies": []
+  },
+  "taskRooms": [
+    {
+      "id": "taskroom:completed:1",
+      "title": "Completed room raw-first",
+      "runtime": "opencode",
+      "status": "Completed",
+      "objective": "Already done.",
+      "acceptanceCriteria": "Artifact recorded.",
+      "participants": [
+        { "id": "builder", "displayName": "Builder", "kind": "team-agent", "status": "Working" }
+      ],
+      "rounds": [],
+      "handoffs": [],
+      "reviewerContinuity": { "status": "pass", "summary": "n/a" },
+      "evolutionHandoff": { "status": "pass", "summary": "n/a" },
+      "attention": {
+        "state": "Completed",
+        "sourceKind": "runtime-exporter",
+        "sourceRef": "exporter:completed",
+        "observedAt": "2026-07-19T00:00:00.000Z",
+        "confidence": "high",
+        "staleAfter": "2026-07-20T00:00:00.000Z"
+      },
+      "availableActions": [
+        { "id": "archive-room", "label": "Archive room", "enabled": true, "disabledReason": null }
+      ],
+      "returnedTo": "parent-agent",
+      "artifactsSummary": ["artifact"],
+      "summary": "Completed summary"
+    },
+    {
+      "id": "taskroom:urgent:2",
+      "title": "Urgent room sorted-first",
+      "runtime": "claude",
+      "status": "NeedsInput",
+      "objective": "Resolve missing reviewer input.",
+      "acceptanceCriteria": "Reviewer response captured.",
+      "participants": [
+        { "id": "builder", "displayName": "Builder", "kind": "team-agent", "status": "Working" }
+      ],
+      "rounds": [],
+      "handoffs": [],
+      "reviewerContinuity": { "status": "fail", "summary": "pending review" },
+      "evolutionHandoff": { "status": "pass", "summary": "n/a" },
+      "attention": {
+        "state": "NeedsInput",
+        "sourceKind": "runtime-exporter",
+        "sourceRef": "exporter:urgent",
+        "observedAt": "2026-07-19T00:00:00.000Z",
+        "confidence": "high",
+        "staleAfter": "2026-07-20T00:00:00.000Z"
+      },
+      "availableActions": [
+        { "id": "request-input", "label": "Request input", "enabled": true, "disabledReason": null }
+      ],
+      "returnedTo": null,
+      "artifactsSummary": [],
+      "summary": "Urgent summary"
+    }
+  ],
+  "nativeSessions": [],
+  "runtimeCapabilities": [
+    {
+      "capabilityId": "runtime-capability:claude",
+      "runtime": "claude",
+      "supportsFreshSession": true,
+      "supportsContextContinuation": true,
+      "exactResumeSupported": false,
+      "heuristicResumeSupported": false,
+      "unsupportedReason": null
+    }
+  ],
+  "runtimeSetup": [
+    { "runtime": "Claude", "teamAgent": "observed", "focusedBuddy": "observed", "status": "Ready" }
+  ],
+  "updates": [],
+  "diagnostics": {
+    "claimCeiling": "TUI state visualization; not runtime proof",
+    "hiddenProofFieldsPresent": false,
+    "blockedReasons": []
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "schema": "evobuddy.workbench.state.v1",
+  "projectRoot": "/home/prosumer/agent/context-tree",
+  "generatedAt": "2026-07-19T09:03:46.382Z",
+  "actors": {
+    "teamAgents": [],
+    "focusedBuddies": [
+      {
+        "id": "evolution-buddy",
+        "displayName": "Evolution Buddy",
+        "status": "Available",
+        "routingSummary": "Durable project-behavior change routing.",
+        "runtimeSurfaces": ["opencode", "claude", "codex"]
+      },
+      {
+        "id": "explore",
+        "displayName": "Explore",
+        "status": "Available",
+        "routingSummary": "Read-only codebase exploration.",
+        "runtimeSurfaces": ["opencode", "claude", "codex"]
+      },
+      {
+        "id": "librarian",
+        "displayName": "Librarian",
+        "status": "Available",
+        "routingSummary": "Read-only external documentation research.",
+        "runtimeSurfaces": ["opencode", "claude", "codex"]
+      }
+    ]
+  },
+  "taskRooms": [],
+  "nativeSessions": [],
+  "runtimeCapabilities": [
+    {
+      "capabilityId": "runtime-capability:opencode",
+      "runtime": "opencode",
+      "supportsFreshSession": true,
+      "supportsContextContinuation": true,
+      "exactResumeSupported": false,
+      "heuristicResumeSupported": false,
+      "unsupportedReason": null
+    },
+    {
+      "capabilityId": "runtime-capability:claude",
+      "runtime": "claude",
+      "supportsFreshSession": true,
+      "supportsContextContinuation": true,
+      "exactResumeSupported": false,
+      "heuristicResumeSupported": false,
+      "unsupportedReason": null
+    },
+    {
+      "capabilityId": "runtime-capability:codex",
+      "runtime": "codex",
+      "supportsFreshSession": true,
+      "supportsContextContinuation": true,
+      "exactResumeSupported": false,
+      "heuristicResumeSupported": false,
+      "unsupportedReason": null
+    }
+  ],
+  "runtimeSetup": [
+    { "runtime": "OpenCode", "teamAgent": "TeamAgent TaskRoom observed", "focusedBuddy": "Focused Buddy native observed", "status": "Ready" },
+    { "runtime": "Claude", "teamAgent": "TeamAgent TaskRoom observed", "focusedBuddy": "Focused Buddy native observed", "status": "Ready" },
+    { "runtime": "Codex", "teamAgent": "TeamAgent surface current; TeamAgent TaskRoom not yet observed", "focusedBuddy": "Focused Buddy native observed", "status": "Partial" }
+  ],
+  "updates": [
+    { "id": "evolution-patch:1310dbb7fbf01be7995c60f1", "text": "Applied new-buddy-candidate update: Record live eval correction loop behavior.", "kind": "applied-change", "risk": "low", "targetRefs": [] }
+  ],
+  "diagnostics": {
+    "claimCeiling": "TUI state visualization; not runtime proof",
+    "hiddenProofFieldsPresent": false,
+    "blockedReasons": [
+      "failed to read TaskRoom report 1",
+      "failed to read TaskRoom report 2",
+      "failed to read Plan 2 report"
+    ]
+  }
+}

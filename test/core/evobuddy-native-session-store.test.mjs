@@ -21,7 +21,7 @@ function descriptorInput(overrides = {}) {
     roomId: 'taskroom:alpha',
     agentInstanceId: 'instance-1',
     runtime: 'codex',
-    workspace: '/repo',
+    workspace: process.cwd(),
     terminalSubstrate: 'tmux',
     terminalSessionRef: 'tmux:pending-session-1',
     launchCommandRef: 'launch-plan:codex-default',

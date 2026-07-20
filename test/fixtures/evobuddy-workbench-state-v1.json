@@ -45,6 +45,13 @@
         "staleAfter": "2026-07-20T00:00:00.000Z"
       },
       "availableActions": [
+        { "id": "open-session", "label": "Open session", "enabled": true, "disabledReason": null },
+        { "id": "resume-conversation", "label": "Resume conversation", "enabled": false, "disabledReason": "Exact resume requires validated provider conversation identity." },
+        { "id": "heuristic-resume", "label": "Resume latest candidate", "enabled": false, "disabledReason": "Heuristic resume candidates unavailable." },
+        { "id": "continue-with-context", "label": "Continue with TaskRoom context", "enabled": true, "disabledReason": null },
+        { "id": "start-new-session", "label": "Start new session", "enabled": true, "disabledReason": null },
+        { "id": "view-evidence", "label": "View evidence", "enabled": true, "disabledReason": null },
+        { "id": "retry", "label": "Retry", "enabled": false, "disabledReason": "No recoverable failure present." },
         { "id": "open-native-runtime", "label": "Open native runtime", "enabled": true, "disabledReason": null }
       ],
       "returnedTo": "parent-agent",

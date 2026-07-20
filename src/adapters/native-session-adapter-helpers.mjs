@@ -2,6 +2,11 @@ import { spawnSync } from 'node:child_process';
 
 import { createRuntimeCapabilityDescriptor } from '../core/evobuddy-runtime-capability.mjs';
 import { listNativeSessions } from '../core/evobuddy-native-session-store.mjs';
+import {
+  buildAdapterEvidenceObservation,
+  formatSourceQualifiedAttentionLabel,
+  reduceNativeSessionEvidence,
+} from '../core/evobuddy-native-session-evidence.mjs';
 
 function parseSemver(text) {
   const match = String(text ?? '').match(/(\d+)\.(\d+)\.(\d+)/);
@@ -85,25 +90,71 @@ export function createCliNativeSessionAdapter(config, deps = {}) {
       }));
     },
     classifyAttention(runtimeEvidence = {}) {
-      const observedAt = runtimeEvidence.observedAt ?? new Date().toISOString();
+      const now = runtimeEvidence.observedAt ?? new Date().toISOString();
+      const evidenceList = Array.isArray(runtimeEvidence.runtimeEvidence)
+        ? runtimeEvidence.runtimeEvidence
+        : (runtimeEvidence.state || runtimeEvidence.sourceKind)
+          ? [{
+            state: runtimeEvidence.state ?? 'Working',
+            sourceKind: runtimeEvidence.sourceKind ?? 'runtime-exporter',
+            sourceRef: runtimeEvidence.sourceRef ?? `runtime:${config.runtime}`,
+            observedAt: now,
+            confidence: runtimeEvidence.confidence ?? 'medium',
+            staleAfter: runtimeEvidence.staleAfter ?? now,
+          }]
+          : [];
+      const reduced = reduceNativeSessionEvidence({
+        terminal: runtimeEvidence.terminal ?? null,
+        runtimeEvidence: evidenceList,
+        handoffs: runtimeEvidence.handoffs ?? [],
+        roomOutcome: runtimeEvidence.roomOutcome ?? null,
+        runtime: config.runtime,
+        now: runtimeEvidence.now ?? now,
+      });
       return {
-        state: runtimeEvidence.state ?? 'Working',
-        sourceKind: runtimeEvidence.sourceKind ?? 'runtime-exporter',
-        sourceRef: runtimeEvidence.sourceRef ?? `runtime:${config.runtime}`,
-        observedAt,
-        confidence: runtimeEvidence.confidence ?? 'medium',
-        staleAfter: runtimeEvidence.staleAfter ?? observedAt,
+        ...reduced.observation,
+        attentionLabel: reduced.attentionLabel
+          ?? formatSourceQualifiedAttentionLabel({
+            state: reduced.observation.state,
+            runtime: config.runtime,
+            provisional: reduced.provisional,
+            stale: reduced.stale,
+          }),
+        workState: reduced.workState,
+        roomState: reduced.roomState,
+        provisional: reduced.provisional,
+        stale: reduced.stale,
       };
     },
-    async refreshEvidence({ descriptor }) {
+    async refreshEvidence({ descriptor, projectRoot, runtimeEvidence = [], terminal = null, now } = {}) {
+      void projectRoot;
+      // Never capture pane output as proof. Only structured adapter/runtime facts.
+      const refreshed = buildAdapterEvidenceObservation({
+        runtime: config.runtime,
+        descriptor,
+        runtimeEvidence,
+        terminal,
+        now: now ?? new Date().toISOString(),
+        defaultStaleMs: config.evidenceDefaultStaleMs ?? 5 * 60 * 1000,
+      });
+      const diagnostics = [
+        ...list(refreshed.diagnostics),
+      ];
+      if (terminal?.paneCapture || terminal?.capturePane) {
+        diagnostics.push('pane output capture ignored; not used as evidence');
+      }
       return {
-        evidenceRef: descriptor.providerConversationRef ?? `descriptor:${descriptor.descriptorId}`,
-        observation: this.classifyAttention({
-          state: descriptor.lifecycle === 'attached' ? 'Working' : descriptor.lifecycle === 'attachable' ? 'Ready' : 'Queued',
-          sourceRef: `descriptor:${descriptor.descriptorId}`,
-        }),
-        diagnostics: [],
+        evidenceRef: refreshed.evidenceRef,
+        observation: refreshed.observation,
+        attentionLabel: refreshed.attentionLabel,
+        workState: refreshed.workState,
+        roomState: refreshed.roomState,
+        diagnostics,
       };
     },
   };
+}
+
+function list(value) {
+  return Array.isArray(value) ? value : [];
 }

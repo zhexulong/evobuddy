@@ -1,11 +1,13 @@
 import { randomUUID } from 'node:crypto';
 import { dirname, basename } from 'node:path';
+import { chmodSync, lstatSync } from 'node:fs';
 import { opendir, open, readFile, rename, unlink } from 'node:fs/promises';
 
 import {
   createNativeSessionDescriptor,
   transitionNativeSessionDescriptor,
   validateNativeSessionDescriptor,
+  validateWorkspacePath,
 } from './evobuddy-native-session-descriptor.mjs';
 import { ensureEvobuddyProjectState, resolveEvobuddyProjectState } from './evobuddy-project-state.mjs';
 import { withAgentInstanceSessionLock } from './evobuddy-session-lock.mjs';
@@ -29,7 +31,19 @@ async function fsyncDirectory(path) {
   }
 }
 
+function pathHasSymlink(path) {
+  try {
+    return lstatSync(path).isSymbolicLink();
+  } catch (error) {
+    if (error?.code === 'ENOENT') return false;
+    throw error;
+  }
+}
+
 async function atomicWriteJson(targetPath, value) {
+  if (pathHasSymlink(targetPath) || pathHasSymlink(dirname(targetPath))) {
+    throw new Error('refuses to write native session through symlink');
+  }
   const directory = dirname(targetPath);
   const tempPath = `${targetPath}.${process.pid}.${randomUUID()}.tmp`;
   const handle = await open(tempPath, 'wx', 0o600);
@@ -42,6 +56,7 @@ async function atomicWriteJson(targetPath, value) {
 
   try {
     await rename(tempPath, targetPath);
+    chmodSync(targetPath, 0o600);
     await fsyncDirectory(directory);
   } catch (error) {
     await unlink(tempPath).catch(() => {});
@@ -186,7 +201,27 @@ export function classifySessionReconciliation(descriptors, substrateFacts) {
 }
 
 export async function reserveNativeSession(projectRoot, descriptorInput) {
-  const candidate = createNativeSessionDescriptor({ ...descriptorInput, lifecycle: 'creating' });
+  const { resolve, isAbsolute, sep } = await import('node:path');
+  const root = resolve(projectRoot);
+  const rawWorkspace = descriptorInput.workspace;
+  if (typeof rawWorkspace === 'string' && rawWorkspace.split(/[\\/]/).includes('..')) {
+    throw new Error('workspace path traversal is forbidden');
+  }
+  const candidatePath = isAbsolute(rawWorkspace)
+    ? resolve(rawWorkspace)
+    : resolve(root, rawWorkspace);
+  const underProject = candidatePath === root || candidatePath.startsWith(`${root}${sep}`);
+  // Enforce project/worktree policy only for workspaces under the project root.
+  // Absolute external workspaces remain valid for adapter-owned sandboxes.
+  const workspace = validateWorkspacePath(rawWorkspace, {
+    projectRoot: underProject ? projectRoot : null,
+    mustExist: true,
+  });
+  const candidate = createNativeSessionDescriptor({
+    ...descriptorInput,
+    workspace,
+    lifecycle: 'creating',
+  });
   return mutateSessionSet(projectRoot, candidate.agentInstanceId, async (state, { index, descriptors }) => {
     if (index.descriptorIds.includes(candidate.descriptorId)) throw new Error(`existing native session descriptor: ${candidate.descriptorId}`);
     const duplicate = descriptors.find((descriptor) => (
@@ -235,6 +270,28 @@ export async function updateNativeSession(projectRoot, descriptorId, transition)
   return mutateSessionSet(projectRoot, descriptor.agentInstanceId, async (state, { descriptors }) => {
     const current = descriptors.find((item) => item.descriptorId === descriptorId) ?? descriptor;
     const updated = transitionNativeSessionDescriptor(current, transition);
+    await writeDescriptor(state, updated);
+    return updated;
+  });
+}
+
+/**
+ * Append an evidence ref to a descriptor without changing lifecycle.
+ * Used by taskroom refresh; does not treat pane output as proof.
+ */
+export async function appendNativeSessionEvidenceRef(projectRoot, descriptorId, evidenceRef) {
+  if (typeof evidenceRef !== 'string' || evidenceRef.trim().length === 0) {
+    throw new Error('required non-empty string: evidenceRef');
+  }
+  const descriptor = await readNativeSession(projectRoot, descriptorId);
+  return mutateSessionSet(projectRoot, descriptor.agentInstanceId, async (state, { descriptors }) => {
+    const current = descriptors.find((item) => item.descriptorId === descriptorId) ?? descriptor;
+    const nextRefs = [...new Set([...(current.evidenceRefs ?? []), evidenceRef.trim()])];
+    const updated = createNativeSessionDescriptor({
+      ...current,
+      evidenceRefs: nextRefs,
+      digest: undefined,
+    });
     await writeDescriptor(state, updated);
     return updated;
   });

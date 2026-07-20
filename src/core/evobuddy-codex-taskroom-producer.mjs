@@ -33,7 +33,10 @@ function userMessages(session) {
 const NATURAL_INPUT_MECHANISM_TERMS = ['TeamAgent', 'fork', 'handoff', 'TaskRoom', 'builder', 'reviewer', 'spawn', 'agent team'];
 
 function naturalInputNegativeControls(parent) {
-  const text = [parent?.promptLineage?.receivedPromptText, ...userMessages(parent).map((message) => message.text)].filter(Boolean).join('\n');
+  // Natural-use gate checks the task prompt, not later transcript noise.
+  const lineage = nonEmptyString(parent?.promptLineage?.receivedPromptText) ? parent.promptLineage.receivedPromptText : null;
+  const firstUser = userMessages(parent).map((message) => message.text).find((text) => nonEmptyString(text)) ?? null;
+  const text = lineage ?? firstUser ?? '';
   if (!text) return [];
   return NATURAL_INPUT_MECHANISM_TERMS
     .filter((term) => new RegExp(`\\b${term}\\b`, 'i').test(text))

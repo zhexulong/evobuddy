@@ -166,7 +166,7 @@ test('writes Claude realtime fork/handoff release proof artifacts from exported 
   }
 });
 
-test('prefers a coherent freshest Claude parent cohort and does not reuse TeamAgents from an older parent', async () => {
+test('prefers a complete older Claude parent cohort over a newer incomplete parent', async () => {
   const out = mkdtempSync(join(tmpdir(), 'evobuddy-claude-fork-handoff-cohort-'));
   try {
     const base = claudeTaskroomExportFixture();
@@ -175,6 +175,7 @@ test('prefers a coherent freshest Claude parent cohort and does not reuse TeamAg
     oldParent.sessionId = 'claude-parent-old';
     oldParent.sessionRef = 'claude-session:claude-parent-old';
     oldParent.updatedAt = '2026-07-17T00:00:00.000Z';
+    oldParent.createdAt = '2026-07-17T00:00:00.000Z';
     oldParent.nativeBuddy.parentSessionRef = 'claude-session:claude-parent-old';
     oldParent.nativeBuddy.resultReturn.resultRef = 'claude-session:claude-parent-old:result';
     const oldBuilder = structuredClone(base.corpus.sessions[1]);
@@ -226,12 +227,10 @@ test('prefers a coherent freshest Claude parent cohort and does not reuse TeamAg
       }),
     });
 
-    assert.equal(result.status, 'blocked');
-    assert.ok(
-      result.blockedReasons.some((reason) => /missing required TeamAgent session\(s\): reviewer, evolution-agent/i.test(reason)),
-      JSON.stringify(result.blockedReasons),
-    );
-    assert.ok(!result.blockedReasons.some((reason) => /mechanism terms/i.test(reason)));
+    assert.equal(result.status, 'pass', JSON.stringify(result.blockedReasons ?? result.issues));
+    const instances = readFileSync(join(out, 'instances.jsonl'), 'utf8').trim().split('\n').map((line) => JSON.parse(line));
+    assert.ok(instances.some((instance) => instance.runtimeSessionRef === 'claude-session:claude-builder-old'));
+    assert.ok(!instances.some((instance) => instance.runtimeSessionRef === 'claude-session:claude-builder-new'));
   } finally {
     rmSync(out, { recursive: true, force: true });
   }
@@ -297,6 +296,70 @@ test('does not let a newer Buddy-only Claude parent hide an older incomplete Tea
       JSON.stringify(result.blockedReasons),
     );
     assert.equal(result.selectedParentSessionId, 'claude-parent-team');
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
+test('prefers multi-round Claude TeamAgent sessions over later one-shot revision sessions', async () => {
+  const out = mkdtempSync(join(tmpdir(), 'evobuddy-claude-fork-handoff-multiturn-'));
+  try {
+    const base = claudeTaskroomExportFixture();
+    const parent = structuredClone(base.corpus.sessions[0]);
+    // Multi-turn builder/reviewer (2 assistant messages each).
+    const multiBuilder = structuredClone(base.corpus.sessions[1]);
+    multiBuilder.sessionId = 'claude-builder-multi';
+    multiBuilder.sessionRef = 'claude-session:claude-builder-multi';
+    multiBuilder.updatedAt = '2026-07-18T00:01:00.000Z';
+    multiBuilder.messages = [
+      { role: 'assistant', messageId: 'mb1', digest: 'sha256:mb1', text: 'Patch round 1' },
+      { role: 'assistant', messageId: 'mb2', digest: 'sha256:mb2', text: 'Patch round 2' },
+    ];
+    const multiReviewer = structuredClone(base.corpus.sessions[2]);
+    multiReviewer.sessionId = 'claude-reviewer-multi';
+    multiReviewer.sessionRef = 'claude-session:claude-reviewer-multi';
+    multiReviewer.updatedAt = '2026-07-18T00:02:00.000Z';
+    multiReviewer.messages = [
+      { role: 'assistant', messageId: 'mr1', digest: 'sha256:mr1', text: 'Findings round 1' },
+      { role: 'assistant', messageId: 'mr2', digest: 'sha256:mr2', text: 'Findings round 2' },
+    ];
+    // Later one-shot revision sessions with only one assistant answer each.
+    const oneShotBuilder = structuredClone(base.corpus.sessions[1]);
+    oneShotBuilder.sessionId = 'claude-builder-oneshot';
+    oneShotBuilder.sessionRef = 'claude-session:claude-builder-oneshot';
+    oneShotBuilder.updatedAt = '2026-07-18T00:05:00.000Z';
+    oneShotBuilder.messages = [
+      { role: 'assistant', messageId: 'ob1', digest: 'sha256:ob1', text: 'One-shot revision only' },
+    ];
+    const oneShotReviewer = structuredClone(base.corpus.sessions[2]);
+    oneShotReviewer.sessionId = 'claude-reviewer-oneshot';
+    oneShotReviewer.sessionRef = 'claude-session:claude-reviewer-oneshot';
+    oneShotReviewer.updatedAt = '2026-07-18T00:06:00.000Z';
+    oneShotReviewer.messages = [
+      { role: 'assistant', messageId: 'or1', digest: 'sha256:or1', text: 'One-shot review only' },
+    ];
+    const evolution = structuredClone(base.corpus.sessions[3]);
+
+    const result = await produceClaudeRealtimeForkHandoffTaskRoomProof({
+      projectRoot: REPO_ROOT,
+      runtime: 'claude',
+      out,
+      claudeProjectDir: '/tmp/claude-project',
+      exportSessionCorpus: async () => ({
+        corpus: {
+          source: 'claude-code-jsonl-session-corpus-export',
+          projectIdentity: '/repo',
+          sessions: [parent, multiBuilder, multiReviewer, oneShotBuilder, oneShotReviewer, evolution],
+        },
+        manifest: base.manifest,
+      }),
+    });
+
+    assert.equal(result.status, 'pass', JSON.stringify(result.blockedReasons ?? result.issues));
+    const instances = readFileSync(join(out, 'instances.jsonl'), 'utf8').trim().split('\n').map((line) => JSON.parse(line));
+    assert.ok(instances.some((instance) => instance.runtimeSessionRef === 'claude-session:claude-builder-multi'));
+    assert.ok(instances.some((instance) => instance.runtimeSessionRef === 'claude-session:claude-reviewer-multi'));
+    assert.ok(!instances.some((instance) => instance.runtimeSessionRef === 'claude-session:claude-builder-oneshot'));
   } finally {
     rmSync(out, { recursive: true, force: true });
   }

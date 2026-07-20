@@ -33,8 +33,31 @@ function userMessages(session) {
 
 const NATURAL_INPUT_MECHANISM_TERMS = ['TeamAgent', 'fork', 'handoff', 'TaskRoom', 'builder', 'reviewer', 'spawn', 'agent team'];
 
+function isToolNoiseUserMessage(text) {
+  const value = String(text ?? '');
+  // Claude transcripts often re-inject tool results / file dumps as user-role rows.
+  // Those must not pollute natural-input mechanism detection.
+  if (/^<tool_use_error>/i.test(value)) return true;
+  if (/^API Error:/i.test(value)) return true;
+  if (/^\d+\t/.test(value) && value.includes('\n')) return true; // numbered file dump
+  if (/^(total \d+|drwx|File does not exist\.|EISDIR:|Updated task #)/i.test(value)) return true;
+  if (value.length > 400 && (value.includes('\n1\t') || value.includes('```') || /source_digest:|actor_kind:/.test(value))) return true;
+  return false;
+}
+
+function naturalTaskUserTexts(parent) {
+  const lineage = nonEmptyString(parent?.promptLineage?.receivedPromptText) ? [parent.promptLineage.receivedPromptText] : [];
+  const human = userMessages(parent)
+    .map((message) => message.text)
+    .filter((text) => nonEmptyString(text) && !isToolNoiseUserMessage(text));
+  // Natural-use gate is about the task prompt, not later operator follow-ups or tool dumps.
+  // Use the first clean human task text only.
+  if (lineage.length > 0) return lineage;
+  return human.slice(0, 1);
+}
+
 function naturalInputNegativeControls(parent) {
-  const text = [parent?.promptLineage?.receivedPromptText, ...userMessages(parent).map((message) => message.text)].filter(Boolean).join('\n');
+  const text = naturalTaskUserTexts(parent).join('\n');
   if (!text) return [];
   return NATURAL_INPUT_MECHANISM_TERMS
     .filter((term) => new RegExp(`\\b${term}\\b`, 'i').test(text))
@@ -310,7 +333,19 @@ function isChildOfParent(session, parent) {
 function findSessionByMemberName(sessions, memberName) {
   return sessions
     .filter((session) => session?.isSubagent === true && session?.nativeBuddy?.memberName === memberName)
-    .sort((left, right) => sessionUpdatedAtEpoch(right) - sessionUpdatedAtEpoch(left) || String(right.sessionId).localeCompare(String(left.sessionId)))[0] ?? null;
+    .sort((left, right) => {
+      // Prefer sessions that already carry multi-round assistant evidence.
+      // A later one-shot revision session with a single answer must not hide the
+      // earlier multi-turn builder/reviewer loop needed for continuity gates.
+      const leftAssistants = assistantMessages(left).length;
+      const rightAssistants = assistantMessages(right).length;
+      if (rightAssistants !== leftAssistants) return rightAssistants - leftAssistants;
+      const leftReady = leftAssistants >= 2 ? 1 : 0;
+      const rightReady = rightAssistants >= 2 ? 1 : 0;
+      if (rightReady !== leftReady) return rightReady - leftReady;
+      return sessionUpdatedAtEpoch(right) - sessionUpdatedAtEpoch(left)
+        || String(right.sessionId).localeCompare(String(left.sessionId));
+    })[0] ?? null;
 }
 
 export function selectFreshestClaudeTaskroomCohort(sessions) {
@@ -345,15 +380,23 @@ export function selectFreshestClaudeTaskroomCohort(sessions) {
       };
     });
 
-  // Match OpenCode freshness: newest parent wins, even if incomplete.
-  // But ignore Buddy-only parents (explore/librarian/...) when any TeamAgent cohort exists,
-  // otherwise a newer Buddy helper run hides the real TeamAgent diagnosis.
+  // Ignore Buddy-only parents when any TeamAgent cohort exists.
   const withTeamAgents = ranked.filter((entry) => entry.requiredAgentCount > 0);
   const pool = withTeamAgents.length > 0 ? withTeamAgents : ranked;
+  // Prefer complete cohorts; otherwise prefer the most complete incomplete cohort,
+  // then freshest. This avoids a newer evolution-only parent hiding a builder+reviewer
+  // parent that is the real TeamAgent loop under diagnosis.
   return pool
-    .sort((left, right) => right.parentCreatedAt - left.parentCreatedAt
-      || sessionUpdatedAtEpoch(right.parent) - sessionUpdatedAtEpoch(left.parent)
-      || String(right.parent.sessionId).localeCompare(String(left.parent.sessionId)))[0];
+    .sort((left, right) => {
+      const leftComplete = left.missingAgents.length === 0 ? 1 : 0;
+      const rightComplete = right.missingAgents.length === 0 ? 1 : 0;
+      if (rightComplete !== leftComplete) return rightComplete - leftComplete;
+      if (right.requiredAgentCount !== left.requiredAgentCount) return right.requiredAgentCount - left.requiredAgentCount;
+      if (right.parentCreatedAt !== left.parentCreatedAt) return right.parentCreatedAt - left.parentCreatedAt;
+      const updatedDelta = sessionUpdatedAtEpoch(right.parent) - sessionUpdatedAtEpoch(left.parent);
+      if (updatedDelta !== 0) return updatedDelta;
+      return String(right.parent.sessionId).localeCompare(String(left.parent.sessionId));
+    })[0];
 }
 
 function buildObservedRootFromExport({ corpus, manifest, runtime = 'claude', surfaceCurrentAnchors = [] }) {

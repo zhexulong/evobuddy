@@ -43,6 +43,7 @@ function usage() {
   evobuddy taskroom handoff create --project <path> --room <id> --from <id> --to <id> --body <text> --json
   evobuddy taskroom list --project <path> --json
   evobuddy taskroom session reserve --project <path> --room <id> --instance <id> --runtime <name>
+  evobuddy taskroom session list --project <path> --json
   evobuddy taskroom session plan-open --project <path> --room <id> --instance <id> --runtime <name> --json
   evobuddy evolution apply --project <path> --patch <path>
   evobuddy updates recent --project <path> --json --limit <n>
@@ -204,6 +205,7 @@ function taskroomHelp() {
   evobuddy taskroom handoff create --project <path> --room <id> --from <id> --to <id> --body <text> --json
   evobuddy taskroom list --project <path> --json
   evobuddy taskroom session reserve --project <path> --room <id> --instance <id> --runtime <name> [--workspace <path>] [--participant <name>] [--json]
+  evobuddy taskroom session list --project <path> [--json]
   evobuddy taskroom session plan-open --project <path> --room <id> --instance <id> --runtime <name> [--workspace <path>] [--mode <kind>] [--participant <name>] [--json]
   evobuddy taskroom session commit --project <path> --descriptor <id> --substrate-ref <ref> [--json]
   evobuddy taskroom session inspect --project <path> --descriptor <id> [--json]
@@ -704,6 +706,7 @@ async function dispatch(argv) {
   if (command === 'taskroom' && subcommand === 'list') return taskroomList([action, ...rest].filter((value) => value !== undefined));
   if (command === 'taskroom' && subcommand === 'handoff' && action === 'create') return taskroomHandoffCreate(rest);
   if (command === 'taskroom' && subcommand === 'session' && action === 'reserve') return taskroomSessionReserve(rest);
+  if (command === 'taskroom' && subcommand === 'session' && action === 'list') return taskroomSessionList(rest);
   if (command === 'taskroom' && subcommand === 'session' && action === 'plan-open') return taskroomSessionPlanOpen(rest);
   if (command === 'taskroom' && subcommand === 'session' && action === 'commit') return taskroomSessionCommit(rest);
   if (command === 'taskroom' && subcommand === 'session' && action === 'inspect') return taskroomSessionInspect(rest);

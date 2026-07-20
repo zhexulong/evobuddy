@@ -253,6 +253,14 @@ test('accepts multi-runtime realtime fork/handoff reports for fork-loop parity w
   assert.equal(report.readiness.forkLoopProductParity.runtimes.opencode.status, 'pass');
   assert.equal(report.readiness.forkLoopProductParity.runtimes.claude.status, 'pass');
   assert.equal(report.readiness.forkLoopProductParity.runtimes.codex.status, 'pass');
+  assert.ok(!report.nonClaims.includes('Claude/Codex realtime fork-loop product proof complete'));
+  assert.ok(!report.nonClaims.includes('Codex native child spawn resolved'));
+  assert.ok(!report.nonClaims.includes('Claude TaskRoom loop complete'));
+  assert.ok(!report.readiness.threeRuntimeParity.blockedReasons.includes('Codex native child spawn is not yet resolved by fresh product-observed evidence'));
+  assert.ok(!report.readiness.threeRuntimeParity.blockedReasons.includes('Claude TaskRoom loop is not yet completed'));
+  // Broader three-runtime TaskRoom surface remains blocked even when fork-loop parity is green.
+  assert.equal(report.readiness.threeRuntimeParity.status, 'blocked');
+  assert.ok(report.readiness.threeRuntimeParity.blockedReasons.includes('three-runtime TaskRoom parity remains future work'));
 });
 
 test('wires openCodeProductMvp to fresh realtime fork/handoff proof while keeping plan3 legacy', () => {

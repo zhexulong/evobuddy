@@ -85,15 +85,24 @@ function summarizeOpenCodeProductMvp(plans, plan3ReportPath, realtimeSummary) {
   };
 }
 
-function summarizeThreeRuntimeParity(plans, plan2Report) {
+function summarizeThreeRuntimeParity(plans, plan2Report, realtimeSummary = null, forkLoopProductParity = null) {
   const blockedReasons = [];
+  const byRuntime = realtimeSummary?.byRuntime ?? {};
+  const claudeRealtimePass = byRuntime.claude?.status === 'pass' || forkLoopProductParity?.runtimes?.claude?.status === 'pass';
+  const codexRealtimePass = byRuntime.codex?.status === 'pass' || forkLoopProductParity?.runtimes?.codex?.status === 'pass';
+  const codexNativeChildSpawnResolved = plan2Report?.runtimes?.codex?.subagentBuddy?.nativeMechanismObserved?.status === 'pass'
+    || codexRealtimePass;
+
   if (plans.plan2.status !== 'pass') blockedReasons.push('Plan 2 projection-and-honest-gating slice is not complete');
   if (plan2Report?.releaseParity?.status !== 'pass') blockedReasons.push('three-runtime observed runtime parity remains blocked');
+  // Full three-runtime TaskRoom product surface remains broader than fork-loop proof alone.
   blockedReasons.push('three-runtime TaskRoom parity remains future work');
-  if (plan2Report?.runtimes?.codex?.subagentBuddy?.nativeMechanismObserved?.status !== 'pass') {
+  if (!codexNativeChildSpawnResolved) {
     blockedReasons.push('Codex native child spawn is not yet resolved by fresh product-observed evidence');
   }
-  blockedReasons.push('Claude TaskRoom loop is not yet completed');
+  if (!claudeRealtimePass) {
+    blockedReasons.push('Claude TaskRoom loop is not yet completed');
+  }
   return {
     status: 'blocked',
     claimCeiling: 'Three-runtime parity readiness is still blocked.',
@@ -279,7 +288,6 @@ export function evaluateEvobuddyJuly17MvpReadiness({ plan1Report, plan1ReportPat
   const incomplete = Object.entries(plans)
     .filter(([, plan]) => plan.status !== 'pass')
     .map(([name, plan]) => `${name}: ${[...plan.blockedReasons, ...plan.failedReasons][0] ?? 'not passing'}`);
-  const codexNativeChildSpawnResolved = plan2Report?.runtimes?.codex?.subagentBuddy?.nativeMechanismObserved?.status === 'pass';
   const realtimeForkHandoffTaskRoom = summarizeRealtimeForkHandoff(realtimeForkHandoffReport, realtimeForkHandoffReportPath);
   // OpenCode product MVP remains OpenCode-only even when Claude/Codex proofs are also attached.
   const openCodeRealtimeSummary = realtimeForkHandoffTaskRoom.byRuntime?.opencode ?? (
@@ -289,6 +297,13 @@ export function evaluateEvobuddyJuly17MvpReadiness({ plan1Report, plan1ReportPat
   );
   const forkLoopProductParity = summarizeForkLoopProductParity(plan2Report, realtimeForkHandoffTaskRoom);
   const openCodeProductMvp = summarizeOpenCodeProductMvp(plans, plan3ReportPath, openCodeRealtimeSummary);
+  const threeRuntimeParity = summarizeThreeRuntimeParity(plans, plan2Report, realtimeForkHandoffTaskRoom, forkLoopProductParity);
+  const codexNativeChildSpawnResolved = plan2Report?.runtimes?.codex?.subagentBuddy?.nativeMechanismObserved?.status === 'pass'
+    || realtimeForkHandoffTaskRoom.byRuntime?.codex?.status === 'pass'
+    || forkLoopProductParity?.runtimes?.codex?.status === 'pass';
+  const claudeTaskRoomLoopResolved = realtimeForkHandoffTaskRoom.byRuntime?.claude?.status === 'pass'
+    || forkLoopProductParity?.runtimes?.claude?.status === 'pass';
+  const forkLoopParityResolved = forkLoopProductParity.status === 'pass';
   // Top-level July-17 product status tracks the OpenCode realtime fork/handoff chain.
   // Plan 1 / Plan 3 remain legacy records; Plan 2 / three-runtime parity stay separately gated.
   const productIncomplete = openCodeProductMvp.status === 'pass'
@@ -303,7 +318,7 @@ export function evaluateEvobuddyJuly17MvpReadiness({ plan1Report, plan1ReportPat
     plans,
     readiness: {
       openCodeProductMvp,
-      threeRuntimeParity: summarizeThreeRuntimeParity(plans, plan2Report),
+      threeRuntimeParity,
       realtimeForkHandoffTaskRoom,
       forkLoopProductParity,
     },
@@ -316,9 +331,9 @@ export function evaluateEvobuddyJuly17MvpReadiness({ plan1Report, plan1ReportPat
     },
     nonClaims: [
       'three-runtime TaskRoom parity complete',
-      'Claude/Codex realtime fork-loop product proof complete',
+      ...(!forkLoopParityResolved ? ['Claude/Codex realtime fork-loop product proof complete'] : []),
       ...(!codexNativeChildSpawnResolved ? ['Codex native child spawn resolved'] : []),
-      'Claude TaskRoom loop complete',
+      ...(!claudeTaskRoomLoopResolved ? ['Claude TaskRoom loop complete'] : []),
       'all EvoBuddy release gates complete',
       'legacy Plan 3 one-runtime TaskRoom loop is the OpenCode product MVP proof',
     ],

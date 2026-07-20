@@ -1,0 +1,3 @@
+[workspace]
+members = ["crates/evobuddy-tui"]
+resolver = "2"

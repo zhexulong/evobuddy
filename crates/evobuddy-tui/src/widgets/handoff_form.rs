@@ -9,7 +9,11 @@ use crate::theme::{muted_style, selected_style, surface_block};
 pub fn render_handoff_form(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
     let rows = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(5), Constraint::Min(8), Constraint::Length(2)])
+        .constraints([
+            Constraint::Length(5),
+            Constraint::Min(8),
+            Constraint::Length(2),
+        ])
         .split(area);
 
     frame.render_widget(
@@ -22,7 +26,7 @@ pub fn render_handoff_form(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect
         rows[0],
     );
 
-    let body = vec![
+    let body = [
         format!("Sender: {}", app.handoff_form.sender),
         format!("Receiver: {}", app.handoff_form.receiver),
         format!("Body: {}", app.handoff_form.body),
@@ -31,7 +35,10 @@ pub fn render_handoff_form(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect
             "Expected next action: {}",
             app.handoff_form.expected_next_action
         ),
-        format!("Return destination: {}", app.handoff_form.return_destination),
+        format!(
+            "Return destination: {}",
+            app.handoff_form.return_destination
+        ),
     ]
     .join("\n");
     frame.render_widget(

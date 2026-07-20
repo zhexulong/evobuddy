@@ -9,7 +9,11 @@ use crate::theme::{muted_style, selected_style, surface_block};
 pub fn render_task_room_form(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
     let rows = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(5), Constraint::Min(8), Constraint::Length(2)])
+        .constraints([
+            Constraint::Length(5),
+            Constraint::Min(8),
+            Constraint::Length(2),
+        ])
         .split(area);
 
     frame.render_widget(
@@ -22,7 +26,7 @@ pub fn render_task_room_form(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Re
         rows[0],
     );
 
-    let body = vec![
+    let body = [
         format!("Objective: {}", app.task_room_form.objective),
         format!(
             "Acceptance criteria: {}",

@@ -27,8 +27,17 @@
 ## Capability negotiation
 
 - `probe` reports whether create, attach, inspect, list, and terminate are supported.
-- Future substrates such as Zellij or cmux must implement the same contract and surface unsupported reasons honestly.
+- Extended evaluation matrix (Task 20) also names: interactive attach, detached persistence, exact inspect, client switching, remote availability, platform support, and recovery.
+- Action gates are fail-closed: unsupported capabilities disable dependent actions with explicit reasons (see `SubstrateCapabilityMatrix` / `action_gates_from_matrix` in `evobuddy-tui`).
 - unsupported operations degrade to disabled actions rather than crashing or silently changing behavior.
+- Silent capability overclaim is rejected (unsupported rows require a reason; supported rows must not carry a fake unsupported reason).
+
+## Future substrates (evaluation only)
+
+- **tmux** is the only production substrate claimed by this contract today.
+- **Zellij** is a **CONDITIONAL GO** future backend candidate: it can implement this contract without changing TaskRoom semantics, but only via a separate backend plan after tmux release proof. See `docs/adr/evobuddy-zellij-substrate-evaluation.md`. Matrix status for Zellij is `evaluation-only`, not production.
+- **cmux** is **NO-GO as a terminal substrate**. It may be considered later as optional **macOS-only workspace focus** integration, not a cross-platform PTY substrate or install dependency. See `docs/adr/evobuddy-cmux-workspace-integration-evaluation.md`.
+- Existence of the `TerminalSubstrate` trait, capability matrix types, or evaluation ADRs must never be read as “Zellij/cmux backend implemented.”
 
 ## Continuation boundary
 

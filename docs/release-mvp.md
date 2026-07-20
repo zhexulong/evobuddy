@@ -197,3 +197,10 @@ Rules:
 ## Adapter boundary
 
 `evobuddy buddies invoke` is adapter glue only. It can help when a native Buddy surface is unavailable, but adapter-only evidence does not satisfy native or benchmark release sufficiency. The readiness command proves foundation readiness only, not OMO replacement, no-orchestrator sufficiency, or natural-use benchmark success.
+
+
+## Native TUI orchestration gates
+
+Required gates: baselineTests, taskRoomContracts, nativeSessionStore, taskRoomFirstUi, scopedInputNoOrchestrator, terminalModeGuard, tmuxSubstrate, nativeAttachPty, runtimeCapabilities, forkHandoffClosure, evidenceIntegrity, security, documentation.
+
+Blocked optional runtimes never upgrade product pass. Missing tmux may block nativeAttachPty/tmuxSubstrate; release readiness exits nonzero for required blocked/fail gates.

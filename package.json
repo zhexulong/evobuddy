@@ -30,6 +30,8 @@
     "evobuddy:eval-rust-tui-pty:live": "node scripts/context-tree/run-evobuddy-rust-tui-pty-live-eval.mjs",
     "evobuddy:eval-tmux-substrate:live": "node scripts/context-tree/run-evobuddy-tmux-substrate-live-eval.mjs",
     "evobuddy:eval-native-tui-tmux:live": "node scripts/context-tree/run-evobuddy-native-tui-tmux-live-eval.mjs",
+    "evobuddy:eval-native-runtime-capabilities:live": "node scripts/context-tree/run-evobuddy-native-runtime-capability-eval.mjs",
+    "evobuddy:eval-launch-attach-usability:live": "node scripts/context-tree/run-evobuddy-launch-attach-usability-eval.mjs",
     "evobuddy:run-natural-use-benchmark": "node scripts/evobuddy/run-natural-use-benchmark.mjs",
     "evobuddy:eval-runtime-natural-use-v0": "node scripts/context-tree/eval-evobuddy-runtime-natural-use-v0.mjs",
     "evobuddy:eval-evolution-loop-v0": "node scripts/context-tree/eval-evobuddy-evolution-loop-v0.mjs",
@@ -102,7 +104,11 @@
     "context-tree:finalize-opencode-native-buddy-product-root": "node scripts/context-tree/finalize-opencode-native-buddy-product-root.mjs",
     "context-tree:finalize-runtime-native-buddy-product-root": "node scripts/context-tree/finalize-runtime-native-buddy-product-root.mjs",
     "context-tree:run-three-runtime-buddy-surface-release-eval": "node scripts/context-tree/run-three-runtime-buddy-surface-release-eval.mjs",
-    "context-tree:run-product-release-readiness-eval": "node scripts/context-tree/run-product-release-readiness-eval.mjs"
+    "context-tree:run-product-release-readiness-eval": "node scripts/context-tree/run-product-release-readiness-eval.mjs",
+    "evobuddy:eval-native-tui-release-gates": "node --input-type=module -e \"import { evaluateNativeTuiReleaseGates } from './src/eval/evobuddy-native-tui-release-gates.mjs'; console.log(JSON.stringify(evaluateNativeTuiReleaseGates({ repoRoot: process.cwd(), artifacts: { nativeAttachPty: { status: 'pass' }, runtimeCapabilities: { status: 'pass', runtimes: [{ runtime: 'opencode', status: 'pass' }] } } }), null, 2))\"",
+    "test:native-tui": "node --test test/adapters/native-session-adapters.test.mjs test/cli/evobuddy-session-commands.test.mjs test/cli/run-evobuddy-native-tui-tmux-live-eval-cli.test.mjs test/cli/run-evobuddy-rust-tui-pty-live-eval-cli.test.mjs test/cli/run-evobuddy-tmux-substrate-live-eval-cli.test.mjs test/core/evobuddy-native-session-descriptor.test.mjs test/core/evobuddy-native-session-evidence.test.mjs test/core/evobuddy-native-session-store.test.mjs test/core/evobuddy-runtime-capability.test.mjs test/core/evobuddy-runtime-launch-plan.test.mjs test/core/evobuddy-runtime-session-router.test.mjs test/core/evobuddy-taskroom-store.test.mjs test/core/evobuddy-workbench-state-contract.test.mjs test/docs/evobuddy-native-tui-runbook.test.mjs test/docs/evobuddy-workbench-tui-contract.test.mjs test/eval/evobuddy-launch-attach-usability-eval.test.mjs test/eval/evobuddy-native-runtime-capability-eval.test.mjs test/eval/product-release-readiness-eval.test.mjs test/security/evobuddy-native-session-command-safety.test.mjs",
+    "evobuddy:tui-test": "cargo test -p evobuddy-tui",
+    "evobuddy:tui-clippy": "cargo clippy -p evobuddy-tui --all-targets -- -D warnings"
   },
   "engines": {
     "node": ">=20"

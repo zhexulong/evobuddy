@@ -8,6 +8,8 @@ export function createCodexNativeSessionAdapter(deps = {}) {
     minimumExactVersion: [0, 30, 0],
     exact: (providerConversationRef) => ['resume', providerConversationRef],
     heuristic: { args: ['resume', '--last'], source: 'resume --last' },
+    // Source-qualified attention via classifyAttention / refreshEvidence (Task 15).
+    evidenceDefaultStaleMs: 5 * 60 * 1000,
   }, deps);
 }
 

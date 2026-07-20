@@ -1,68 +1,22 @@
 use anyhow::{bail, Context, Result};
 use std::cell::RefCell;
-use std::collections::{BTreeMap, BTreeSet};
-use std::io::{self, Write};
-use std::path::Path;
+use std::collections::BTreeSet;
 use std::process::{Command, Stdio};
 use std::rc::Rc;
 
+use crate::launcher::{build_launcher_argv, parse_launcher_plan_ref, sanitize_session_name};
+
+use super::attach;
+use super::tmux_inspect::{list_session_rows, session_exists, session_facts};
 use super::{
-    validate_facts, AttachOutcome, CreateSessionRequest, SessionDisplayMetadata, SessionScope,
-    SubstrateCapabilities, SubstrateSessionFacts, SubstrateSessionRef, TerminalSubstrate,
+    AttachOutcome, CreateSessionRequest, SessionScope, SubstrateCapabilities,
+    SubstrateSessionFacts, SubstrateSessionRef, TerminalSubstrate,
 };
 
-const SESSION_SEPARATOR: &str = "|||";
-const MANAGED_STATUS_LINE: &str = "EvoBuddy-managed | Detach: Ctrl+B d";
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AttachPath {
-    DedicatedSocket,
-    NestedTmuxDedicatedSocket,
-}
-
-impl AttachPath {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::DedicatedSocket => "dedicated-socket",
-            Self::NestedTmuxDedicatedSocket => "nested-tmux-dedicated-socket",
-        }
-    }
-}
-
-pub fn managed_status_line() -> &'static str {
-    MANAGED_STATUS_LINE
-}
-
-pub fn format_pre_attach_notice(
-    display: &SessionDisplayMetadata,
-    session: &SubstrateSessionRef,
-) -> String {
-    format!(
-        "Attaching to native runtime\nParticipant: {}\nRuntime: {}\nWorkspace: {}\nSafety mode: {}\nSession: {}\nDetach: Ctrl+B d\n",
-        display.participant,
-        display.runtime,
-        display.workspace,
-        display.safety_mode,
-        session.0
-    )
-}
-
-pub fn map_attach_exit_status(
-    command_success: bool,
-    session_exists: bool,
-    interrupted: bool,
-) -> AttachOutcome {
-    if interrupted {
-        return AttachOutcome::Interrupted;
-    }
-    if command_success && session_exists {
-        return AttachOutcome::Detached;
-    }
-    if command_success && !session_exists {
-        return AttachOutcome::SessionEnded;
-    }
-    AttachOutcome::AttachFailed
-}
+pub use super::attach::{
+    format_pre_attach_notice, managed_status_line, map_attach_exit_status, write_pre_attach_notice,
+    AttachPath,
+};
 
 #[derive(Clone, Default)]
 pub struct TmuxSubstrate {
@@ -99,119 +53,12 @@ impl TmuxSubstrate {
             .with_context(|| format!("run tmux command: {} {}", self.binary, args.join(" ")))
     }
 
-    fn session_exists(&self, session: &SubstrateSessionRef) -> Result<bool> {
-        let status = self
-            .command()
-            .args(["has-session", "-t", &session.0])
-            .stdout(Stdio::null())
-            .stderr(Stdio::null())
-            .status()
-            .context("check tmux session existence")?;
-        Ok(status.success())
-    }
-
-    fn list_session_rows(&self, scope: &SessionScope) -> Result<Vec<(String, u32, String)>> {
-        let format = format!(
-            "#{{session_name}}{sep}#{{session_attached}}{sep}#{{session_created}}",
-            sep = SESSION_SEPARATOR
-        );
-        let output = self.command_output(&["list-sessions", "-F", &format])?;
-        if !output.status.success() {
-            let stderr = String::from_utf8_lossy(&output.stderr);
-            if stderr.contains("no server running") {
-                return Ok(Vec::new());
-            }
-            bail!("malformed tmux output");
-        }
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        stdout
-            .lines()
-            .filter(|line| !line.trim().is_empty())
-            .map(|line| {
-                let parts = line.split(SESSION_SEPARATOR).collect::<Vec<_>>();
-                if parts.len() != 3 {
-                    bail!("malformed tmux output");
-                }
-                let name = parts[0].to_string();
-                if matches!(scope, SessionScope::Prefix(prefix) if !name.starts_with(prefix)) {
-                    return Ok(None);
-                }
-                let attached = parts[1]
-                    .parse::<u32>()
-                    .map_err(|_| anyhow::anyhow!("malformed tmux output"))?;
-                Ok(Some((name, attached, parts[2].to_string())))
-            })
-            .filter_map(|result| match result {
-                Ok(Some(value)) => Some(Ok(value)),
-                Ok(None) => None,
-                Err(error) => Some(Err(error)),
-            })
-            .collect()
-    }
-
-    fn pane_pid(&self, session: &SubstrateSessionRef) -> Result<Option<u32>> {
-        let output = self.command_output(&["list-panes", "-t", &session.0, "-F", "#{pane_pid}"])?;
-        if !output.status.success() {
-            return Ok(None);
-        }
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        let pid = stdout.lines().next().unwrap_or_default().trim();
-        if pid.is_empty() {
-            return Ok(None);
-        }
-        Ok(Some(pid.parse::<u32>().context("parse pane pid")?))
-    }
-
-    fn pid_alive(pid: u32) -> bool {
-        Path::new(&format!("/proc/{pid}")).exists()
-    }
-
-    fn session_facts(
+    fn run_blocking_attach(
         &self,
         session: &SubstrateSessionRef,
-        exists: bool,
-        attached: u32,
-        created: Option<String>,
-    ) -> Result<SubstrateSessionFacts> {
-        let child_process_alive = self
-            .pane_pid(session)?
-            .map(Self::pid_alive)
-            .unwrap_or(false);
-        let facts = SubstrateSessionFacts {
-            session_ref: session.clone(),
-            exists,
-            attached_client_count: attached,
-            child_process_alive,
-            last_activity_at: created,
-            exit_state: if exists {
-                None
-            } else if self.terminated.borrow().contains(&session.0) {
-                Some("terminated".to_string())
-            } else {
-                None
-            },
-            backend_metadata: BTreeMap::from([
-                ("managedBy".to_string(), "evobuddy".to_string()),
-                ("socketName".to_string(), self.socket_name.clone()),
-                ("taskroomStateDerived".to_string(), "false".to_string()),
-            ]),
-        };
-        validate_facts(&facts)?;
-        Ok(facts)
-    }
-
-    fn choose_attach_path(&self) -> AttachPath {
-        if std::env::var_os("TMUX").is_some() {
-            AttachPath::NestedTmuxDedicatedSocket
-        } else {
-            AttachPath::DedicatedSocket
-        }
-    }
-
-    fn run_blocking_attach(&self, session: &SubstrateSessionRef) -> Result<std::process::ExitStatus> {
-        let path = self.choose_attach_path();
+    ) -> Result<std::process::ExitStatus> {
+        let path = attach::choose_attach_path();
         *self.last_attach_path.borrow_mut() = Some(path);
-
         let mut command = self.command();
         command
             .arg("attach-session")
@@ -220,9 +67,7 @@ impl TmuxSubstrate {
             .stdin(Stdio::inherit())
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit());
-
-        let status = command.status().context("run tmux attach-session")?;
-        Ok(status)
+        command.status().context("run tmux attach-session")
     }
 
     pub fn attach_command_args(&self, session: &SubstrateSessionRef) -> Vec<String> {
@@ -237,7 +82,33 @@ impl TmuxSubstrate {
     }
 
     pub fn resolve_attach_path(&self) -> AttachPath {
-        self.choose_attach_path()
+        attach::choose_attach_path()
+    }
+
+    pub fn build_new_session_argv(&self, request: &CreateSessionRequest) -> Result<Vec<String>> {
+        let session_name = sanitize_session_name(&request.session_ref.0)
+            .with_context(|| format!("invalid session name: {}", request.session_ref.0))?;
+        let plan_id = parse_launcher_plan_ref(&request.launcher_plan_ref)
+            .context("invalid launcher plan ref")?;
+        let project_root = if request.project_root.as_os_str().is_empty() {
+            std::env::current_dir().unwrap_or_else(|_| std::path::PathBuf::from("."))
+        } else {
+            request.project_root.clone()
+        };
+        let launcher_argv = build_launcher_argv(&project_root, &plan_id)?;
+        let mut argv = vec![
+            self.binary.clone(),
+            "-L".to_string(),
+            self.socket_name.clone(),
+            "new-session".to_string(),
+            "-d".to_string(),
+            "-s".to_string(),
+            session_name,
+            "-c".to_string(),
+            request.cwd.display().to_string(),
+        ];
+        argv.extend(launcher_argv);
+        Ok(argv)
     }
 }
 
@@ -266,48 +137,49 @@ impl TerminalSubstrate for TmuxSubstrate {
     }
 
     fn create_session(&self, request: &CreateSessionRequest) -> Result<SubstrateSessionFacts> {
-        let session_name = &request.session_ref.0;
-        if self.session_exists(&request.session_ref)? {
+        let session_name = sanitize_session_name(&request.session_ref.0)
+            .with_context(|| format!("invalid session name: {}", request.session_ref.0))?;
+        let session_ref = SubstrateSessionRef(session_name.clone());
+        if session_exists(&self.binary, &self.socket_name, &session_ref)? {
             bail!("session already exists");
         }
+        let argv = self.build_new_session_argv(request)?;
+        // Skip binary (argv[0]); Command::new already sets it via self.command().
         let mut command = self.command();
-        command
-            .arg("new-session")
-            .arg("-d")
-            .arg("-s")
-            .arg(session_name)
-            .arg("-c")
-            .arg(&request.cwd)
-            .arg(&request.program);
-        command.args(&request.args);
+        // argv is [tmux, -L, socket, new-session, ...]; self.command() already has tmux -L socket
+        let rest = if argv.len() >= 3 && argv[0] == self.binary {
+            &argv[3..]
+        } else {
+            &argv[1..]
+        };
+        command.args(rest);
         let status = command.status().context("create tmux session")?;
         if !status.success() {
             bail!("tmux new-session failed");
         }
-
+        let status_line = attach::managed_status_line();
         let _ = self.command_output(&[
             "set-option",
             "-t",
-            session_name,
+            &session_name,
             "status-left",
-            MANAGED_STATUS_LINE,
+            status_line,
         ]);
         let _ = self.command_output(&[
             "set-option",
             "-t",
-            session_name,
+            &session_name,
             "status-left-length",
             "80",
         ]);
-        self.terminated.borrow_mut().remove(session_name);
-        self.inspect(&request.session_ref)
+        self.terminated.borrow_mut().remove(&session_name);
+        self.inspect(&session_ref)
     }
 
     fn attach_interactive(&self, session: &SubstrateSessionRef) -> Result<AttachOutcome> {
-        if !self.session_exists(session)? {
+        if !session_exists(&self.binary, &self.socket_name, session)? {
             bail!("session not found");
         }
-
         let status = self.run_blocking_attach(session)?;
         let interrupted = match status.code() {
             Some(code) => code == 130 || code == 129,
@@ -323,27 +195,59 @@ impl TerminalSubstrate for TmuxSubstrate {
                 }
             }
         };
-        let exists = self.session_exists(session).unwrap_or(false);
-        Ok(map_attach_exit_status(status.success(), exists, interrupted))
+        let exists = session_exists(&self.binary, &self.socket_name, session).unwrap_or(false);
+        Ok(attach::map_attach_exit_status(
+            status.success(),
+            exists,
+            interrupted,
+        ))
     }
 
     fn inspect(&self, session: &SubstrateSessionRef) -> Result<SubstrateSessionFacts> {
-        if !self.session_exists(session)? {
-            return self.session_facts(session, false, 0, None);
+        if !session_exists(&self.binary, &self.socket_name, session)? {
+            return session_facts(
+                &self.binary,
+                &self.socket_name,
+                &self.terminated,
+                session,
+                false,
+                0,
+                None,
+            );
         }
-        let rows = self.list_session_rows(&SessionScope::Prefix(session.0.clone()))?;
+        let rows = list_session_rows(
+            &self.binary,
+            &self.socket_name,
+            &SessionScope::Prefix(session.0.clone()),
+        )?;
         let (_, attached, created) = rows
             .into_iter()
             .find(|(name, _, _)| name == &session.0)
             .ok_or_else(|| anyhow::anyhow!("malformed tmux output"))?;
-        self.session_facts(session, true, attached, Some(created))
+        session_facts(
+            &self.binary,
+            &self.socket_name,
+            &self.terminated,
+            session,
+            true,
+            attached,
+            Some(created),
+        )
     }
 
     fn list_sessions(&self, scope: &SessionScope) -> Result<Vec<SubstrateSessionFacts>> {
-        self.list_session_rows(scope)?
+        list_session_rows(&self.binary, &self.socket_name, scope)?
             .into_iter()
             .map(|(name, attached, created)| {
-                self.session_facts(&SubstrateSessionRef(name), true, attached, Some(created))
+                session_facts(
+                    &self.binary,
+                    &self.socket_name,
+                    &self.terminated,
+                    &SubstrateSessionRef(name),
+                    true,
+                    attached,
+                    Some(created),
+                )
             })
             .collect()
     }
@@ -360,11 +264,4 @@ impl TerminalSubstrate for TmuxSubstrate {
         self.terminated.borrow_mut().insert(session.0.clone());
         Ok(())
     }
-}
-
-pub fn write_pre_attach_notice(notice: &str) -> Result<()> {
-    let mut stdout = io::stdout();
-    writeln!(stdout, "{notice}").context("write pre-attach notice")?;
-    stdout.flush().context("flush pre-attach notice")?;
-    Ok(())
 }

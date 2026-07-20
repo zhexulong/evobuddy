@@ -1,4 +1,5 @@
 pub mod command_palette;
+pub mod confirm_action;
 pub mod dashboard;
 pub mod detail;
 pub mod handoff_form;

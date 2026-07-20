@@ -1,0 +1,26 @@
+{
+  "reportKind": "evobuddy-july17-mvp-readiness-report",
+  "status": "pass",
+  "plans": {
+    "plan1": {
+      "status": "pass",
+      "reportPath": "../plan1/evobuddy-team-agent-substrate-live-eval-report.json"
+    },
+    "plan2": {
+      "status": "pass",
+      "reportPath": "../plan2/three-runtime-team-subagent-release-report.json"
+    },
+    "plan3": {
+      "status": "pass",
+      "reportPath": "../taskrooms/opencode-taskroom-team-loop-report.json"
+    }
+  },
+  "readiness": {
+    "teamAgentTaskRoomParity": {
+      "status": "pass"
+    },
+    "subagentBuddyNativeParity": {
+      "status": "partial"
+    }
+  }
+}

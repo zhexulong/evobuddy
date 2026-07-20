@@ -21,6 +21,8 @@ context-tree-*-report.json
 context-tree-*-projections.json
 evobuddy-*-report.json
 evobuddy-*-projections.json
+# Track retained workbench fixtures used by contract tests
+!fixtures/evobuddy-workbench/team-taskroom-retained/**/evobuddy-*-report.json
 missing-parent-invocation.json
 
 # Local agent / IDE noise
@@ -41,3 +43,4 @@ coverage/
 *.tmp
 *.bak
 *.bak-test
+.worktrees/

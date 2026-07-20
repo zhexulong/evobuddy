@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { existsSync, realpathSync, statSync } from 'node:fs';
+import { isAbsolute, normalize, resolve, sep } from 'node:path';
 
 export const NATIVE_SESSION_LIFECYCLES = Object.freeze([
   'creating', 'attachable', 'attached', 'detached',
@@ -31,9 +33,13 @@ const ALLOWED_INPUT_KEYS = new Set([
   'descriptorVersion',
   'substrate',
   'substrateSessionRef',
+  'projectRoot',
 ]);
 const FORBIDDEN_INPUT_KEYS = new Set(['launchCommand', 'argv', 'args', 'env', 'environment', 'token', 'authToken', 'secret']);
 const ISO_DATE_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+const SAFE_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+const SAFE_SESSION_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
+const CONTROL_BYTE_PATTERN = /[\u0000-\u001f\u007f]/;
 
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable);
@@ -83,6 +89,11 @@ function requireEnum(value, name, allowed) {
   return normalized;
 }
 
+function rejectControlBytes(value, name) {
+  if (CONTROL_BYTE_PATTERN.test(value)) throw new Error(`control bytes are forbidden in ${name}`);
+  return value;
+}
+
 function rejectUnknownAndForbiddenKeys(input) {
   for (const key of Object.keys(input)) {
     if (FORBIDDEN_INPUT_KEYS.has(key)) throw new Error(`${key} is forbidden in native session descriptors`);
@@ -106,36 +117,119 @@ function rejectSecretLikeValue(value, keyPath = []) {
   }
 }
 
+export function sanitizeSessionDisplayName(value) {
+  const text = requireString(value, 'displayName');
+  rejectControlBytes(text, 'displayName');
+  if (/[;&|`$<>\\]/.test(text)) throw new Error('unsafe characters in display name');
+  return text.replace(/\s+/g, ' ').trim();
+}
+
+export function sanitizeTerminalSessionSlug(value) {
+  const text = requireString(value, 'sessionSlug');
+  rejectControlBytes(text, 'sessionSlug');
+  const slug = text
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 48);
+  if (!slug || !SAFE_SESSION_NAME_PATTERN.test(slug)) throw new Error('unable to sanitize session slug');
+  return slug;
+}
+
+function requireSafeId(value, name) {
+  const normalized = rejectControlBytes(requireString(value, name), name);
+  if (normalized.includes('..') || normalized.includes(sep) || normalized.includes('/') || normalized.includes('\\')) {
+    throw new Error(`invalid ${name}: path traversal is forbidden`);
+  }
+  if (!SAFE_ID_PATTERN.test(normalized) && name !== 'roomId' && name !== 'launchCommandRef' && name !== 'runtimeCapabilityRef' && name !== 'contextPacketRef' && name !== 'providerConversationRef' && name !== 'recoveryPolicy' && name !== 'safetyMode') {
+    throw new Error(`invalid ${name}`);
+  }
+  if (name === 'descriptorId' || name === 'agentInstanceId') {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/.test(normalized)) throw new Error(`invalid ${name}`);
+  }
+  return normalized;
+}
+
+function requireSafeSessionRef(value, name) {
+  const normalized = rejectControlBytes(requireString(value, name), name);
+  if (normalized.includes('..') || /[;&|`$<>\\\n\r\t]/.test(normalized)) {
+    throw new Error(`unsafe characters in ${name}`);
+  }
+  if (normalized.length > 96) throw new Error(`invalid ${name}: too long`);
+  return normalized;
+}
+
+export function validateWorkspacePath(workspace, { projectRoot = null, mustExist = true } = {}) {
+  const raw = rejectControlBytes(requireString(workspace, 'workspace'), 'workspace');
+  if (raw.includes('\0')) throw new Error('workspace path contains null bytes');
+  if (raw.split(/[\\/]/).includes('..')) throw new Error('workspace path traversal is forbidden');
+  if (!isAbsolute(raw) && !projectRoot) throw new Error('workspace must be an absolute path');
+  const candidate = isAbsolute(raw) ? resolve(normalize(raw)) : resolve(projectRoot, raw);
+  if (mustExist) {
+    if (!existsSync(candidate)) throw new Error(`workspace does not exist: ${candidate}`);
+    const stats = statSync(candidate);
+    if (!stats.isDirectory()) throw new Error(`workspace is not a directory: ${candidate}`);
+    const real = realpathSync(candidate);
+    if (projectRoot) {
+      const rootReal = realpathSync(resolve(projectRoot));
+      if (real !== rootReal && !real.startsWith(`${rootReal}${sep}`)) {
+        throw new Error('workspace escapes project/worktree policy');
+      }
+    }
+    return real;
+  }
+  if (projectRoot) {
+    const root = resolve(projectRoot);
+    if (candidate !== root && !candidate.startsWith(`${root}${sep}`)) {
+      throw new Error('workspace escapes project/worktree policy');
+    }
+  }
+  return candidate;
+}
+
 function normalizeDescriptor(input) {
   requireObject(input, 'nativeSessionDescriptor');
   rejectUnknownAndForbiddenKeys(input);
   rejectSecretLikeValue(input);
 
+  const projectRoot = input.projectRoot === undefined || input.projectRoot === null
+    ? null
+    : requireString(input.projectRoot, 'projectRoot');
+  const workspace = validateWorkspacePath(input.workspace, {
+    projectRoot,
+    mustExist: Boolean(projectRoot),
+  });
+
   const descriptor = {
     schema: 'evobuddy.native-session.v1',
     descriptorVersion: 1,
-    descriptorId: requireString(input.descriptorId, 'descriptorId'),
-    roomId: requireString(input.roomId, 'roomId'),
-    agentInstanceId: requireString(input.agentInstanceId, 'agentInstanceId'),
+    descriptorId: requireSafeId(input.descriptorId, 'descriptorId'),
+    roomId: rejectControlBytes(requireString(input.roomId, 'roomId'), 'roomId'),
+    agentInstanceId: requireSafeId(input.agentInstanceId, 'agentInstanceId'),
     runtime: requireEnum(input.runtime, 'runtime', RUNTIMES),
-    workspace: requireString(input.workspace, 'workspace'),
+    workspace,
     terminalSubstrate: requireEnum(input.terminalSubstrate ?? input.substrate, 'terminalSubstrate', SUBSTRATES),
-    terminalSessionRef: requireString(input.terminalSessionRef ?? input.substrateSessionRef, 'terminalSessionRef'),
+    terminalSessionRef: requireSafeSessionRef(input.terminalSessionRef ?? input.substrateSessionRef, 'terminalSessionRef'),
     providerConversationRef: optionalString(input.providerConversationRef, 'providerConversationRef'),
-    launchCommandRef: requireString(input.launchCommandRef, 'launchCommandRef'),
-    runtimeCapabilityRef: requireString(input.runtimeCapabilityRef, 'runtimeCapabilityRef'),
+    launchCommandRef: rejectControlBytes(requireString(input.launchCommandRef, 'launchCommandRef'), 'launchCommandRef'),
+    runtimeCapabilityRef: rejectControlBytes(requireString(input.runtimeCapabilityRef, 'runtimeCapabilityRef'), 'runtimeCapabilityRef'),
     lifecycle: requireEnum(input.lifecycle, 'lifecycle', LIFECYCLES),
     createdAt: requireIsoDate(input.createdAt, 'createdAt'),
     lastAttachedAt: input.lastAttachedAt === null || input.lastAttachedAt === undefined
       ? null
       : requireIsoDate(input.lastAttachedAt, 'lastAttachedAt'),
-    safetyMode: requireString(input.safetyMode, 'safetyMode'),
+    safetyMode: rejectControlBytes(requireString(input.safetyMode, 'safetyMode'), 'safetyMode'),
     contextPacketRef: input.contextPacketRef === null || input.contextPacketRef === undefined
       ? null
-      : requireString(input.contextPacketRef, 'contextPacketRef'),
-    evidenceRefs: requireStringArray(input.evidenceRefs ?? [], 'evidenceRefs'),
-    recoveryPolicy: requireString(input.recoveryPolicy, 'recoveryPolicy'),
+      : rejectControlBytes(requireString(input.contextPacketRef, 'contextPacketRef'), 'contextPacketRef'),
+    evidenceRefs: requireStringArray(input.evidenceRefs ?? [], 'evidenceRefs').map((item, index) => rejectControlBytes(item, `evidenceRefs[${index}]`)),
+    recoveryPolicy: rejectControlBytes(requireString(input.recoveryPolicy, 'recoveryPolicy'), 'recoveryPolicy'),
   };
+
+  if (descriptor.providerConversationRef) {
+    rejectControlBytes(descriptor.providerConversationRef, 'providerConversationRef');
+    rejectSecretLikeValue(descriptor.providerConversationRef, ['providerConversationRef']);
+  }
 
   if (input.schema !== undefined && input.schema !== descriptor.schema) throw new Error('schema must equal evobuddy.native-session.v1');
   if (input.descriptorVersion !== undefined && input.descriptorVersion !== 1) throw new Error('descriptorVersion must equal 1');

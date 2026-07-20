@@ -26,6 +26,7 @@ pub struct RuntimeSessionOpenRequest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(clippy::large_enum_variant)]
 pub enum RuntimeSessionAction {
     Attach { session_ref: SubstrateSessionRef },
     RequireStructuredChoice { plan: RuntimeSessionOpenPlan },
@@ -33,6 +34,7 @@ pub enum RuntimeSessionAction {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
+#[allow(clippy::large_enum_variant)]
 pub enum RuntimeSessionResult {
     Ready {
         action: RuntimeSessionAction,
@@ -68,17 +70,19 @@ where
         request: &RuntimeSessionOpenRequest,
     ) -> Result<RuntimeSessionResult> {
         let agent_instance_id = request.agent_instance_id.clone();
-        match self.backend.with_instance_lock(&agent_instance_id, &mut || {
-            self.open_native_session_locked(request).map_err(|error| {
-                if let Some(backend_error) = error.downcast_ref::<SessionBackendError>() {
-                    backend_error.clone()
-                } else {
-                    SessionBackendError::CommandFailed {
-                        message: error.to_string(),
+        match self
+            .backend
+            .with_instance_lock(&agent_instance_id, &mut || {
+                self.open_native_session_locked(request).map_err(|error| {
+                    if let Some(backend_error) = error.downcast_ref::<SessionBackendError>() {
+                        backend_error.clone()
+                    } else {
+                        SessionBackendError::CommandFailed {
+                            message: error.to_string(),
+                        }
                     }
-                }
-            })
-        }) {
+                })
+            }) {
             Ok(result) => Ok(result),
             Err(SessionBackendError::LockConflict { agent_instance_id }) => {
                 bail!("lock conflict for agent instance {agent_instance_id}")

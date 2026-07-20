@@ -23,6 +23,7 @@ fn session_request() -> CreateSessionRequest {
             safety_mode: "workspace-write".to_string(),
             detach_shortcut: "Ctrl+B d".to_string(),
         },
+        project_root: PathBuf::from("/repo"),
     }
 }
 
@@ -55,11 +56,19 @@ fn fake_substrate_create_inspect_list_and_terminate_session() {
     assert!(created.exists);
     assert!(created.child_process_alive);
     assert_eq!(created.session_ref, request.session_ref);
-    assert_eq!(created.backend_metadata.get("participant"), Some(&"Builder".to_string()));
+    assert_eq!(
+        created.backend_metadata.get("participant"),
+        Some(&"Builder".to_string())
+    );
 
-    let inspected = substrate.inspect(&request.session_ref).expect("inspect session");
+    let inspected = substrate
+        .inspect(&request.session_ref)
+        .expect("inspect session");
     assert_eq!(inspected.session_ref, request.session_ref);
-    assert_eq!(inspected.backend_metadata.get("runtime"), Some(&"codex".to_string()));
+    assert_eq!(
+        inspected.backend_metadata.get("runtime"),
+        Some(&"codex".to_string())
+    );
 
     let listed = substrate
         .list_sessions(&SessionScope::All)
@@ -67,8 +76,12 @@ fn fake_substrate_create_inspect_list_and_terminate_session() {
     assert_eq!(listed.len(), 1);
     assert_eq!(listed[0].session_ref, request.session_ref);
 
-    substrate.terminate(&request.session_ref).expect("terminate session");
-    let terminated = substrate.inspect(&request.session_ref).expect("inspect terminated session");
+    substrate
+        .terminate(&request.session_ref)
+        .expect("terminate session");
+    let terminated = substrate
+        .inspect(&request.session_ref)
+        .expect("inspect terminated session");
     assert_eq!(terminated.exit_state, Some("terminated".to_string()));
     assert!(!terminated.child_process_alive);
 }
@@ -84,9 +97,14 @@ fn fake_substrate_attach_is_typed_and_does_not_imply_taskroom_completion() {
         .expect("attach session");
     assert_eq!(attach, AttachOutcome::Detached);
 
-    let inspected = substrate.inspect(&request.session_ref).expect("inspect session");
+    let inspected = substrate
+        .inspect(&request.session_ref)
+        .expect("inspect session");
     assert_eq!(inspected.attached_client_count, 0);
-    assert_eq!(inspected.backend_metadata.get("taskroomStateDerived"), Some(&"false".to_string()));
+    assert_eq!(
+        inspected.backend_metadata.get("taskroomStateDerived"),
+        Some(&"false".to_string())
+    );
 }
 
 #[test]
@@ -101,7 +119,9 @@ fn malformed_backend_facts_are_rejected_instead_of_guessed() {
         backend_metadata: BTreeMap::from([("malformed".to_string(), "true".to_string())]),
     }]);
 
-    let error = substrate.inspect(&SubstrateSessionRef("tmux:bad".to_string())).expect_err("malformed facts should fail");
+    let error = substrate
+        .inspect(&SubstrateSessionRef("tmux:bad".to_string()))
+        .expect_err("malformed facts should fail");
 
     assert!(error.to_string().contains("malformed substrate facts"));
 }

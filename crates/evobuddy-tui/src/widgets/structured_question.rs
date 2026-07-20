@@ -9,7 +9,11 @@ use crate::theme::{muted_style, selected_style, surface_block};
 pub fn render_structured_question(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
     let rows = Layout::default()
         .direction(Direction::Vertical)
-        .constraints([Constraint::Length(6), Constraint::Min(6), Constraint::Length(2)])
+        .constraints([
+            Constraint::Length(6),
+            Constraint::Min(6),
+            Constraint::Length(2),
+        ])
         .split(area);
 
     let Some(question) = &app.structured_question else {
@@ -37,11 +41,18 @@ pub fn render_structured_question(frame: &mut Frame<'_>, app: &WorkbenchApp, are
         .iter()
         .enumerate()
         .map(|(index, choice)| {
-            let prefix = if index == question.selected_choice { "❯" } else { " " };
+            let prefix = if index == question.selected_choice {
+                "❯"
+            } else {
+                " "
+            };
             ListItem::new(format!("{prefix} {}. {}", index + 1, choice.label))
         })
         .collect::<Vec<_>>();
-    frame.render_widget(List::new(items).block(surface_block("Choices", false)), rows[1]);
+    frame.render_widget(
+        List::new(items).block(surface_block("Choices", false)),
+        rows[1],
+    );
 
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(

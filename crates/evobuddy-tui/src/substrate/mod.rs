@@ -3,9 +3,16 @@ use std::collections::BTreeMap;
 use std::ffi::OsString;
 use std::path::PathBuf;
 
+pub mod attach;
+pub mod capability_matrix;
 pub mod fake;
 pub mod tmux;
+pub mod tmux_inspect;
 
+pub use capability_matrix::{
+    action_gates_from_matrix, ActionGate, CapabilityStatus, SubstrateAction,
+    SubstrateCapabilityKind, SubstrateCapabilityMatrix, SubstratePlatform,
+};
 pub use fake::FakeTerminalSubstrate;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -55,6 +62,7 @@ pub struct CreateSessionRequest {
     pub cwd: PathBuf,
     pub environment_policy_ref: String,
     pub display: SessionDisplayMetadata,
+    pub project_root: PathBuf,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -78,7 +86,11 @@ pub trait TerminalSubstrate {
 }
 
 pub(crate) fn validate_facts(facts: &SubstrateSessionFacts) -> Result<()> {
-    if facts.backend_metadata.get("malformed").is_some_and(|value| value == "true") {
+    if facts
+        .backend_metadata
+        .get("malformed")
+        .is_some_and(|value| value == "true")
+    {
         bail!("malformed substrate facts");
     }
     Ok(())

@@ -126,7 +126,7 @@ const uiEvidence = {
   taskRoomFormObserved: /TaskRoom Form/.test(plain) && /Destination: Create TaskRoom/.test(plain),
   handoffFormObserved: /Handoff Form/.test(plain) && /Destination: durable HandoffRecord/.test(plain),
   traceDrawerObserved: /Trace/.test(plain) && /Claim ceiling/.test(plain),
-  contextualFooterObserved: /\/ search/.test(plain) && /: commands/.test(plain) && /a Open native runtime/.test(plain),
+  contextualFooterObserved: /\/ search/.test(plain) && /: commands/.test(plain) && /a Open (native runtime|session)/.test(plain),
   rawListRegressionAbsent: !/Team & Buddies/.test(plain) && !/Peek/.test(plain) && !/Experts/.test(plain) && !/Agent Workspace/.test(plain) && !/Raft/.test(plain),
   selectionMarkerObserved: /❯/.test(plain),
   helpObserved: /Help/.test(plain),

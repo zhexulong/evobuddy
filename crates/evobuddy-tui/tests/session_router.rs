@@ -5,7 +5,7 @@ use std::path::{Path, PathBuf};
 use std::rc::Rc;
 
 use evobuddy_tui::router::{
-    RuntimeSessionAction, RuntimeSessionOpenRequest, RuntimeSessionRouter, RuntimeSessionResult,
+    RuntimeSessionAction, RuntimeSessionOpenRequest, RuntimeSessionResult, RuntimeSessionRouter,
 };
 use evobuddy_tui::session::{
     ContinuationCandidate, ContinuationDecision, NativeSessionBackend, NativeSessionDescriptor,
@@ -121,20 +121,17 @@ impl NativeSessionBackend for FakeNativeSessionBackend {
     ) -> Result<NativeSessionDescriptor, SessionBackendError> {
         *self.commit_calls.borrow_mut() += 1;
         let mut descriptors = self.descriptors.borrow_mut();
-        let descriptor = descriptors
-            .get_mut(descriptor_id)
-            .ok_or_else(|| SessionBackendError::CommitFailed {
+        let descriptor = descriptors.get_mut(descriptor_id).ok_or_else(|| {
+            SessionBackendError::CommitFailed {
                 message: "missing descriptor".to_string(),
-            })?;
+            }
+        })?;
         descriptor.terminal_session_ref = substrate_ref.to_string();
         descriptor.lifecycle = "attachable".to_string();
         Ok(descriptor.clone())
     }
 
-    fn inspect(
-        &self,
-        descriptor_id: &str,
-    ) -> Result<NativeSessionDescriptor, SessionBackendError> {
+    fn inspect(&self, descriptor_id: &str) -> Result<NativeSessionDescriptor, SessionBackendError> {
         self.descriptors
             .borrow()
             .get(descriptor_id)
@@ -178,7 +175,11 @@ impl NativeSessionBackend for FakeNativeSessionBackend {
                         descriptor_id: descriptor.descriptor_id.clone(),
                         terminal_session_ref: descriptor.terminal_session_ref.clone(),
                     }
-                } else if by_agent.get(&descriptor.agent_instance_id).copied().unwrap_or(0) > 1
+                } else if by_agent
+                    .get(&descriptor.agent_instance_id)
+                    .copied()
+                    .unwrap_or(0)
+                    > 1
                     || by_ref
                         .get(&descriptor.terminal_session_ref)
                         .copied()
@@ -265,9 +266,7 @@ fn sample_plan(kind: &str) -> RuntimeSessionOpenPlan {
         },
         create_session_request: CreateSessionRequest {
             descriptor_id: "session-1".to_string(),
-            session_ref: SubstrateSessionRef(
-                "tmux:codex:taskroom:alpha:instance-1".to_string(),
-            ),
+            session_ref: SubstrateSessionRef("tmux:codex:taskroom:alpha:instance-1".to_string()),
             launcher_plan_ref: "launch-plan:launch-plan-1".to_string(),
             program: PathBuf::from("codex"),
             args: vec![OsString::from("resume"), OsString::from("--last")],
@@ -280,6 +279,7 @@ fn sample_plan(kind: &str) -> RuntimeSessionOpenPlan {
                 safety_mode: "workspace-write".to_string(),
                 detach_shortcut: "Ctrl+B d".to_string(),
             },
+            project_root: PathBuf::from("/repo"),
         },
         runtime_capability_ref: "runtime-capability:codex-v1".to_string(),
         launch_command_ref: format!("launch-command:codex:{kind}"),
@@ -326,8 +326,14 @@ fn open_native_session_reserves_creates_and_commits_with_unchanged_create_reques
                 }
             );
             assert_eq!(opened.create_session_request, plan.create_session_request);
-            assert_eq!(opened.create_session_request.launcher_plan_ref, "launch-plan:launch-plan-1");
-            assert_eq!(opened.create_session_request.program, PathBuf::from("codex"));
+            assert_eq!(
+                opened.create_session_request.launcher_plan_ref,
+                "launch-plan:launch-plan-1"
+            );
+            assert_eq!(
+                opened.create_session_request.program,
+                PathBuf::from("codex")
+            );
             assert_eq!(
                 opened.create_session_request.args,
                 vec![OsString::from("resume"), OsString::from("--last")]
@@ -435,9 +441,14 @@ fn multi_candidate_heuristic_payload_is_preserved_without_silent_selection() {
             assert_eq!(opened.continuation.candidate_count, 2);
             assert!(opened.continuation.requires_structured_choice);
             assert_eq!(opened.continuation.candidates.len(), 2);
-            assert_eq!(opened.continuation.candidates[0].candidate_id, "candidate-1");
             assert_eq!(
-                opened.continuation.candidates[1].provider_conversation_ref.as_deref(),
+                opened.continuation.candidates[0].candidate_id,
+                "candidate-1"
+            );
+            assert_eq!(
+                opened.continuation.candidates[1]
+                    .provider_conversation_ref
+                    .as_deref(),
                 Some("uuid-2")
             );
         }
@@ -604,11 +615,17 @@ fn node_backend_plan_open_command_uses_structured_argv() {
         Some("Builder"),
     );
     assert_eq!(command.program, "node");
-    assert!(command.args.iter().any(|arg| arg == "scripts/evobuddy/evobuddy.mjs"));
+    assert!(command
+        .args
+        .iter()
+        .any(|arg| arg == "scripts/evobuddy/evobuddy.mjs"));
     assert!(command.args.iter().any(|arg| arg == "taskroom"));
     assert!(command.args.iter().any(|arg| arg == "session"));
     assert!(command.args.iter().any(|arg| arg == "plan-open"));
-    assert!(!command.args.iter().any(|arg| arg.contains("sh -lc") || arg.contains("&&")));
+    assert!(!command
+        .args
+        .iter()
+        .any(|arg| arg.contains("sh -lc") || arg.contains("&&")));
     assert!(command.args.iter().any(|arg| arg == "/repo with spaces"));
 }
 
@@ -656,10 +673,7 @@ fn open_native_runtime_flow_renders_pre_attach_notice_then_guard_order() {
         guard.restore().expect("restore");
     }
     assert_eq!(&*calls.borrow(), &["drain", "suspend", "attach", "restore"]);
-    assert_eq!(
-        AttachPath::DedicatedSocket.as_str(),
-        "dedicated-socket"
-    );
+    assert_eq!(AttachPath::DedicatedSocket.as_str(), "dedicated-socket");
     assert_eq!(
         AttachPath::NestedTmuxDedicatedSocket.as_str(),
         "nested-tmux-dedicated-socket"
@@ -748,10 +762,7 @@ impl TerminalSubstrate for FailingCreateSubstrate {
         self.inner.inspect(session)
     }
 
-    fn list_sessions(
-        &self,
-        scope: &SessionScope,
-    ) -> anyhow::Result<Vec<SubstrateSessionFacts>> {
+    fn list_sessions(&self, scope: &SessionScope) -> anyhow::Result<Vec<SubstrateSessionFacts>> {
         self.inner.list_sessions(scope)
     }
 

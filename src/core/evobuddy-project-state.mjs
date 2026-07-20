@@ -15,6 +15,7 @@ const DEFAULT_STATE_SCHEMA = Object.freeze({
   nativeSessionLaunchPlanRoot: '.evobuddy/native-session-launch-plans',
   lockRoot: '.evobuddy/locks',
   evidenceRefreshRoot: '.evobuddy/evidence-refresh',
+  taskroomsRoot: '.evobuddy/taskrooms',
 });
 
 export function resolveEvobuddyProjectState({ projectRoot }) {
@@ -30,6 +31,7 @@ export function resolveEvobuddyProjectState({ projectRoot }) {
   const nativeSessionLaunchPlansPath = join(stateRoot, 'native-session-launch-plans');
   const locksPath = join(stateRoot, 'locks');
   const evidenceRefreshPath = join(stateRoot, 'evidence-refresh');
+  const taskroomsPath = join(stateRoot, 'taskrooms');
   return {
     projectRoot: root,
     stateRoot,
@@ -61,6 +63,7 @@ export function resolveEvobuddyProjectState({ projectRoot }) {
     nativeSessionLaunchPlansPath,
     locksPath,
     evidenceRefreshPath,
+    taskroomsPath,
     teamPolicyMarkdownPath: join(stateRoot, 'team-policy.md'),
     teamPolicyIndexPath: join(stateRoot, 'team-policy.json'),
     importPath(id) { return join(stateRoot, 'imports', id); },
@@ -72,6 +75,8 @@ export function resolveEvobuddyProjectState({ projectRoot }) {
     nativeSessionLaunchPlanPath(planId) { return join(nativeSessionLaunchPlansPath, `${planId}.json`); },
     agentInstanceSessionLockPath(agentInstanceId) { return join(locksPath, `session-${agentInstanceId}.lock`); },
     evidenceRefreshRecordPath(roomId) { return join(evidenceRefreshPath, `${roomId}.json`); },
+    taskroomPath(roomId) { return join(taskroomsPath, roomId); },
+    taskroomRoomJsonPath(roomId) { return join(taskroomsPath, roomId, 'room.json'); },
   };
 }
 
@@ -108,7 +113,7 @@ function atomicWriteTextSync(path, contents, mode = 0o600) {
 
 export async function ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets = true }) {
   const state = resolveEvobuddyProjectState({ projectRoot });
-  for (const dir of [state.stateRoot, state.runsPath, state.importsPath, state.projectionsPath, state.instructionsPath, state.releasePathRoot, state.evolutionPathRoot, state.evolutionPatchesPath, state.evolutionCandidatesPath, state.knowledgePath, state.knowledgeSopsPath, state.projectBuddiesPath, state.projectSkillsPath, state.updatesPath, state.nativeSessionsPath, state.nativeSessionLaunchPlansPath, state.locksPath, state.evidenceRefreshPath]) {
+  for (const dir of [state.stateRoot, state.runsPath, state.importsPath, state.projectionsPath, state.instructionsPath, state.releasePathRoot, state.evolutionPathRoot, state.evolutionPatchesPath, state.evolutionCandidatesPath, state.knowledgePath, state.knowledgeSopsPath, state.projectBuddiesPath, state.projectSkillsPath, state.updatesPath, state.nativeSessionsPath, state.nativeSessionLaunchPlansPath, state.locksPath, state.evidenceRefreshPath, state.taskroomsPath]) {
     mkdirSync(dir, { recursive: true, mode: 0o700 });
   }
   const created = { registry: false, stateSchema: false };

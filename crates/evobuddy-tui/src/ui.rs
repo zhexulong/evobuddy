@@ -6,21 +6,19 @@ use ratatui::Terminal;
 use std::io::Write;
 use std::io::{self, Stdout};
 use std::path::PathBuf;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::app::{WorkbenchApp, WorkbenchEffect};
-use crate::backend::{load_workbench_state, BackendOptions};
-use crate::input::{handle_key_event, KeyInput};
-use crate::router::{
-    build_open_request, default_tmux_socket_name, RuntimeSessionAction, RuntimeSessionResult,
-    RuntimeSessionRouter,
+use crate::backend::{
+    run_backend_command, taskroom_archive_command, taskroom_create_command,
+    taskroom_handoff_create_command, taskroom_participant_add_command,
+    taskroom_session_stop_command,
 };
-use crate::session::NodeNativeSessionBackend;
-use crate::substrate::tmux::{format_pre_attach_notice, write_pre_attach_notice, TmuxSubstrate};
-use crate::substrate::SessionDisplayMetadata;
-use crate::terminal_mode::{CrosstermTerminalControl, TerminalControl, TerminalModeGuard};
+use crate::input::{handle_key_event, KeyInput};
+use crate::terminal_mode::{CrosstermTerminalControl, TerminalControl};
 use crate::views::ViewMode;
 use crate::widgets::command_palette::render_command_palette;
+use crate::widgets::confirm_action::render_confirm_action;
 use crate::widgets::dashboard::render_dashboard;
 use crate::widgets::detail::render_detail;
 use crate::widgets::handoff_form::render_handoff_form;
@@ -51,6 +49,7 @@ pub fn render_current_snapshot(app: &WorkbenchApp, width: u16, height: u16) -> R
             ViewMode::TaskRoomForm => render_task_room_form(frame, app, frame.area()),
             ViewMode::HandoffForm => render_handoff_form(frame, app, frame.area()),
             ViewMode::StructuredQuestion => render_structured_question(frame, app, frame.area()),
+            ViewMode::ConfirmAction => render_confirm_action(frame, app, frame.area()),
             ViewMode::CommandPalette => render_command_palette(frame, app, frame.area()),
             ViewMode::TraceDrawer => render_trace_drawer(frame, app, frame.area()),
             ViewMode::ActionProgress => render_task_composer(frame, app, frame.area()),
@@ -72,7 +71,7 @@ pub fn render_current_snapshot(app: &WorkbenchApp, width: u16, height: u16) -> R
     Ok(format!("{snapshot}\n"))
 }
 
-fn render_current(frame: &mut ratatui::Frame<'_>, app: &WorkbenchApp) {
+pub fn render_frame(frame: &mut ratatui::Frame<'_>, app: &WorkbenchApp) {
     match app.view_mode.clone() {
         ViewMode::Dashboard | ViewMode::Search => render_dashboard(frame, app),
         ViewMode::TeamMemberWorkspace => render_team_member_workspace(frame, app, frame.area()),
@@ -81,6 +80,7 @@ fn render_current(frame: &mut ratatui::Frame<'_>, app: &WorkbenchApp) {
         ViewMode::TaskRoomForm => render_task_room_form(frame, app, frame.area()),
         ViewMode::HandoffForm => render_handoff_form(frame, app, frame.area()),
         ViewMode::StructuredQuestion => render_structured_question(frame, app, frame.area()),
+        ViewMode::ConfirmAction => render_confirm_action(frame, app, frame.area()),
         ViewMode::CommandPalette => render_command_palette(frame, app, frame.area()),
         ViewMode::TraceDrawer => render_trace_drawer(frame, app, frame.area()),
         ViewMode::ActionProgress => render_task_composer(frame, app, frame.area()),
@@ -126,9 +126,9 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
             Some(KeyInput::ToggleUpdates)
         }
         KeyCode::Char('q') if key.modifiers.is_empty() => Some(KeyInput::Quit),
-        KeyCode::Char(ch @ '1'..='9') if key.modifiers.is_empty() => {
-            Some(KeyInput::StructuredAnswer(ch.to_digit(10).unwrap_or(1) as u8))
-        }
+        KeyCode::Char(ch @ '1'..='9') if key.modifiers.is_empty() => Some(
+            KeyInput::StructuredAnswer(ch.to_digit(10).unwrap_or(1) as u8),
+        ),
         KeyCode::Char(ch) if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT => {
             Some(KeyInput::Char(ch))
         }
@@ -146,7 +146,7 @@ pub fn run_interactive_app(app: &mut WorkbenchApp) -> Result<()> {
     let result = (|| -> Result<()> {
         loop {
             terminal
-                .draw(|frame| render_current(frame, app))
+                .draw(|frame| render_frame(frame, app))
                 .context("failed to draw interactive frame")?;
             maybe_dump_frame(app, terminal.size()?.width, terminal.size()?.height)?;
             if event::poll(Duration::from_millis(100)).context("failed to poll terminal events")? {
@@ -156,19 +156,7 @@ pub fn run_interactive_app(app: &mut WorkbenchApp) -> Result<()> {
                             break;
                         }
                         let effect = handle_key_event(app, mapped);
-                        if let WorkbenchEffect::OpenNativeRuntime {
-                            room_id,
-                            instance_id,
-                        } = effect
-                        {
-                            execute_open_native_runtime(
-                                app,
-                                &mut terminal,
-                                &mut control,
-                                &room_id,
-                                &instance_id,
-                            )?;
-                        }
+                        execute_workbench_effect(app, &mut terminal, &mut control, effect)?;
                     }
                 }
             }
@@ -182,126 +170,137 @@ pub fn run_interactive_app(app: &mut WorkbenchApp) -> Result<()> {
     result
 }
 
-fn execute_open_native_runtime(
+fn project_root(app: &WorkbenchApp) -> PathBuf {
+    PathBuf::from(&app.state.project_root)
+}
+
+fn iso_now() -> String {
+    let millis = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_millis())
+        .unwrap_or(0);
+    format!("1970-01-01T00:00:{:012}.000Z", millis % 1_000_000_000_000)
+}
+
+fn execute_workbench_effect(
     app: &mut WorkbenchApp,
     terminal: &mut Terminal<CrosstermBackend<Stdout>>,
     control: &mut CrosstermTerminalControl,
-    room_id: &str,
-    instance_id: &str,
+    effect: WorkbenchEffect,
 ) -> Result<()> {
-    let snapshot = app.selection_snapshot();
-    let Some(context) = app.native_open_context(room_id, instance_id) else {
-        app.action_status = Some("native runtime unavailable for selection".to_string());
-        return Ok(());
-    };
-
-    let project_root = PathBuf::from(&context.project_root);
-    let workspace = PathBuf::from(&context.workspace);
-    let backend = NodeNativeSessionBackend::new(project_root.clone());
-    let substrate = TmuxSubstrate::new("tmux", default_tmux_socket_name());
-    let router = RuntimeSessionRouter::new(backend, substrate);
-
-    let request = build_open_request(
-        &project_root,
-        &context.room_id,
-        &context.agent_instance_id,
-        &context.runtime,
-        &workspace,
-        Some(&context.participant_name),
-        Some(&context.safety_mode),
-    );
-
-    let open_result = match router.open_native_session(&request) {
-        Ok(result) => result,
-        Err(error) => {
-            app.action_status = Some(format!("native open failed: {error:#}"));
-            app.restore_selection(&snapshot);
-            return Ok(());
+    match effect {
+        WorkbenchEffect::None | WorkbenchEffect::RequestConfirmation(_) => Ok(()),
+        WorkbenchEffect::ExecuteCommand(_) | WorkbenchEffect::AnswerQuestion(_) => Ok(()),
+        WorkbenchEffect::OpenNativeRuntime {
+            room_id,
+            instance_id,
+        } => crate::native_attach::execute_open_native_runtime(
+            app,
+            terminal,
+            control,
+            &room_id,
+            &instance_id,
+        ),
+        WorkbenchEffect::CreateTaskRoom(draft) => {
+            let project = project_root(app);
+            let room_id = format!(
+                "taskroom:{}",
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .map(|duration| duration.as_millis())
+                    .unwrap_or(0)
+            );
+            let title = if draft.objective.is_empty() {
+                room_id.clone()
+            } else {
+                draft.objective.clone()
+            };
+            let command = taskroom_create_command(
+                &project,
+                &room_id,
+                &title,
+                &draft.objective,
+                Some(&iso_now()),
+            );
+            let _ = draft;
+            run_backend_command(&command, &project)?;
+            app.durable_writes.push(format!("created {room_id}"));
+            app.action_status = Some(format!("created {room_id}"));
+            Ok(())
         }
-    };
-
-    match open_result {
-        RuntimeSessionResult::NeedsChoice { plan } => {
-            app.action_status = Some(format!(
-                "choose continuation ({} candidates)",
-                plan.continuation.candidate_count
-            ));
-            app.restore_selection(&snapshot);
-            return Ok(());
+        WorkbenchEffect::CreateHandoff(draft) => {
+            let project = project_root(app);
+            let room_id = app
+                .selected_task_room()
+                .map(|room| room.id.clone())
+                .unwrap_or_else(|| "taskroom:unknown".to_string());
+            let handoff_id = format!(
+                "handoff:{}",
+                SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .map(|duration| duration.as_millis())
+                    .unwrap_or(0)
+            );
+            let command = taskroom_handoff_create_command(
+                &project,
+                &room_id,
+                &handoff_id,
+                &draft.sender,
+                &draft.receiver,
+                "assignment",
+                Some(&iso_now()),
+            );
+            run_backend_command(&command, &project)?;
+            app.durable_writes.push(format!("handoff {handoff_id}"));
+            app.action_status = Some(format!("created {handoff_id}"));
+            Ok(())
         }
-        RuntimeSessionResult::Unsupported { reason, .. } => {
-            app.action_status = Some(format!("native runtime disabled: {reason}"));
-            app.restore_selection(&snapshot);
-            return Ok(());
-        }
-        RuntimeSessionResult::Ready {
-            action,
-            plan,
-            session_facts,
-            ..
+        WorkbenchEffect::AddParticipant {
+            room_id,
+            participant_id,
+            actor_name,
+            actor_kind,
+            role,
+            runtime,
         } => {
-            let RuntimeSessionAction::Attach { session_ref } = action else {
-                app.action_status = Some("native runtime action is not attachable".to_string());
-                app.restore_selection(&snapshot);
-                return Ok(());
-            };
-
-            let display = SessionDisplayMetadata {
-                participant: plan.create_session_request.display.participant.clone(),
-                runtime: plan.create_session_request.display.runtime.clone(),
-                workspace: plan.create_session_request.display.workspace.clone(),
-                safety_mode: plan.create_session_request.display.safety_mode.clone(),
-                detach_shortcut: plan
-                    .create_session_request
-                    .display
-                    .detach_shortcut
-                    .clone(),
-            };
-            let notice = format_pre_attach_notice(&display, &session_ref);
-
-            terminal
-                .draw(|frame| render_current(frame, app))
-                .context("failed to draw pre-attach frame")?;
-
-            let attach_outcome = {
-                let mut guard = TerminalModeGuard::enter(control)?;
-                write_pre_attach_notice(&notice)?;
-                let outcome = router.attach_session(&session_ref);
-                guard.restore()?;
-                outcome
-            };
-
-            match attach_outcome {
-                Ok(outcome) => {
-                    app.action_status = Some(format!(
-                        "returned from {} ({outcome:?}); session exists={}",
-                        session_facts.session_ref.0, session_facts.exists
-                    ));
-                }
-                Err(error) => {
-                    app.action_status = Some(format!("attach failed: {error:#}"));
-                }
-            }
+            let project = project_root(app);
+            let command = taskroom_participant_add_command(
+                &project,
+                &room_id,
+                &participant_id,
+                &actor_name,
+                &actor_kind,
+                &role,
+                runtime.as_deref(),
+            );
+            run_backend_command(&command, &project)?;
+            app.durable_writes
+                .push(format!("participant {participant_id}"));
+            app.action_status = Some(format!("added {participant_id}"));
+            Ok(())
+        }
+        WorkbenchEffect::StopSession {
+            room_id,
+            instance_id,
+        } => {
+            let project = project_root(app);
+            let command =
+                taskroom_session_stop_command(&project, &room_id, &instance_id, "user-stop");
+            run_backend_command(&command, &project)?;
+            app.durable_writes
+                .push(format!("stopped session {instance_id}"));
+            app.action_status = Some(format!("stopped {instance_id}"));
+            Ok(())
+        }
+        WorkbenchEffect::ArchiveTaskRoom { room_id } => {
+            let project = project_root(app);
+            let command = taskroom_archive_command(&project, &room_id);
+            run_backend_command(&command, &project)?;
+            app.durable_writes.push(format!("archived {room_id}"));
+            app.action_status = Some(format!("archived {room_id}"));
+            Ok(())
         }
     }
-
-    if let Ok(state) = load_workbench_state(&BackendOptions {
-        project: project_root,
-        state_json: None,
-        backend_command: None,
-        input_root: None,
-        aggregate_report: None,
-        plan1_report: None,
-        plan2_report: None,
-        taskroom_reports: Vec::new(),
-    }) {
-        app.replace_state_preserving_selection(state, &snapshot);
-    } else {
-        app.restore_selection(&snapshot);
-    }
-
-    terminal.clear().ok();
-    Ok(())
 }
 
 fn maybe_dump_frame(app: &WorkbenchApp, width: u16, height: u16) -> Result<()> {

@@ -147,4 +147,15 @@ The July-18 EvoBuddy Workbench extends this WorkBuddy-style member/task surface 
 - Runtime Setup
 - runtime setup coverage status without raw proof gates
 
-The older member workbench remains a compatibility surface for member/task artifacts.
+The older member workbench remains a **read-only compatibility** surface for member/task artifacts. It does not launch runtimes or mutate TaskRoom state.
+
+### TaskRoom-first native TUI orchestration (successor interactive path)
+
+Interactive product work moved to a **TaskRoom-first** EvoBuddy surface that can **Open native runtime** sessions through tmux, with contextual actions and no open-ended orchestrator prompt. That path is documented in:
+
+- `docs/evobuddy-workbench-team-taskroom-mvp.md`
+- `docs/evobuddy-native-tui-runbook.md`
+- `docs/evobuddy-native-session-recovery-runbook.md`
+- `docs/contracts/evobuddy-workbench-tui-contract.md`
+
+V0 remains the evidence-inspection / **read-only compatibility** projection. Do not reclassify retained V0 renders as native TUI launch/attach product proof.

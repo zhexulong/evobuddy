@@ -16,6 +16,7 @@ pub enum ViewMode {
     TaskRoomForm,
     HandoffForm,
     StructuredQuestion,
+    ConfirmAction,
     CommandPalette,
     TraceDrawer,
     ActionProgress,

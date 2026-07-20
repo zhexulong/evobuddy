@@ -326,22 +326,31 @@ export function selectFreshestClaudeTaskroomCohort(sessions) {
     };
   }
 
-  return parents
+  const ranked = parents
     .map((parent) => {
       const cohortSessions = sessions.filter((session) => session.sessionId === parent.sessionId || isChildOfParent(session, parent));
       const builder = findSessionByMemberName(cohortSessions, 'builder');
       const reviewer = findSessionByMemberName(cohortSessions, 'reviewer');
       const evolutionAgent = findSessionByMemberName(cohortSessions, 'evolution-agent');
+      const missingAgents = REQUIRED_TEAM_AGENT_NAMES.filter((agentName) => !findSessionByMemberName(cohortSessions, agentName));
       return {
         parent,
         sessions: cohortSessions,
         builder,
         reviewer,
         evolutionAgent,
-        missingAgents: REQUIRED_TEAM_AGENT_NAMES.filter((agentName) => !findSessionByMemberName(cohortSessions, agentName)),
+        missingAgents,
+        requiredAgentCount: REQUIRED_TEAM_AGENT_NAMES.length - missingAgents.length,
         parentCreatedAt: sessionCreatedAtEpoch(parent),
       };
-    })
+    });
+
+  // Match OpenCode freshness: newest parent wins, even if incomplete.
+  // But ignore Buddy-only parents (explore/librarian/...) when any TeamAgent cohort exists,
+  // otherwise a newer Buddy helper run hides the real TeamAgent diagnosis.
+  const withTeamAgents = ranked.filter((entry) => entry.requiredAgentCount > 0);
+  const pool = withTeamAgents.length > 0 ? withTeamAgents : ranked;
+  return pool
     .sort((left, right) => right.parentCreatedAt - left.parentCreatedAt
       || sessionUpdatedAtEpoch(right.parent) - sessionUpdatedAtEpoch(left.parent)
       || String(right.parent.sessionId).localeCompare(String(left.parent.sessionId)))[0];

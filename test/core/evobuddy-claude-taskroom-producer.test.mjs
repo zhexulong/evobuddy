@@ -237,6 +237,71 @@ test('prefers a coherent freshest Claude parent cohort and does not reuse TeamAg
   }
 });
 
+test('does not let a newer Buddy-only Claude parent hide an older incomplete TeamAgent cohort diagnosis', async () => {
+  const out = mkdtempSync(join(tmpdir(), 'evobuddy-claude-fork-handoff-buddy-only-'));
+  try {
+    const base = claudeTaskroomExportFixture();
+    // Older parent has builder + reviewer only.
+    const teamParent = structuredClone(base.corpus.sessions[0]);
+    teamParent.sessionId = 'claude-parent-team';
+    teamParent.sessionRef = 'claude-session:claude-parent-team';
+    teamParent.updatedAt = '2026-07-18T00:00:00.000Z';
+    teamParent.createdAt = '2026-07-18T00:00:00.000Z';
+    teamParent.nativeBuddy.parentSessionRef = 'claude-session:claude-parent-team';
+    const builder = structuredClone(base.corpus.sessions[1]);
+    builder.sessionId = 'claude-builder-team';
+    builder.sessionRef = 'claude-session:claude-builder-team';
+    builder.parentSessionId = 'claude-parent-team';
+    builder.nativeBuddy.parentSessionRef = 'claude-session:claude-parent-team';
+    const reviewer = structuredClone(base.corpus.sessions[2]);
+    reviewer.sessionId = 'claude-reviewer-team';
+    reviewer.sessionRef = 'claude-session:claude-reviewer-team';
+    reviewer.parentSessionId = 'claude-parent-team';
+    reviewer.nativeBuddy.parentSessionRef = 'claude-session:claude-parent-team';
+
+    // Newer parent only has explore Buddy helper.
+    const buddyParent = structuredClone(base.corpus.sessions[0]);
+    buddyParent.sessionId = 'claude-parent-buddy';
+    buddyParent.sessionRef = 'claude-session:claude-parent-buddy';
+    buddyParent.updatedAt = '2026-07-19T00:00:00.000Z';
+    buddyParent.createdAt = '2026-07-19T00:00:00.000Z';
+    buddyParent.nativeBuddy.parentSessionRef = 'claude-session:claude-parent-buddy';
+    const explore = structuredClone(base.corpus.sessions[1]);
+    explore.sessionId = 'claude-explore';
+    explore.sessionRef = 'claude-session:claude-explore';
+    explore.parentSessionId = 'claude-parent-buddy';
+    explore.nativeBuddy = {
+      memberName: 'explore',
+      parentSessionRef: 'claude-session:claude-parent-buddy',
+    };
+
+    const result = await produceClaudeRealtimeForkHandoffTaskRoomProof({
+      projectRoot: REPO_ROOT,
+      runtime: 'claude',
+      out,
+      claudeProjectDir: '/tmp/claude-project',
+      exportSessionCorpus: async () => ({
+        corpus: {
+          source: 'claude-code-jsonl-session-corpus-export',
+          projectIdentity: '/repo',
+          sessions: [teamParent, builder, reviewer, buddyParent, explore],
+        },
+        manifest: base.manifest,
+      }),
+    });
+
+    assert.equal(result.status, 'blocked');
+    // Diagnosis must be about the TeamAgent cohort, not the newer Buddy-only parent.
+    assert.ok(
+      result.blockedReasons.some((reason) => /missing required TeamAgent session\(s\): evolution-agent/i.test(reason)),
+      JSON.stringify(result.blockedReasons),
+    );
+    assert.equal(result.selectedParentSessionId, 'claude-parent-team');
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
 test('blocks Claude realtime fork/handoff proof when natural input names mechanism terms', async () => {
   const out = mkdtempSync(join(tmpdir(), 'evobuddy-claude-fork-handoff-mech-'));
   try {

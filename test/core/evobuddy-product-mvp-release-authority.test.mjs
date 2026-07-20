@@ -338,3 +338,21 @@ assertBlocks('blocks when natural input negative controls report failed blocked 
     { status: 'blocked', issue: 'mechanism-leaking prompt control surfaced adapter syntax' },
   ];
 }, /naturalInputNegativeControls/i);
+
+assertBlocks('blocks when legacy July17 is the only evidence for required runtime proofs', (input) => {
+  delete input.realtimeForkHandoffReports;
+  delete input.realtimeForkHandoffReportPaths;
+}, /missing required runtime/i);
+
+test('records original legacy report refs statuses and blocked reasons without flattening', () => {
+  const report = evaluateEvobuddyProductMvpReleaseAuthority(passingAuthorityInput());
+  const july = report.legacyBoundaries.july17Readiness;
+  assert.equal(july.nonClaim, true);
+  assert.equal(july.reportRef, '/var/evobuddy/live/july17-aggregate.json');
+  assert.equal(july.originalReleaseReadinessStatus, 'blocked');
+  assert.ok(Array.isArray(july.blockedReasons));
+  assert.ok(july.blockedReasons.length > 0);
+  assert.match(july.whyNonClaim, /legacy broader threeRuntimeParity remains outside current MVP authority/);
+  assert.match(report.legacyBoundaries.productReadiness.whyNonClaim, /full EvoBuddy release readiness remains a future\/broader gate/);
+});
+

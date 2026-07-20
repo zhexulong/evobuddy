@@ -139,10 +139,13 @@ function isContextTreeGeneratedContent(content, { memberName, runtimeAgentName }
 
 function isLegacyActorProjectionContent(content, { memberName, runtimeAgentName }) {
   const namesPresent = content.includes(memberName) && content.includes(runtimeAgentName);
+  // Actor projections write human-facing "Source digest:" markers; older buddy
+  // projections used "source_digest:". Accept either so unmanaged actor files
+  // can be safely replaced by current buddy projection content.
   return namesPresent
     && /# (TeamAgent|SubagentBuddy): /i.test(content)
     && /Source definition: /i.test(content)
-    && /source_digest: sha256:/i.test(content);
+    && (/(?:source_digest|Source digest):\s*sha256:/i.test(content));
 }
 
 function failGate(gates, gate, issues, issue) {

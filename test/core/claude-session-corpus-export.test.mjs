@@ -155,4 +155,95 @@ describe('exportClaudeCodeJsonlSessionCorpus', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('preserves Task tool subagent_type linkage for sisyphus-junior style native Buddy spawns', async () => {
+    const dir = mkdtempSync(join('/tmp', 'ctree-claude-export-task-tool-'));
+    try {
+      const parentSessionId = 'parent-task-session';
+      const childAgentId = 'agent-sisyphus-junior-abc';
+      mkdirSync(join(dir, parentSessionId, 'subagents'), { recursive: true });
+      writeFileSync(join(dir, `${parentSessionId}.jsonl`), jsonl([
+        {
+          type: 'user',
+          uuid: 'root-user',
+          sessionId: parentSessionId,
+          turnId: 'turn-parent-user',
+          message: { role: 'user', content: 'Summarize the release flow with a junior helper.' },
+        },
+        {
+          type: 'assistant',
+          uuid: 'root-task-call',
+          sessionId: parentSessionId,
+          turnId: 'turn-parent-task-call',
+          message: {
+            role: 'assistant',
+            content: [{
+              type: 'tool_use',
+              id: 'call-task-sisyphus',
+              name: 'Task',
+              input: {
+                subagent_type: 'sisyphus-junior',
+                description: 'Revise release flow summary',
+                prompt: 'Produce a short transcript-only revision of the native Buddy MVP release flow.',
+              },
+            }],
+          },
+        },
+        {
+          type: 'user',
+          uuid: 'root-task-result',
+          sessionId: parentSessionId,
+          turnId: 'turn-parent-task-result',
+          toolUseResult: {
+            status: 'completed',
+            agentId: childAgentId,
+            agentType: 'sisyphus-junior',
+            prompt: 'Produce a short transcript-only revision of the native Buddy MVP release flow.',
+          },
+          message: {
+            role: 'user',
+            content: [{
+              tool_use_id: 'call-task-sisyphus',
+              type: 'tool_result',
+              content: [{ type: 'text', text: 'Native Buddy MVP release flow revised and returned to parent.' }],
+            }],
+          },
+        },
+      ]));
+      writeFileSync(join(dir, parentSessionId, 'subagents', `${childAgentId}.jsonl`), jsonl([
+        {
+          type: 'user',
+          uuid: 'child-user',
+          sessionId: parentSessionId,
+          agentId: childAgentId,
+          message: { role: 'user', content: 'Produce a short transcript-only revision of the native Buddy MVP release flow.' },
+        },
+        {
+          type: 'assistant',
+          uuid: 'child-assistant',
+          sessionId: parentSessionId,
+          agentId: childAgentId,
+          attributionAgent: 'sisyphus-junior',
+          message: { role: 'assistant', content: 'Native Buddy MVP release flow revised and returned to parent.' },
+        },
+      ]));
+
+      const result = await exportClaudeCodeJsonlSessionCorpus({ claudeProjectDir: dir, projectIdentity: '/repo/context-tree', maxSessions: 10 });
+      const rootSession = result.corpus.sessions.find((session) => session.isSubagent === false && session.sessionId === parentSessionId);
+      const childSession = result.corpus.sessions.find((session) => session.isSubagent === true);
+
+      assert.equal(rootSession?.nativeBuddy?.invocation?.memberName, 'sisyphus-junior');
+      // toolUseId is used for internal matching then stripped from the public invocation shape.
+      assert.ok(rootSession?.nativeBuddy?.invocation?.promptDigest?.startsWith('sha256:'));
+      assert.equal(rootSession?.nativeBuddy?.invocation?.promptText, 'Produce a short transcript-only revision of the native Buddy MVP release flow.');
+      assert.equal(rootSession?.nativeBuddy?.resultReturn?.returnedToParent, true);
+      assert.equal(rootSession?.nativeBuddy?.resultReturn?.memberName, 'sisyphus-junior');
+      assert.equal(rootSession?.nativeBuddy?.resultReturn?.childSessionId, childAgentId);
+      assert.equal(childSession?.sessionId, childAgentId);
+      assert.equal(childSession?.nativeBuddy?.memberName, 'sisyphus-junior');
+      assert.equal(childSession?.nativeBuddy?.parentSessionRef, `claude-session:${parentSessionId}`);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });

@@ -16,7 +16,10 @@ pub fn render_task_composer(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rec
         ])
         .split(area);
 
-    let status = app.action_status.clone().unwrap_or_else(|| "No action recorded".to_string());
+    let status = app
+        .action_status
+        .clone()
+        .unwrap_or_else(|| "No action recorded".to_string());
     let destination = if status.contains("Created TaskRoom") {
         "Durable TaskRoom store"
     } else if status.contains("Created handoff") {

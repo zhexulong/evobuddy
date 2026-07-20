@@ -208,7 +208,10 @@ impl TmuxSubstrate {
         }
     }
 
-    fn run_blocking_attach(&self, session: &SubstrateSessionRef) -> Result<std::process::ExitStatus> {
+    fn run_blocking_attach(
+        &self,
+        session: &SubstrateSessionRef,
+    ) -> Result<std::process::ExitStatus> {
         let path = self.choose_attach_path();
         *self.last_attach_path.borrow_mut() = Some(path);
 
@@ -292,13 +295,8 @@ impl TerminalSubstrate for TmuxSubstrate {
             "status-left",
             MANAGED_STATUS_LINE,
         ]);
-        let _ = self.command_output(&[
-            "set-option",
-            "-t",
-            session_name,
-            "status-left-length",
-            "80",
-        ]);
+        let _ =
+            self.command_output(&["set-option", "-t", session_name, "status-left-length", "80"]);
         self.terminated.borrow_mut().remove(session_name);
         self.inspect(&request.session_ref)
     }
@@ -324,7 +322,11 @@ impl TerminalSubstrate for TmuxSubstrate {
             }
         };
         let exists = self.session_exists(session).unwrap_or(false);
-        Ok(map_attach_exit_status(status.success(), exists, interrupted))
+        Ok(map_attach_exit_status(
+            status.success(),
+            exists,
+            interrupted,
+        ))
     }
 
     fn inspect(&self, session: &SubstrateSessionRef) -> Result<SubstrateSessionFacts> {

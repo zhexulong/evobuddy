@@ -86,8 +86,13 @@ pub enum WorkbenchEffect {
     CreateHandoff(CreateHandoffDraft),
     ExecuteCommand(DeterministicCommand),
     AnswerQuestion(String),
-    OpenNativeRuntime { room_id: String, instance_id: String },
-    RefreshEvidence { room_id: String },
+    OpenNativeRuntime {
+        room_id: String,
+        instance_id: String,
+    },
+    RefreshEvidence {
+        room_id: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -259,7 +264,9 @@ impl WorkbenchApp {
     }
 
     pub fn selected_task_room(&self) -> Option<&TaskRoom> {
-        self.sorted_task_rooms().get(self.selected_task_room).copied()
+        self.sorted_task_rooms()
+            .get(self.selected_task_room)
+            .copied()
     }
 
     pub fn selected_task_room_lines(&self) -> Vec<String> {
@@ -271,7 +278,10 @@ impl WorkbenchApp {
             format!("{} · {}", room.status.as_label(), room.runtime),
         ];
         if let Some(attention) = &room.attention {
-            lines.push(format!("Attention: {} via {}", attention.state, attention.source_kind));
+            lines.push(format!(
+                "Attention: {} via {}",
+                attention.state, attention.source_kind
+            ));
         }
         if !room.objective.is_empty() {
             lines.push("Objective".to_string());
@@ -300,7 +310,8 @@ impl WorkbenchApp {
                     format!(
                         "• {} ({})",
                         action.label,
-                        action.disabled_reason
+                        action
+                            .disabled_reason
                             .as_deref()
                             .unwrap_or("currently unavailable")
                     )
@@ -570,8 +581,7 @@ impl WorkbenchApp {
         self.task_room_form_field_errors = [None, None, None, None, None, None];
         let mut invalid = false;
         if self.task_room_form.objective.trim().is_empty() {
-            self.task_room_form_field_errors[0] =
-                Some("Objective is required".to_string());
+            self.task_room_form_field_errors[0] = Some("Objective is required".to_string());
             invalid = true;
         }
         if self.task_room_form.runtime.trim().is_empty() {
@@ -690,7 +700,10 @@ impl WorkbenchApp {
             .first()
             .map(|participant| participant.id.clone())
             .unwrap_or_default();
-        self.action_status = Some(format!("opening native runtime… ({})", label.to_lowercase()));
+        self.action_status = Some(format!(
+            "opening native runtime… ({})",
+            label.to_lowercase()
+        ));
         self.push_view(ViewMode::ActionProgress);
         WorkbenchEffect::OpenNativeRuntime {
             room_id,
@@ -698,10 +711,7 @@ impl WorkbenchApp {
         }
     }
 
-    pub fn present_continuation_choice(
-        &mut self,
-        plan: &crate::session::RuntimeSessionOpenPlan,
-    ) {
+    pub fn present_continuation_choice(&mut self, plan: &crate::session::RuntimeSessionOpenPlan) {
         let choices = plan
             .continuation
             .candidates
@@ -771,17 +781,22 @@ impl WorkbenchApp {
         self.view_mode = snapshot.view_mode.clone();
         self.back_stack = snapshot.back_stack.clone();
         if let Some(room_id) = snapshot.selected_task_room_id.as_ref() {
-            if let Some(index) = self.state.task_rooms.iter().position(|room| &room.id == room_id) {
+            if let Some(index) = self
+                .state
+                .task_rooms
+                .iter()
+                .position(|room| &room.id == room_id)
+            {
                 self.selected_task_room = index;
             } else {
-                self.selected_task_room = snapshot.selected_task_room.min(
-                    self.state.task_rooms.len().saturating_sub(1),
-                );
+                self.selected_task_room = snapshot
+                    .selected_task_room
+                    .min(self.state.task_rooms.len().saturating_sub(1));
             }
         } else {
-            self.selected_task_room = snapshot.selected_task_room.min(
-                self.state.task_rooms.len().saturating_sub(1),
-            );
+            self.selected_task_room = snapshot
+                .selected_task_room
+                .min(self.state.task_rooms.len().saturating_sub(1));
         }
     }
 
@@ -824,13 +839,9 @@ impl WorkbenchApp {
             .iter()
             .find(|participant| participant.id == instance_id)
             .or_else(|| room.participants.first())?;
-        let native = self
-            .state
-            .native_sessions
-            .iter()
-            .find(|session| {
-                session.agent_instance_id == participant.id || session.room_id == room.id
-            });
+        let native = self.state.native_sessions.iter().find(|session| {
+            session.agent_instance_id == participant.id || session.room_id == room.id
+        });
         Some(NativeOpenContext {
             project_root: self.state.project_root.clone(),
             room_id: room.id.clone(),

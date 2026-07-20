@@ -66,7 +66,9 @@ fn enter_error_does_not_attempt_restore() {
     };
     let calls = fake.calls.clone();
 
-    let error = TerminalModeGuard::enter(&mut fake).err().expect("suspend should fail");
+    let error = TerminalModeGuard::enter(&mut fake)
+        .err()
+        .expect("suspend should fail");
 
     assert!(error.to_string().contains("suspend failed"));
     assert_eq!(&*calls.borrow(), &["drain", "suspend"]);

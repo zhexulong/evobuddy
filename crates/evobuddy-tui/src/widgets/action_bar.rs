@@ -17,7 +17,10 @@ pub fn render_action_bar(
     let mut spans: Vec<Span> = Vec::new();
     for (i, hint) in hints.iter().enumerate() {
         if i > 0 {
-            spans.push(Span::styled("  ", Style::default().fg(tokens.action_bar_fg)));
+            spans.push(Span::styled(
+                "  ",
+                Style::default().fg(tokens.action_bar_fg),
+            ));
         }
         let key_style = if hint.enabled {
             Style::default()
@@ -91,5 +94,9 @@ fn truncate(text: &str, max: usize) -> String {
     if chars.len() <= max {
         return text.to_string();
     }
-    chars.into_iter().take(max.saturating_sub(1)).collect::<String>() + "…"
+    chars
+        .into_iter()
+        .take(max.saturating_sub(1))
+        .collect::<String>()
+        + "…"
 }

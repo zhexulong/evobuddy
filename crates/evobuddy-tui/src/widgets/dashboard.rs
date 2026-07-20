@@ -37,9 +37,7 @@ fn render_header(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
 fn render_attention_strip(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
     let (needs, working, returned) = attention_counts(app);
     let line = if app.search_query.trim().is_empty() {
-        format!(
-            "Attention strip: Needs input {needs} · Working {working} · Returned {returned}"
-        )
+        format!("Attention strip: Needs input {needs} · Working {working} · Returned {returned}")
     } else {
         format!(
             "Search: {} · {} results",

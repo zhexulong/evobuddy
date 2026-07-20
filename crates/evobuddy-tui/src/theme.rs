@@ -69,14 +69,12 @@ pub fn pane_block(title: impl Into<String>, focused: bool) -> Block<'static> {
 /// Full-width reversed/high-contrast action bar chrome.
 pub fn action_bar_block() -> Block<'static> {
     let t = theme();
-    Block::default()
-        .borders(Borders::NONE)
-        .style(
-            Style::default()
-                .bg(t.action_bar_bg)
-                .fg(t.action_bar_fg)
-                .add_modifier(Modifier::BOLD),
-        )
+    Block::default().borders(Borders::NONE).style(
+        Style::default()
+            .bg(t.action_bar_bg)
+            .fg(t.action_bar_fg)
+            .add_modifier(Modifier::BOLD),
+    )
 }
 
 /// Form field chrome: idle, active (inverted/accent), and danger for errors.
@@ -102,16 +100,12 @@ pub fn field_style(active: bool, error: bool) -> Style {
 
 pub fn selected_style() -> Style {
     let t = theme();
-    Style::default()
-        .fg(t.accent)
-        .add_modifier(Modifier::BOLD)
+    Style::default().fg(t.accent).add_modifier(Modifier::BOLD)
 }
 
 pub fn section_style() -> Style {
     let t = theme();
-    Style::default()
-        .fg(t.text)
-        .add_modifier(Modifier::BOLD)
+    Style::default().fg(t.text).add_modifier(Modifier::BOLD)
 }
 
 pub fn muted_style() -> Style {
@@ -121,31 +115,21 @@ pub fn muted_style() -> Style {
 
 pub fn attention_style() -> Style {
     let t = theme();
-    Style::default()
-        .fg(t.warning)
-        .add_modifier(Modifier::BOLD)
+    Style::default().fg(t.warning).add_modifier(Modifier::BOLD)
 }
 
 pub fn action_style() -> Style {
     let t = theme();
-    Style::default()
-        .fg(t.success)
-        .add_modifier(Modifier::BOLD)
+    Style::default().fg(t.success).add_modifier(Modifier::BOLD)
 }
 
 pub fn status_style(status: &ActorStatus) -> Style {
     let t = theme();
     match status {
-        ActorStatus::NeedsInput => Style::default()
-            .fg(t.accent)
-            .add_modifier(Modifier::BOLD),
-        ActorStatus::Blocked => Style::default()
-            .fg(t.danger)
-            .add_modifier(Modifier::BOLD),
+        ActorStatus::NeedsInput => Style::default().fg(t.accent).add_modifier(Modifier::BOLD),
+        ActorStatus::Blocked => Style::default().fg(t.danger).add_modifier(Modifier::BOLD),
         ActorStatus::Working => Style::default().fg(t.warning),
-        ActorStatus::Returned => Style::default()
-            .fg(t.info)
-            .add_modifier(Modifier::BOLD),
+        ActorStatus::Returned => Style::default().fg(t.info).add_modifier(Modifier::BOLD),
         ActorStatus::Available => Style::default().fg(t.success),
         ActorStatus::Archived => muted_style(),
         ActorStatus::Unknown => Style::default().fg(t.text_muted),
@@ -157,9 +141,7 @@ pub fn runtime_status_style(status: &RuntimeSetupStatus) -> Style {
     match status {
         RuntimeSetupStatus::Ready => Style::default().fg(t.success),
         RuntimeSetupStatus::Partial => Style::default().fg(t.warning),
-        RuntimeSetupStatus::Blocked => Style::default()
-            .fg(t.danger)
-            .add_modifier(Modifier::BOLD),
+        RuntimeSetupStatus::Blocked => Style::default().fg(t.danger).add_modifier(Modifier::BOLD),
         RuntimeSetupStatus::Working => Style::default().fg(t.warning),
         RuntimeSetupStatus::Returned => Style::default().fg(t.info),
         RuntimeSetupStatus::Available => Style::default().fg(t.success),
@@ -172,19 +154,13 @@ pub fn runtime_status_style(status: &RuntimeSetupStatus) -> Style {
 pub fn task_room_status_style(status: &TaskRoomStatus) -> Style {
     let t = theme();
     match status {
-        TaskRoomStatus::NeedsInput => Style::default()
-            .fg(t.accent)
-            .add_modifier(Modifier::BOLD),
-        TaskRoomStatus::NeedsReview => Style::default()
-            .fg(t.warning)
-            .add_modifier(Modifier::BOLD),
-        TaskRoomStatus::Blocked | TaskRoomStatus::Failed => Style::default()
-            .fg(t.danger)
-            .add_modifier(Modifier::BOLD),
+        TaskRoomStatus::NeedsInput => Style::default().fg(t.accent).add_modifier(Modifier::BOLD),
+        TaskRoomStatus::NeedsReview => Style::default().fg(t.warning).add_modifier(Modifier::BOLD),
+        TaskRoomStatus::Blocked | TaskRoomStatus::Failed => {
+            Style::default().fg(t.danger).add_modifier(Modifier::BOLD)
+        }
         TaskRoomStatus::Working | TaskRoomStatus::Queued => Style::default().fg(t.warning),
-        TaskRoomStatus::Returned => Style::default()
-            .fg(t.info)
-            .add_modifier(Modifier::BOLD),
+        TaskRoomStatus::Returned => Style::default().fg(t.info).add_modifier(Modifier::BOLD),
         TaskRoomStatus::Completed => Style::default().fg(t.success),
         TaskRoomStatus::Archived => muted_style(),
         TaskRoomStatus::Unknown => Style::default().fg(t.text_muted),

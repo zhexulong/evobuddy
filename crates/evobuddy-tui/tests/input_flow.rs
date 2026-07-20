@@ -349,7 +349,6 @@ fn open_native_runtime_is_not_the_only_executed_effect() {
     assert!(handled.contains(&"RefreshEvidence"));
 }
 
-
 #[test]
 fn evidence_key_emits_refresh_evidence_effect() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");

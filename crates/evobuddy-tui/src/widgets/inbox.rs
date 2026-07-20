@@ -47,10 +47,7 @@ pub fn render_work_inbox(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect, 
         String::new()
     };
     let title = format!("Work inbox{more}");
-    frame.render_widget(
-        List::new(items).block(pane_block(title, focused)),
-        area,
-    );
+    frame.render_widget(List::new(items).block(pane_block(title, focused)), area);
 }
 
 pub fn render_selected_task_room_detail(
@@ -64,10 +61,7 @@ pub fn render_selected_task_room_detail(
             Paragraph::new(vec![
                 Line::from(Span::styled("Selected TaskRoom", selected_style())),
                 Line::from("No room selected"),
-                Line::from(Span::styled(
-                    "Press n to create a room",
-                    muted_style(),
-                )),
+                Line::from(Span::styled("Press n to create a room", muted_style())),
             ])
             .block(pane_block("Selected TaskRoom", focused)),
             area,
@@ -85,7 +79,10 @@ pub fn render_selected_task_room_detail(
             "Acceptance: {}",
             truncate(&room.acceptance_criteria, 72)
         )),
-        Line::from(Span::styled("Participants", Style::default().add_modifier(Modifier::BOLD))),
+        Line::from(Span::styled(
+            "Participants",
+            Style::default().add_modifier(Modifier::BOLD),
+        )),
     ];
     if room.participants.is_empty() {
         lines.push(Line::from(Span::styled("  (none)", muted_style())));
@@ -104,10 +101,7 @@ pub fn render_selected_task_room_detail(
     if let Some(action) = room.available_actions.iter().find(|a| a.enabled) {
         lines.push(Line::from(format!("  Enter  {}", action.label)));
     } else if let Some(action) = room.available_actions.first() {
-        let reason = action
-            .disabled_reason
-            .as_deref()
-            .unwrap_or("unavailable");
+        let reason = action.disabled_reason.as_deref().unwrap_or("unavailable");
         lines.push(Line::from(format!(
             "  {} (disabled: {})",
             action.label, reason

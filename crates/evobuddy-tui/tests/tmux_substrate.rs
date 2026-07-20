@@ -5,7 +5,7 @@ use std::thread;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use evobuddy_tui::substrate::tmux::{
-    format_pre_attach_notice, map_attach_exit_status, managed_status_line, AttachPath,
+    format_pre_attach_notice, managed_status_line, map_attach_exit_status, AttachPath,
     TmuxSubstrate,
 };
 use evobuddy_tui::substrate::{
@@ -78,18 +78,31 @@ fn tmux_substrate_probe_and_session_lifecycle_work_against_unique_socket() {
     assert!(created.exists);
     assert!(created.child_process_alive);
     assert_eq!(created.session_ref, request.session_ref);
-    assert_eq!(created.backend_metadata.get("managedBy"), Some(&"evobuddy".to_string()));
+    assert_eq!(
+        created.backend_metadata.get("managedBy"),
+        Some(&"evobuddy".to_string())
+    );
 
-    let listed = substrate.list_sessions(&SessionScope::All).expect("list sessions");
-    assert!(listed.iter().any(|session| session.session_ref == request.session_ref));
+    let listed = substrate
+        .list_sessions(&SessionScope::All)
+        .expect("list sessions");
+    assert!(listed
+        .iter()
+        .any(|session| session.session_ref == request.session_ref));
 
-    let inspected = substrate.inspect(&request.session_ref).expect("inspect session");
+    let inspected = substrate
+        .inspect(&request.session_ref)
+        .expect("inspect session");
     assert!(inspected.exists);
     assert!(inspected.child_process_alive);
     assert!(inspected.last_activity_at.is_some());
 
-    substrate.terminate(&request.session_ref).expect("terminate session");
-    let terminated = substrate.inspect(&request.session_ref).expect("inspect terminated session");
+    substrate
+        .terminate(&request.session_ref)
+        .expect("terminate session");
+    let terminated = substrate
+        .inspect(&request.session_ref)
+        .expect("inspect terminated session");
     assert!(!terminated.exists);
     assert_eq!(terminated.exit_state.as_deref(), Some("terminated"));
 }
@@ -225,7 +238,9 @@ fn attach_command_uses_blocking_attach_without_x_or_a_or_send_keys() {
             "evobuddy-attach-args".to_string(),
         ]
     );
-    assert!(!args.iter().any(|arg| arg == "-x" || arg == "-A" || arg == "send-keys"));
+    assert!(!args
+        .iter()
+        .any(|arg| arg == "-x" || arg == "-A" || arg == "send-keys"));
 }
 
 #[test]
@@ -366,7 +381,15 @@ fn session_count(socket: &str) -> usize {
 
 fn pane_pid(socket: &str, session: &str) -> Option<String> {
     let output = Command::new("tmux")
-        .args(["-L", socket, "list-panes", "-t", session, "-F", "#{pane_pid}"])
+        .args([
+            "-L",
+            socket,
+            "list-panes",
+            "-t",
+            session,
+            "-F",
+            "#{pane_pid}",
+        ])
         .output()
         .ok()?;
     if !output.status.success() {

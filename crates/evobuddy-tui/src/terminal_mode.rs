@@ -1,7 +1,9 @@
 use anyhow::{Context, Result};
 use crossterm::cursor::Show;
 use crossterm::event::{poll, read, Event};
-use crossterm::terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen};
+use crossterm::terminal::{
+    disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen,
+};
 use crossterm::ExecutableCommand;
 use std::io::{self, Write};
 use std::time::Duration;
@@ -31,7 +33,10 @@ impl<'a, T: TerminalControl> TerminalModeGuard<'a, T> {
         if self.restored {
             return Ok(());
         }
-        let control = self.control.as_mut().context("terminal control unavailable")?;
+        let control = self
+            .control
+            .as_mut()
+            .context("terminal control unavailable")?;
         self.restored = true;
         control.restore()
     }
@@ -56,7 +61,12 @@ impl TerminalControl for CrosstermTerminalControl {
     fn drain_events(&mut self) -> Result<()> {
         while poll(Duration::from_millis(0)).context("failed to poll pending terminal events")? {
             match read().context("failed to drain terminal event")? {
-                Event::Key(_) | Event::Mouse(_) | Event::Resize(_, _) | Event::FocusGained | Event::FocusLost | Event::Paste(_) => {}
+                Event::Key(_)
+                | Event::Mouse(_)
+                | Event::Resize(_, _)
+                | Event::FocusGained
+                | Event::FocusLost
+                | Event::Paste(_) => {}
             }
         }
         Ok(())
@@ -64,7 +74,9 @@ impl TerminalControl for CrosstermTerminalControl {
 
     fn suspend(&mut self) -> Result<()> {
         let mut stdout = io::stdout();
-        stdout.flush().context("failed to flush terminal before suspend")?;
+        stdout
+            .flush()
+            .context("failed to flush terminal before suspend")?;
         disable_raw_mode().context("failed to disable raw mode")?;
         stdout
             .execute(LeaveAlternateScreen)

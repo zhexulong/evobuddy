@@ -92,9 +92,10 @@ fn render_current(frame: &mut ratatui::Frame<'_>, app: &WorkbenchApp) {
 
 fn is_text_entry_view(app: &WorkbenchApp) -> bool {
     match app.view_mode {
-        ViewMode::TaskRoomForm | ViewMode::HandoffForm | ViewMode::Search | ViewMode::CommandPalette => {
-            true
-        }
+        ViewMode::TaskRoomForm
+        | ViewMode::HandoffForm
+        | ViewMode::Search
+        | ViewMode::CommandPalette => true,
         ViewMode::StructuredQuestion => app
             .structured_question
             .as_ref()
@@ -143,9 +144,9 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
             Some(KeyInput::ToggleUpdates)
         }
         KeyCode::Char('q') if key.modifiers.is_empty() => Some(KeyInput::Quit),
-        KeyCode::Char(ch @ '1'..='9') if key.modifiers.is_empty() => {
-            Some(KeyInput::StructuredAnswer(ch.to_digit(10).unwrap_or(1) as u8))
-        }
+        KeyCode::Char(ch @ '1'..='9') if key.modifiers.is_empty() => Some(
+            KeyInput::StructuredAnswer(ch.to_digit(10).unwrap_or(1) as u8),
+        ),
         KeyCode::Char(ch) if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT => {
             Some(KeyInput::Char(ch))
         }
@@ -326,11 +327,7 @@ fn execute_open_native_runtime(
                 runtime: plan.create_session_request.display.runtime.clone(),
                 workspace: plan.create_session_request.display.workspace.clone(),
                 safety_mode: plan.create_session_request.display.safety_mode.clone(),
-                detach_shortcut: plan
-                    .create_session_request
-                    .display
-                    .detach_shortcut
-                    .clone(),
+                detach_shortcut: plan.create_session_request.display.detach_shortcut.clone(),
             };
             let notice = format_pre_attach_notice(&display, &session_ref);
 

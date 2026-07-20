@@ -135,7 +135,10 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
             WorkbenchEffect::None
         }
         KeyInput::Actions => {
-            if matches!(app.view_mode, ViewMode::Dashboard | ViewMode::TaskRoomWorkspace) {
+            if matches!(
+                app.view_mode,
+                ViewMode::Dashboard | ViewMode::TaskRoomWorkspace
+            ) {
                 app.open_native_runtime_effect()
             } else {
                 WorkbenchEffect::None

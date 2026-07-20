@@ -78,7 +78,11 @@ pub trait TerminalSubstrate {
 }
 
 pub(crate) fn validate_facts(facts: &SubstrateSessionFacts) -> Result<()> {
-    if facts.backend_metadata.get("malformed").is_some_and(|value| value == "true") {
+    if facts
+        .backend_metadata
+        .get("malformed")
+        .is_some_and(|value| value == "true")
+    {
         bail!("malformed substrate facts");
     }
     Ok(())

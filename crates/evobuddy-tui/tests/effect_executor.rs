@@ -81,9 +81,7 @@ fn create_task_room_effect_is_executed_not_discarded() {
                 .lock()
                 .expect("commands lock")
                 .push(cmd.clone());
-            if cmd.args.iter().any(|a| a == "create")
-                && cmd.args.iter().any(|a| a == "taskroom")
-            {
+            if cmd.args.iter().any(|a| a == "create") && cmd.args.iter().any(|a| a == "taskroom") {
                 Ok(
                     r#"{"roomId":"taskroom:ship-tui","title":"ship-tui","objective":"ship-tui"}"#
                         .to_string(),
@@ -346,8 +344,12 @@ fn create_handoff_and_answer_question_effects_are_typed_and_must_be_handled() {
 
 #[test]
 fn needs_choice_presents_structured_question_with_candidate_labels() {
-    use evobuddy_tui::session::{ContinuationCandidate, ContinuationDecision, RuntimeSessionOpenPlan};
-    use evobuddy_tui::substrate::{CreateSessionRequest, SessionDisplayMetadata, SubstrateSessionRef};
+    use evobuddy_tui::session::{
+        ContinuationCandidate, ContinuationDecision, RuntimeSessionOpenPlan,
+    };
+    use evobuddy_tui::substrate::{
+        CreateSessionRequest, SessionDisplayMetadata, SubstrateSessionRef,
+    };
     use evobuddy_tui::views::ViewMode;
     use std::ffi::OsString;
     use std::path::PathBuf;
@@ -397,9 +399,7 @@ fn needs_choice_presents_structured_question_with_candidate_labels() {
         },
         create_session_request: CreateSessionRequest {
             descriptor_id: "session-1".to_string(),
-            session_ref: SubstrateSessionRef(
-                "tmux:codex:taskroom:alpha:instance-1".to_string(),
-            ),
+            session_ref: SubstrateSessionRef("tmux:codex:taskroom:alpha:instance-1".to_string()),
             launcher_plan_ref: "launch-plan:launch-plan-1".to_string(),
             program: PathBuf::from("codex"),
             args: vec![OsString::from("resume")],

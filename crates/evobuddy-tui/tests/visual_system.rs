@@ -3,9 +3,7 @@ use std::path::PathBuf;
 
 use anyhow::Result;
 use evobuddy_tui::app::WorkbenchApp;
-use evobuddy_tui::model::{
-    parse_workbench_state, ActorStatus, RuntimeSetupStatus, TaskRoomStatus,
-};
+use evobuddy_tui::model::{parse_workbench_state, ActorStatus, RuntimeSetupStatus, TaskRoomStatus};
 use evobuddy_tui::theme::{
     action_bar_block, field_style, pane_block, pane_border_style, runtime_status_style,
     selected_style, status_style, task_room_status_style, theme, ThemeTokens,
@@ -75,11 +73,7 @@ fn assert_token_palette(t: &ThemeTokens) {
         ("action_bar_bg", t.action_bar_bg),
         ("action_bar_fg", t.action_bar_fg),
     ] {
-        assert_ne!(
-            color,
-            Color::Reset,
-            "token {name} must not be Color::Reset"
-        );
+        assert_ne!(color, Color::Reset, "token {name} must not be Color::Reset");
     }
     assert_ne!(
         t.border, t.border_focus,
@@ -89,7 +83,10 @@ fn assert_token_palette(t: &ThemeTokens) {
         t.action_bar_bg, t.action_bar_fg,
         "action bar must reverse for high contrast"
     );
-    assert_ne!(t.text, t.text_muted, "muted text must differ from body text");
+    assert_ne!(
+        t.text, t.text_muted,
+        "muted text must differ from body text"
+    );
     assert_ne!(t.accent, t.danger, "accent and danger must be distinct");
     assert_ne!(t.danger, t.success, "danger and success must be distinct");
     assert_ne!(t.warning, t.success, "warning and success must be distinct");
@@ -149,7 +146,10 @@ fn pane_block_distinguishes_focused_and_unfocused_borders() {
         .borders(Borders::ALL)
         .border_style(unfocused_border)
         .padding(Padding::horizontal(1));
-    assert_eq!(focused, expected_focused, "focused pane_block matches tokens");
+    assert_eq!(
+        focused, expected_focused,
+        "focused pane_block matches tokens"
+    );
     assert_eq!(
         unfocused, expected_unfocused,
         "unfocused pane_block matches tokens"
@@ -251,10 +251,9 @@ fn status_colors_are_stable_across_actor_taskroom_and_runtime() {
 
 #[test]
 fn theme_module_source_defines_token_api_surface() {
-    let theme_src = fs::read_to_string(
-        PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/theme.rs"),
-    )
-    .expect("read theme.rs");
+    let theme_src =
+        fs::read_to_string(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/theme.rs"))
+            .expect("read theme.rs");
     for needle in [
         "pub struct ThemeTokens",
         "pub fn theme()",

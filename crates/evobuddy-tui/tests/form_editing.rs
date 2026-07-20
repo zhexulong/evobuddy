@@ -52,11 +52,7 @@ fn active_field_highlight_differs_from_inactive() {
     let mut terminal = ratatui::Terminal::new(backend).expect("terminal");
     terminal
         .draw(|frame| {
-            evobuddy_tui::widgets::task_room_form::render_task_room_form(
-                frame,
-                &app,
-                frame.area(),
-            );
+            evobuddy_tui::widgets::task_room_form::render_task_room_form(frame, &app, frame.area());
         })
         .expect("draw");
 
@@ -237,10 +233,8 @@ fn map_key_event_on_task_room_form_types_shortcut_letters() {
     assert_eq!(app.view_mode, ViewMode::TaskRoomForm);
 
     for ch in ['n', 'h', 'a', 'r'] {
-        let mapped = map_key_event_for_app(
-            &app,
-            KeyEvent::new(KeyCode::Char(ch), KeyModifiers::NONE),
-        );
+        let mapped =
+            map_key_event_for_app(&app, KeyEvent::new(KeyCode::Char(ch), KeyModifiers::NONE));
         assert_eq!(
             mapped,
             Some(KeyInput::Char(ch)),
@@ -307,9 +301,6 @@ fn structured_question_without_free_text_keeps_digit_answers() {
     });
     app.push_view(ViewMode::StructuredQuestion);
 
-    let mapped = map_key_event_for_app(
-        &app,
-        KeyEvent::new(KeyCode::Char('1'), KeyModifiers::NONE),
-    );
+    let mapped = map_key_event_for_app(&app, KeyEvent::new(KeyCode::Char('1'), KeyModifiers::NONE));
     assert_eq!(mapped, Some(KeyInput::StructuredAnswer(1)));
 }

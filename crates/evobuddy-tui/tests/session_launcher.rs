@@ -14,7 +14,8 @@ fn temp_root() -> PathBuf {
             .expect("clock")
             .as_nanos()
     ));
-    fs::create_dir_all(path.join(".evobuddy/native-session-launch-plans")).expect("create temp root");
+    fs::create_dir_all(path.join(".evobuddy/native-session-launch-plans"))
+        .expect("create temp root");
     path
 }
 
@@ -66,7 +67,9 @@ fn launch_plan_round_trip_uses_owner_only_permissions_and_digest_validation() {
     assert_eq!(loaded.plan_id, "launch-plan-1");
     assert_eq!(loaded.args[1], "danger; rm -rf /");
 
-    let text = fs::read_to_string(&path).expect("read plan").replace("workspace-write", "workspace-read");
+    let text = fs::read_to_string(&path)
+        .expect("read plan")
+        .replace("workspace-write", "workspace-read");
     fs::write(&path, text).expect("tamper plan");
     let error = load_launch_plan(&root, "launch-plan-1").expect_err("digest mismatch should fail");
     assert!(error.to_string().contains("digest mismatch"));

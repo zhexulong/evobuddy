@@ -217,7 +217,9 @@ pub trait NativeSessionBackend {
     ) -> Result<Vec<ReconciliationClass>, SessionBackendError>;
 }
 
-fn validate_open_plan(plan: RuntimeSessionOpenPlanJson) -> Result<RuntimeSessionOpenPlan, SessionBackendError> {
+fn validate_open_plan(
+    plan: RuntimeSessionOpenPlanJson,
+) -> Result<RuntimeSessionOpenPlan, SessionBackendError> {
     if plan.schema != "evobuddy.runtime-session-open-plan.v1" {
         return Err(SessionBackendError::SchemaMismatch {
             message: format!("invalid plan schema: {}", plan.schema),
@@ -238,7 +240,11 @@ fn validate_open_plan(plan: RuntimeSessionOpenPlanJson) -> Result<RuntimeSession
             message: "createSessionRequest.cwd is required".to_string(),
         });
     }
-    if plan.create_session_request.environment_policy_ref.is_empty() {
+    if plan
+        .create_session_request
+        .environment_policy_ref
+        .is_empty()
+    {
         return Err(SessionBackendError::SchemaMismatch {
             message: "createSessionRequest.environmentPolicyRef is required".to_string(),
         });
@@ -274,22 +280,28 @@ fn validate_open_plan(plan: RuntimeSessionOpenPlanJson) -> Result<RuntimeSession
     })
 }
 
-pub fn parse_runtime_session_open_plan(stdout: &str) -> Result<RuntimeSessionOpenPlan, SessionBackendError> {
-    let parsed: RuntimeSessionOpenPlanJson = serde_json::from_str(stdout).map_err(|error| {
-        SessionBackendError::SchemaMismatch {
+pub fn parse_runtime_session_open_plan(
+    stdout: &str,
+) -> Result<RuntimeSessionOpenPlan, SessionBackendError> {
+    let parsed: RuntimeSessionOpenPlanJson =
+        serde_json::from_str(stdout).map_err(|error| SessionBackendError::SchemaMismatch {
             message: format!("failed to parse plan-open JSON: {error}"),
-        }
-    })?;
+        })?;
     validate_open_plan(parsed)
 }
 
-pub fn parse_session_list_json(stdout: &str) -> Result<Vec<NativeSessionDescriptor>, SessionBackendError> {
+pub fn parse_session_list_json(
+    stdout: &str,
+) -> Result<Vec<NativeSessionDescriptor>, SessionBackendError> {
     serde_json::from_str(stdout).map_err(|error| SessionBackendError::SchemaMismatch {
         message: format!("failed to parse session list JSON: {error}"),
     })
 }
 
-fn run_node_command(command: &BackendCommand, project: &Path) -> Result<String, SessionBackendError> {
+fn run_node_command(
+    command: &BackendCommand,
+    project: &Path,
+) -> Result<String, SessionBackendError> {
     let output = Command::new(&command.program)
         .args(&command.args)
         .current_dir(project)
@@ -382,8 +394,11 @@ impl NativeSessionBackend for NodeNativeSessionBackend {
         descriptor_id: &str,
         substrate_ref: &str,
     ) -> Result<NativeSessionDescriptor, SessionBackendError> {
-        let command =
-            crate::backend::session_commit_command(&self.project_root, descriptor_id, substrate_ref);
+        let command = crate::backend::session_commit_command(
+            &self.project_root,
+            descriptor_id,
+            substrate_ref,
+        );
         let stdout = run_node_command(&command, &self.project_root)?;
         serde_json::from_str(&stdout).map_err(|error| SessionBackendError::CommitFailed {
             message: format!("failed to parse commit JSON: {error}"),
@@ -422,11 +437,10 @@ impl NativeSessionBackend for NodeNativeSessionBackend {
             #[serde(rename = "terminalSessionRef")]
             terminal_session_ref: Option<String>,
         }
-        let report: ReconcileReport = serde_json::from_str(&stdout).map_err(|error| {
-            SessionBackendError::CommandFailed {
+        let report: ReconcileReport =
+            serde_json::from_str(&stdout).map_err(|error| SessionBackendError::CommandFailed {
                 message: format!("failed to parse reconcile JSON: {error}"),
-            }
-        })?;
+            })?;
         let mut classes = report
             .classifications
             .into_iter()
@@ -513,7 +527,11 @@ pub fn default_reconciliation(
                     descriptor_id: descriptor.descriptor_id.clone(),
                     terminal_session_ref: descriptor.terminal_session_ref.clone(),
                 }
-            } else if by_agent.get(&descriptor.agent_instance_id).copied().unwrap_or(0) > 1
+            } else if by_agent
+                .get(&descriptor.agent_instance_id)
+                .copied()
+                .unwrap_or(0)
+                > 1
                 || by_ref
                     .get(&descriptor.terminal_session_ref)
                     .copied()

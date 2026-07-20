@@ -1,7 +1,9 @@
 use std::fs;
 use std::path::PathBuf;
 
-use evobuddy_tui::model::{parse_workbench_state, RuntimeSetupStatus, TaskRoomStatus, WorkbenchState};
+use evobuddy_tui::model::{
+    parse_workbench_state, RuntimeSetupStatus, TaskRoomStatus, WorkbenchState,
+};
 
 fn fixture_path() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -20,8 +22,18 @@ fn parses_v1_workbench_state_fixture() {
     assert_eq!(state.native_sessions.len(), 1);
     assert_eq!(state.runtime_capabilities.len(), 3);
     assert_eq!(state.task_rooms[0].status, TaskRoomStatus::Returned);
-    assert_eq!(state.task_rooms[0].available_actions[0].id, "open-native-runtime");
-    assert_eq!(state.task_rooms[0].attention.as_ref().expect("attention").source_kind, "runtime-exporter");
+    assert_eq!(
+        state.task_rooms[0].available_actions[0].id,
+        "open-native-runtime"
+    );
+    assert_eq!(
+        state.task_rooms[0]
+            .attention
+            .as_ref()
+            .expect("attention")
+            .source_kind,
+        "runtime-exporter"
+    );
     assert!(state
         .runtime_setup
         .iter()

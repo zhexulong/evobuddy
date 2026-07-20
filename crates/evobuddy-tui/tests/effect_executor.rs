@@ -5,6 +5,7 @@ use evobuddy_tui::app::{
     StructuredQuestion, StructuredQuestionChoice, WorkbenchApp, WorkbenchEffect,
 };
 use evobuddy_tui::model::parse_workbench_state;
+use evobuddy_tui::ui::effect_names_handled_by_ui;
 
 fn fixture_app() -> WorkbenchApp {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -13,10 +14,6 @@ fn fixture_app() -> WorkbenchApp {
     let text = fs::read_to_string(path).expect("read fixture");
     let state = parse_workbench_state(&text).expect("parse state");
     WorkbenchApp::new(state)
-}
-
-fn effect_names_handled_by_ui() -> Vec<&'static str> {
-    vec!["OpenNativeRuntime"]
 }
 
 #[test]
@@ -30,8 +27,11 @@ fn create_task_room_effect_is_executed_not_discarded() {
         "CreateTaskRoom must be executed by the interactive UI, not discarded after mock queue status"
     );
     assert!(
-        !app.durable_writes.is_empty()
-            || app.action_status.as_deref() != Some("taskroom creation queued"),
+        !app.durable_writes.is_empty(),
+        "CreateTaskRoom must signal durable write path (durable_writes must not be empty)"
+    );
+    assert!(
+        app.action_status.as_deref() != Some("taskroom creation queued"),
         "CreateTaskRoom must not stop at mock-only queue status without durable execution"
     );
 }

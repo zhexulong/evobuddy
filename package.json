@@ -23,6 +23,7 @@
     "evobuddy:eval-taskroom-team-loop:live": "node scripts/context-tree/run-evobuddy-taskroom-team-loop-live-eval.mjs",
     "evobuddy:eval-realtime-fork-handoff-taskroom:live": "node scripts/context-tree/run-evobuddy-realtime-fork-handoff-taskroom-live-eval.mjs",
     "evobuddy:eval-july17-mvp-readiness": "node scripts/context-tree/run-evobuddy-july17-mvp-readiness-eval.mjs",
+    "evobuddy:eval-product-mvp-release-authority": "node scripts/context-tree/run-evobuddy-product-mvp-release-authority-eval.mjs",
     "evobuddy:workbench": "node scripts/context-tree/render-evobuddy-workbench.mjs",
     "evobuddy:rust-tui-smoke": "node scripts/context-tree/run-evobuddy-rust-tui-smoke.mjs",
     "evobuddy:eval-workbench-team-taskroom:live": "node scripts/context-tree/run-evobuddy-workbench-team-taskroom-live-eval.mjs",

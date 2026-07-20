@@ -103,7 +103,9 @@
     "context-tree:finalize-opencode-native-buddy-product-root": "node scripts/context-tree/finalize-opencode-native-buddy-product-root.mjs",
     "context-tree:finalize-runtime-native-buddy-product-root": "node scripts/context-tree/finalize-runtime-native-buddy-product-root.mjs",
     "context-tree:run-three-runtime-buddy-surface-release-eval": "node scripts/context-tree/run-three-runtime-buddy-surface-release-eval.mjs",
-    "context-tree:run-product-release-readiness-eval": "node scripts/context-tree/run-product-release-readiness-eval.mjs"
+    "context-tree:run-product-release-readiness-eval": "node scripts/context-tree/run-product-release-readiness-eval.mjs",
+    "evobuddy:eval-tui-substrate-smoke:live": "node scripts/context-tree/run-evobuddy-tui-substrate-smoke-pty-live-eval.mjs",
+    "evobuddy:eval-tui-real-use:live": "node scripts/context-tree/run-evobuddy-tui-real-use-pty-live-eval.mjs"
   },
   "engines": {
     "node": ">=20"

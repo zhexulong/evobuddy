@@ -38,6 +38,16 @@ Evolution is proposal-first. `evolution-buddy` owns proposal reasoning, host cod
 
 The repo contains strict gates for adapter-observed product proof, native-spawn artifact ingestion, autonomous-choice evidence, and evolution-loop materialization. Fresh live runtime success still depends on the host runtime emitting the required native-spawn or autonomous-routing evidence; retained fixtures must not be relabeled as fresh live product success.
 
+## EvoBuddy TUI real use
+
+```bash
+cargo run -p evobuddy-tui --bin evobuddy-tui -- --project .
+```
+
+Daily loop: `n` create room → Enter open/attach → work in native TUI → `Ctrl+B d` detach → continue from same room.
+
+See `docs/evobuddy-tui-real-use-runbook.md` for Gate A/B proof ceilings and runtime prerequisites.
+
 ## Main Commands
 
 - `evobuddy setup --project <path> --runtime opencode`

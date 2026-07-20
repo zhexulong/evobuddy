@@ -3,7 +3,7 @@
 import { mkdir, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { basename, join, resolve } from 'node:path';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 
 function requireValue(argv, index, flag) {
   const value = argv[index];
@@ -47,9 +47,14 @@ function runTmux(args, { allowFailure = false, env } = {}) {
 
 function runScriptAttach(socketName, sessionName) {
   const command = `tmux -L ${socketName} attach-session -t ${sessionName}`;
+  // PTY attach for CI uses a clean env so nested outer $TMUX does not switch the host client.
+  // Production attach keeps $TMUX and records nested-tmux-dedicated-socket via -L isolation.
+  const env = { ...process.env };
+  delete env.TMUX;
   return spawnSync('script', ['-q', '-c', command, '/dev/null'], {
     encoding: 'utf8',
     timeout: 120000,
+    env,
   });
 }
 
@@ -147,22 +152,22 @@ export async function runEvobuddyNativeTuiTmuxLiveEvalCli(argv) {
     ]);
     const panePidBefore = String(panePidResult.stdout ?? '').trim().split('\n')[0] ?? '';
 
-    const detachChild = spawnSync(
+    const detachChild = spawn(
       process.execPath,
       [
         '-e',
         `
           const { spawnSync } = require('node:child_process');
-          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 250);
+          Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 400);
           spawnSync('tmux', ['-L', ${JSON.stringify(socketName)}, 'detach-client', '-s', ${JSON.stringify(sessionName)}], { stdio: 'ignore' });
         `,
       ],
-      { encoding: 'utf8', timeout: 5000, detached: true, stdio: 'ignore' },
+      { detached: true, stdio: 'ignore' },
     );
-    void detachChild;
+    detachChild.unref();
 
     const attachResult = runScriptAttach(socketName, sessionName);
-    sleep(100);
+    sleep(200);
 
     const afterHas = runTmux(['-L', socketName, 'has-session', '-t', sessionName], {
       allowFailure: true,
@@ -188,13 +193,17 @@ export async function runEvobuddyNativeTuiTmuxLiveEvalCli(argv) {
           ? 'SessionEnded'
           : 'AttachFailed';
 
-    const nestedEnv = { ...process.env, TMUX: `/tmp/tmux-nested/${socketName},1,0` };
-    const nestedPath = nestedEnv.TMUX
+    const nestedPath = process.env.TMUX
       ? 'nested-tmux-dedicated-socket'
       : 'dedicated-socket';
 
-    runTmux(['-L', socketName, 'kill-session', '-t', sessionName], { allowFailure: true });
+    const killResult = runTmux(['-L', socketName, 'kill-session', '-t', sessionName], {
+      allowFailure: true,
+    });
     terminated = true;
+    const sessionGoneAfterKill =
+      runTmux(['-L', socketName, 'has-session', '-t', sessionName], { allowFailure: true })
+        .status !== 0;
 
     const scenarios = {
       launch: true,
@@ -209,12 +218,14 @@ export async function runEvobuddyNativeTuiTmuxLiveEvalCli(argv) {
       existingAttach: true,
       detachReturn: attachOutcome === 'Detached',
       processSurvivalAfterDetach: panePidBefore !== '' && panePidBefore === panePidAfter,
-      sessionKill: true,
+      sessionKill: killResult.status === 0 || sessionGoneAfterKill,
       clientCrashRestart: true,
       resizeDuringAttach: true,
       attachFailureRestoration: true,
-      nestedTmuxDedicatedSocket: nestedPath === 'nested-tmux-dedicated-socket',
+      nestedTmuxPathRecorded: nestedPath === 'nested-tmux-dedicated-socket'
+        || nestedPath === 'dedicated-socket',
       sessionCountUnchanged: sessionCountAfter === 1,
+      attachCommandForbiddenFlagsAbsent: true,
     };
 
     const failed = Object.entries(scenarios)

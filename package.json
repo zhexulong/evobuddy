@@ -29,6 +29,7 @@
     "evobuddy:eval-workbench-interactive-pty:live": "node scripts/context-tree/run-evobuddy-workbench-interactive-pty-live-eval.mjs",
     "evobuddy:eval-rust-tui-pty:live": "node scripts/context-tree/run-evobuddy-rust-tui-pty-live-eval.mjs",
     "evobuddy:eval-tmux-substrate:live": "node scripts/context-tree/run-evobuddy-tmux-substrate-live-eval.mjs",
+    "evobuddy:eval-native-tui-tmux:live": "node scripts/context-tree/run-evobuddy-native-tui-tmux-live-eval.mjs",
     "evobuddy:run-natural-use-benchmark": "node scripts/evobuddy/run-natural-use-benchmark.mjs",
     "evobuddy:eval-runtime-natural-use-v0": "node scripts/context-tree/eval-evobuddy-runtime-natural-use-v0.mjs",
     "evobuddy:eval-evolution-loop-v0": "node scripts/context-tree/eval-evobuddy-evolution-loop-v0.mjs",

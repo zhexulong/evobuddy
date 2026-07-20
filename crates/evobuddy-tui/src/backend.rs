@@ -321,3 +321,18 @@ pub fn session_reconcile_command(project: &Path) -> BackendCommand {
         ],
     }
 }
+
+pub fn session_list_command(project: &Path) -> BackendCommand {
+    BackendCommand {
+        program: "node".to_string(),
+        args: vec![
+            "scripts/evobuddy/evobuddy.mjs".to_string(),
+            "taskroom".to_string(),
+            "session".to_string(),
+            "list".to_string(),
+            "--project".to_string(),
+            project.display().to_string(),
+            "--json".to_string(),
+        ],
+    }
+}

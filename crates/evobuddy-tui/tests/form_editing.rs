@@ -1,10 +1,13 @@
 use std::fs;
 use std::path::PathBuf;
 
-use evobuddy_tui::app::{WorkbenchApp, WorkbenchEffect};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use evobuddy_tui::app::{
+    StructuredQuestion, StructuredQuestionChoice, WorkbenchApp, WorkbenchEffect,
+};
 use evobuddy_tui::input::{handle_key_event, KeyInput};
 use evobuddy_tui::model::parse_workbench_state;
-use evobuddy_tui::ui::render_current_snapshot;
+use evobuddy_tui::ui::{map_key_event_for_app, render_current_snapshot};
 use evobuddy_tui::views::ViewMode;
 use evobuddy_tui::widgets::form_kit::{active_field_cursor, FormFieldView};
 use ratatui::layout::Rect;
@@ -225,4 +228,88 @@ fn valid_submit_clears_errors_and_emits_effect() {
     let effect = handle_key_event(&mut app, KeyInput::Enter);
     assert!(matches!(effect, WorkbenchEffect::CreateTaskRoom(_)));
     assert_eq!(app.view_mode, ViewMode::ActionProgress);
+}
+
+#[test]
+fn map_key_event_on_task_room_form_types_shortcut_letters() {
+    let mut app = load_app("evobuddy-workbench-state-v1.json");
+    handle_key_event(&mut app, KeyInput::NewRoom);
+    assert_eq!(app.view_mode, ViewMode::TaskRoomForm);
+
+    for ch in ['n', 'h', 'a', 'r'] {
+        let mapped = map_key_event_for_app(
+            &app,
+            KeyEvent::new(KeyCode::Char(ch), KeyModifiers::NONE),
+        );
+        assert_eq!(
+            mapped,
+            Some(KeyInput::Char(ch)),
+            "form typing must map '{ch}' to Char, not a global shortcut"
+        );
+        handle_key_event(&mut app, mapped.expect("mapped"));
+    }
+
+    assert_eq!(app.task_room_form.objective, "nhar");
+    assert_eq!(app.view_mode, ViewMode::TaskRoomForm);
+}
+
+#[test]
+fn form_right_does_not_submit_only_enter_does() {
+    let mut app = load_app("evobuddy-workbench-state-v1.json");
+    handle_key_event(&mut app, KeyInput::NewRoom);
+    app.task_room_form.objective = "do work".to_string();
+    app.task_room_form.runtime = "opencode".to_string();
+
+    let effect = handle_key_event(&mut app, KeyInput::Right);
+    assert_eq!(effect, WorkbenchEffect::None);
+    assert_eq!(app.view_mode, ViewMode::TaskRoomForm);
+
+    let effect = handle_key_event(&mut app, KeyInput::Enter);
+    assert!(matches!(effect, WorkbenchEffect::CreateTaskRoom(_)));
+}
+
+#[test]
+fn handoff_pop_clears_field_errors() {
+    let mut app = load_app("evobuddy-workbench-state-v1.json");
+    handle_key_event(&mut app, KeyInput::Enter); // TaskRoomWorkspace
+    handle_key_event(&mut app, KeyInput::Handoff);
+    assert_eq!(app.view_mode, ViewMode::HandoffForm);
+    app.handoff_form_field_errors[0] = Some("required".to_string());
+
+    handle_key_event(&mut app, KeyInput::Escape);
+    assert_ne!(app.view_mode, ViewMode::HandoffForm);
+    assert!(
+        app.handoff_form_field_errors.iter().all(|e| e.is_none()),
+        "leaving handoff form must clear field errors"
+    );
+}
+
+#[test]
+fn structured_question_without_free_text_keeps_digit_answers() {
+    let mut app = load_app("evobuddy-workbench-state-v1.json");
+    app.structured_question = Some(StructuredQuestion {
+        prompt: "pick".to_string(),
+        choices: vec![
+            StructuredQuestionChoice {
+                id: "1".to_string(),
+                label: "one".to_string(),
+            },
+            StructuredQuestionChoice {
+                id: "2".to_string(),
+                label: "two".to_string(),
+            },
+        ],
+        selected_choice: 0,
+        allows_free_text: false,
+        free_text: String::new(),
+        destination_label: "dest".to_string(),
+        effect_label: "effect".to_string(),
+    });
+    app.push_view(ViewMode::StructuredQuestion);
+
+    let mapped = map_key_event_for_app(
+        &app,
+        KeyEvent::new(KeyCode::Char('1'), KeyModifiers::NONE),
+    );
+    assert_eq!(mapped, Some(KeyInput::StructuredAnswer(1)));
 }

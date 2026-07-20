@@ -63,7 +63,7 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
             move_selection(app, 1);
             WorkbenchEffect::None
         }
-        KeyInput::Enter | KeyInput::Right => {
+        KeyInput::Enter => {
             if app.view_mode == ViewMode::TaskRoomForm {
                 app.submit_task_room_form()
             } else if app.view_mode == ViewMode::HandoffForm {
@@ -75,6 +75,27 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
                     .map(|question| question.selected_choice)
                     .unwrap_or(0);
                 app.submit_structured_answer(index)
+            } else if app.view_mode == ViewMode::CommandPalette {
+                app.execute_selected_command()
+            } else if app.focus == FocusPane::TeamBuddies {
+                match app.selected_actor {
+                    Some(SelectedActor::FocusedBuddy(_)) => {
+                        app.push_view(ViewMode::FocusedBuddyWorkspace)
+                    }
+                    _ => app.push_view(ViewMode::TeamMemberWorkspace),
+                }
+                WorkbenchEffect::None
+            } else if app.focus == FocusPane::TaskRooms {
+                app.push_view(ViewMode::TaskRoomWorkspace);
+                WorkbenchEffect::None
+            } else {
+                app.push_view(ViewMode::Detail(app.current_detail_view()));
+                WorkbenchEffect::None
+            }
+        }
+        KeyInput::Right => {
+            if is_form_view(&app.view_mode) {
+                WorkbenchEffect::None
             } else if app.view_mode == ViewMode::CommandPalette {
                 app.execute_selected_command()
             } else if app.focus == FocusPane::TeamBuddies {

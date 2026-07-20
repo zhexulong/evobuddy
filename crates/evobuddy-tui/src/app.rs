@@ -913,7 +913,14 @@ impl WorkbenchApp {
     }
 
     pub fn pop_view(&mut self) {
+        let leaving = self.view_mode.clone();
         self.view_mode = self.back_stack.pop().unwrap_or(ViewMode::Dashboard);
+        if matches!(leaving, ViewMode::TaskRoomForm) {
+            self.task_room_form_field_errors = [None, None, None, None, None, None];
+        }
+        if matches!(leaving, ViewMode::HandoffForm) {
+            self.handoff_form_field_errors = [None, None, None, None, None, None];
+        }
         if self.view_mode != ViewMode::Search {
             self.search_query.clear();
         }

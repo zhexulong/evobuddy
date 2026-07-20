@@ -90,6 +90,19 @@ fn render_current(frame: &mut ratatui::Frame<'_>, app: &WorkbenchApp) {
     }
 }
 
+fn is_text_entry_view(app: &WorkbenchApp) -> bool {
+    match app.view_mode {
+        ViewMode::TaskRoomForm | ViewMode::HandoffForm | ViewMode::Search | ViewMode::CommandPalette => {
+            true
+        }
+        ViewMode::StructuredQuestion => app
+            .structured_question
+            .as_ref()
+            .is_some_and(|question| question.allows_free_text),
+        _ => false,
+    }
+}
+
 fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
     match key.code {
         KeyCode::Up => Some(KeyInput::Up),
@@ -139,6 +152,37 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
     }
 }
 
+pub fn map_key_event_for_app(app: &WorkbenchApp, key: KeyEvent) -> Option<KeyInput> {
+    if is_text_entry_view(app) {
+        match key.code {
+            KeyCode::Up => Some(KeyInput::Up),
+            KeyCode::Down => Some(KeyInput::Down),
+            KeyCode::Left => Some(KeyInput::Left),
+            KeyCode::Right => Some(KeyInput::Right),
+            KeyCode::Enter => Some(KeyInput::Enter),
+            KeyCode::Esc => Some(KeyInput::Escape),
+            KeyCode::Backspace => Some(KeyInput::Backspace),
+            KeyCode::Delete => Some(KeyInput::Delete),
+            KeyCode::Tab if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                Some(KeyInput::NextField)
+            }
+            KeyCode::Tab => Some(if key.modifiers.contains(KeyModifiers::SHIFT) {
+                KeyInput::ShiftTab
+            } else {
+                KeyInput::Tab
+            }),
+            KeyCode::Char(ch)
+                if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
+            {
+                Some(KeyInput::Char(ch))
+            }
+            _ => None,
+        }
+    } else {
+        map_key_event(key)
+    }
+}
+
 pub fn effect_names_handled_by_ui() -> Vec<&'static str> {
     vec![
         "CreateTaskRoom",
@@ -175,7 +219,7 @@ pub fn run_interactive_app(app: &mut WorkbenchApp) -> Result<()> {
             maybe_dump_frame(app, terminal.size()?.width, terminal.size()?.height)?;
             if event::poll(Duration::from_millis(100)).context("failed to poll terminal events")? {
                 if let Event::Key(key) = event::read().context("failed to read terminal event")? {
-                    if let Some(mapped) = map_key_event(key) {
+                    if let Some(mapped) = map_key_event_for_app(app, key) {
                         if mapped == KeyInput::Quit {
                             break;
                         }

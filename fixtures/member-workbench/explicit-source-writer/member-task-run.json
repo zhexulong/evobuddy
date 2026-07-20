@@ -1,0 +1,75 @@
+{
+  "id": "mtr-source-writer-explicit-20260709000000",
+  "memberName": "source-writer",
+  "requesterRef": "cli-parent-source-writer-thread",
+  "activationPoint": {
+    "turnId": "cli-parent-source-writer-turn",
+    "createdAt": "2026-07-09T00:00:00.000Z"
+  },
+  "task": {
+    "kind": "writer",
+    "question": "Draft source-writer fixture output for parent review.",
+    "targetRefs": ["docs/source-writer-draft.md"]
+  },
+  "contextSources": [
+    {
+      "kind": "parent-session",
+      "sessionRef": "cli-parent-source-writer-thread",
+      "anchor": {
+        "turnId": "cli-parent-source-writer-turn",
+        "createdAt": "2026-07-09T00:00:00.000Z"
+      }
+    },
+    {
+      "kind": "member-profile",
+      "memberName": "source-writer",
+      "profileRef": "inline:source-writer"
+    },
+    {
+      "kind": "target-material",
+      "targetRef": "docs/source-writer-draft.md"
+    }
+  ],
+  "materials": {
+    "items": [
+      {
+        "materialRef": "inline:source-writer-profile",
+        "sourceRef": "inline:source-writer-profile",
+        "selectionMode": "prepared-prompt",
+        "visibility": "intended-model-input",
+        "digestUnavailable": "inline-fixture-content-not-hashed"
+      },
+      {
+        "materialRef": "docs/source-writer-draft.md",
+        "sourceRef": "docs/source-writer-draft.md",
+        "selectionMode": "prepared-prompt",
+        "visibility": "intended-model-input",
+        "digestUnavailable": "inline-fixture-content-not-hashed"
+      }
+    ]
+  },
+  "lifecycleTrace": [
+    { "event": "prepared", "at": "2026-07-09T00:00:00.000Z" },
+    { "event": "dispatched", "at": "2026-07-09T00:00:01.000Z" },
+    { "event": "dispatch-ack", "at": "2026-07-09T00:00:02.000Z" },
+    { "event": "child-completed", "at": "2026-07-09T00:00:03.000Z" },
+    { "event": "recorded", "at": "2026-07-09T00:00:04.000Z" }
+  ],
+  "materialSelectionMode": "explicit-source-writer-fixture",
+  "evidenceRefs": [
+    {
+      "kind": "source-writer-answer",
+      "ref": "source-writer:explicit-fixture:final",
+      "excerpt": "Draft output returned for parent review."
+    }
+  ],
+  "outcome": {
+    "status": "pass",
+    "summary": "Source-writer fixture output returned."
+  },
+  "result": {
+    "returnedTo": "parent-agent",
+    "summary": "Draft output returned for parent review."
+  },
+  "resolvedMemberId": "mem-source-writer-001"
+}

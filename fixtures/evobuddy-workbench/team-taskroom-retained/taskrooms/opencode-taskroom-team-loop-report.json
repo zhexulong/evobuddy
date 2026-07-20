@@ -1,0 +1,68 @@
+{
+  "reportKind": "evobuddy-taskroom-team-loop-report",
+  "status": "pass",
+  "proofScope": "product-observed",
+  "runtime": "opencode",
+  "title": "OpenCode retained review loop",
+  "parentActor": "parent-agent",
+  "taskRoom": {
+    "status": "completed",
+    "proof": {
+      "roomId": "taskroom:retained-review-loop-opencode",
+      "participants": [
+        {
+          "participantId": "participant:builder:1",
+          "actorName": "builder",
+          "actorKind": "team-agent"
+        },
+        {
+          "participantId": "participant:reviewer:1",
+          "actorName": "reviewer",
+          "actorKind": "team-agent"
+        }
+      ],
+      "rounds": [
+        {
+          "roundId": "round:1",
+          "builderSummary": "builder prepared retained draft",
+          "reviewerSummary": "reviewer recorded retained findings",
+          "reviewerFindingRef": "retained-round-1"
+        },
+        {
+          "roundId": "round:2",
+          "builderSummary": "builder revised retained draft",
+          "reviewerSummary": "reviewer accepted retained revision",
+          "reviewerFindingRef": "retained-round-2",
+          "priorReviewDigests": [
+            "sha256:retained-prior-review"
+          ]
+        }
+      ],
+      "handoffs": [
+        {
+          "from": "participant:builder:1",
+          "to": "participant:reviewer:1"
+        },
+        {
+          "from": "participant:reviewer:1",
+          "to": "participant:builder:1"
+        }
+      ],
+      "resultReturn": {
+        "returnedTo": "parent-agent"
+      },
+      "reviewerContinuity": {
+        "status": "pass",
+        "kind": "same-session-prior-review-ref-digest"
+      }
+    }
+  },
+  "reviewerContinuity": {
+    "status": "pass",
+    "kind": "same-session-prior-review-ref-digest"
+  },
+  "evolutionHandoff": {
+    "status": "pass",
+    "agentName": "evolution-agent"
+  }
+}

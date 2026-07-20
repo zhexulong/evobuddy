@@ -1,0 +1,57 @@
+{
+  "reportKind": "three-runtime-team-subagent-release-report",
+  "projectionParity": {
+    "status": "pass"
+  },
+  "releaseParity": {
+    "status": "blocked"
+  },
+  "coverageMapping": {
+    "opencode": {
+      "teamAgent": {
+        "status": "observed-pass"
+      },
+      "subagentBuddy": {
+        "status": "blocked"
+      },
+      "taskRoom": {
+        "status": "pass"
+      }
+    },
+    "claude": {
+      "teamAgent": {
+        "status": "observed-pass"
+      },
+      "subagentBuddy": {
+        "status": "blocked"
+      },
+      "taskRoom": {
+        "status": "pass"
+      }
+    },
+    "codex": {
+      "teamAgent": {
+        "status": "pass"
+      },
+      "subagentBuddy": {
+        "status": "pass"
+      },
+      "taskRoom": {
+        "status": "not-applicable"
+      }
+    }
+  },
+  "readiness": {
+    "teamAgentTaskRoomParity": {
+      "status": "pass"
+    },
+    "subagentBuddyNativeParity": {
+      "status": "partial"
+    }
+  },
+  "taskRoom": {
+    "status": "external-plan3-proof-attached",
+    "ownership": "plan3-external",
+    "reportPath": "../taskrooms/opencode-taskroom-team-loop-report.json"
+  }
+}

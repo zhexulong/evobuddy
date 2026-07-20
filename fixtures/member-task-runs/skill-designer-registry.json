@@ -1,0 +1,11 @@
+{
+  "version": "1",
+  "members": [
+    {
+      "name": "skill-designer",
+      "aliases": ["designer"],
+      "resolvedMemberId": "mem-sd-001",
+      "profileRef": "./skill-designer.json"
+    }
+  ]
+}

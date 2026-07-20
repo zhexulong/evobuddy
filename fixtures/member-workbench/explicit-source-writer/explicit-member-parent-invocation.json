@@ -1,0 +1,7 @@
+{
+  "invocationId": "explicit-source-writer-parent-invocation-1",
+  "source": "source-writer",
+  "sourceThreadId": "cli-parent-source-writer-thread",
+  "parentTurnId": "cli-parent-source-writer-turn",
+  "observedCallPathRef": "explicit-member-parent-invocation-source.json"
+}

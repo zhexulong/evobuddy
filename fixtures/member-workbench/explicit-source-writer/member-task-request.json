@@ -1,0 +1,38 @@
+{
+  "id": "mtreq-source-writer-explicit-20260709000000",
+  "preparedAt": "2026-07-09T00:00:00.000Z",
+  "memberName": "source-writer",
+  "resolvedMemberId": "mem-source-writer-001",
+  "requesterRef": "cli-parent-source-writer-thread",
+  "activationPoint": {
+    "turnId": "cli-parent-source-writer-turn",
+    "createdAt": "2026-07-09T00:00:00.000Z"
+  },
+  "task": {
+    "kind": "writer",
+    "question": "Draft source-writer fixture output for parent review.",
+    "targetRefs": ["docs/source-writer-draft.md"]
+  },
+  "expectedResultReturn": "parent-agent",
+  "materialSnapshots": [
+    {
+      "kind": "member-profile",
+      "materialRef": "inline:source-writer-profile",
+      "sourceRef": "inline:source-writer-profile",
+      "inlineContent": "{\n  \"name\": \"source-writer\",\n  \"description\": \"Use when drafting source changes for parent review.\",\n  \"role\": \"Source Writer\",\n  \"responsibilities\": [\"Draft source changes\"],\n  \"standardsRefs\": [\"docs/contracts/member-workbench-tui-contract.md\"],\n  \"roleMemoryRefs\": [],\n  \"activationHints\": [\"source writer\"],\n  \"negativeActivationHints\": [\"live product proof\"]\n}\n"
+    },
+    {
+      "kind": "target-material",
+      "materialRef": "docs/source-writer-draft.md",
+      "sourceRef": "docs/source-writer-draft.md",
+      "inlineContent": "Target draft placeholder for source-writer fixture.\n"
+    }
+  ],
+  "lifecycleTrace": [
+    { "event": "prepared", "at": "2026-07-09T00:00:00.000Z" },
+    { "event": "dispatched", "at": "2026-07-09T00:00:01.000Z" },
+    { "event": "dispatch-ack", "at": "2026-07-09T00:00:02.000Z" },
+    { "event": "child-completed", "at": "2026-07-09T00:00:03.000Z" },
+    { "event": "recorded", "at": "2026-07-09T00:00:04.000Z" }
+  ]
+}

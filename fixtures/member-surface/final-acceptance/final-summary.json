@@ -1,0 +1,64 @@
+{
+  "artifactRoot": "fixtures/member-surface/final-acceptance",
+  "positive": {
+    "outputDir": "fixtures/member-surface/final-acceptance/positive",
+    "requestPath": "fixtures/member-surface/final-acceptance/positive/member-task-request.json",
+    "runPath": "fixtures/member-surface/final-acceptance/positive/member-task-run.json",
+    "acceptanceProofPath": "fixtures/member-surface/final-acceptance/positive/acceptance-proof.json",
+    "requestLifecycleEvents": [
+      "prepared",
+      "dispatched",
+      "dispatch-ack",
+      "child-completed",
+      "recorded"
+    ],
+    "runLifecycleEvents": [
+      "prepared",
+      "dispatched",
+      "dispatch-ack",
+      "child-completed",
+      "recorded"
+    ],
+    "executionOutcomeStatus": "pass",
+    "executionOutcomeDetail": "Execution outcome is recorded separately; specialist material proof passed.",
+    "materialProofStatus": "pass",
+    "materialProofMissing": {
+      "roleHistory": [],
+      "targetMaterial": []
+    },
+    "memberMaterialProofPass": true,
+    "acceptanceTier": "pass"
+  },
+  "negativeControls": {
+    "missingRoleHistory": {
+      "outputDir": "fixtures/member-surface/final-acceptance/negative-missing-role-history",
+      "requestPathExists": true,
+      "runPathExists": true,
+      "executionOutcomeStatus": "pass",
+      "executionOutcomeDetail": "Execution outcome is recorded separately; see materialProof.status for specialist material proof failure.",
+      "materialProofStatus": "fail",
+      "materialProofMissing": {
+        "roleHistory": [
+          "ROLE-CANARY-natural-final"
+        ],
+        "targetMaterial": []
+      },
+      "expectedFailure": "missing member material proof canaries: ROLE-CANARY-natural-final"
+    },
+    "missingTargetMaterial": {
+      "outputDir": "fixtures/member-surface/final-acceptance/negative-missing-target-material",
+      "requestPathExists": true,
+      "runPathExists": true,
+      "executionOutcomeStatus": "pass",
+      "executionOutcomeDetail": "Execution outcome is recorded separately; see materialProof.status for specialist material proof failure.",
+      "materialProofStatus": "fail",
+      "materialProofMissing": {
+        "roleHistory": [],
+        "targetMaterial": [
+          "TARGET-CANARY-natural-final"
+        ]
+      },
+      "expectedFailure": "missing member material proof canaries: TARGET-CANARY-natural-final"
+    }
+  }
+}

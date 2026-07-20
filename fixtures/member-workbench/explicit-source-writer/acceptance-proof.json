@@ -1,0 +1,12 @@
+{
+  "artifactKind": "explicit-source-writer-fixture-proof",
+  "acceptanceMode": "explicit-source-writer-test-only",
+  "testEligibilityOnly": true,
+  "sourceKind": "cli-parent-source-writer",
+  "sourceThreadId": "cli-parent-source-writer-thread",
+  "checkpointAnchor": {
+    "turnId": "cli-parent-source-writer-turn",
+    "createdAt": "2026-07-09T00:00:00.000Z"
+  },
+  "limitation": "test-only"
+}

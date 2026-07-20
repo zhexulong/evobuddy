@@ -1,0 +1,15 @@
+{
+  "reportId": "msr-source-writer-explicit-20260709000000",
+  "candidates": [
+    {
+      "materialRef": "inline:source-writer-profile",
+      "placement": "profile",
+      "selected": true
+    },
+    {
+      "materialRef": "docs/source-writer-draft.md",
+      "placement": "target",
+      "selected": true
+    }
+  ]
+}

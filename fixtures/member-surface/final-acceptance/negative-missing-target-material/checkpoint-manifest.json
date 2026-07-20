@@ -1,0 +1,19 @@
+{
+  "id": "cp-design",
+  "nodeId": "node-parent",
+  "sessionRef": "natural-parent-thread",
+  "anchor": {
+    "turnId": "natural-parent-turn",
+    "createdAt": "2026-07-06T12:34:56.000Z"
+  },
+  "label": "design boundary",
+  "purpose": "review implementation plan before coding",
+  "capture": {
+    "platform": "codex",
+    "sessionRecordRef": "codex-thread:natural-parent-thread",
+    "knownLosses": [
+      "no model KV/cache",
+      "no provider prompt cache"
+    ]
+  }
+}

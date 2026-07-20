@@ -1,0 +1,20 @@
+{
+  "name": "skill-designer",
+  "description": "Use when reviewing native spawn member wiring.",
+  "role": "Skill Designer",
+  "responsibilities": [
+    "Review member wiring"
+  ],
+  "standardsRefs": [
+    "docs/contracts/member-task-run-record-contract.md"
+  ],
+  "roleMemoryRefs": [
+    "docs/role-memory/skill-designer-corrections.md"
+  ],
+  "activationHints": [
+    "member task run"
+  ],
+  "negativeActivationHints": [
+    "fresh thread only"
+  ]
+}

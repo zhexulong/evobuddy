@@ -1,0 +1,30 @@
+{
+  "id": "result-natural-child-thread-negative-target-material",
+  "spawnRunId": "spawn-natural-child-thread-negative-target-material",
+  "resultRef": "native-spawn:natural-child-thread:final",
+  "returnedTo": "parent-agent",
+  "evidenceRefs": [
+    {
+      "kind": "reviewer-answer",
+      "ref": "native-spawn:natural-child-thread:final",
+      "threadId": "natural-child-thread",
+      "excerpt": "{\"answer\": \"known\", \"values\": [\"CTREE-SURVIVE-natural-final-proof\", \"ROLE-CANARY-natural-final\"]}"
+    },
+    {
+      "kind": "native-spawn-result",
+      "ref": "native-spawn:natural-parent-thread:natural-child-thread:v1-terminal-status",
+      "sourceThreadId": "natural-parent-thread",
+      "childThreadId": "natural-child-thread",
+      "observableChildId": "natural-child-thread",
+      "waitProof": "v1-terminal-status"
+    },
+    {
+      "kind": "turn-read",
+      "ref": "thread/read:natural-child-thread",
+      "threadId": "natural-child-thread",
+      "turnId": "natural-child-turn",
+      "itemId": "natural-child-answer",
+      "source": "thread/read"
+    }
+  ]
+}

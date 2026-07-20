@@ -1,0 +1,80 @@
+{
+  "id": "mtreq-skill-designer-reviewer-20260706123456",
+  "preparedAt": "2026-07-06T12:34:56.000Z",
+  "memberName": "skill-designer",
+  "resolvedMemberId": "mem-sd-001",
+  "activationPoint": {
+    "turnId": "static-config-turn",
+    "createdAt": "2026-07-06T12:34:56.000Z",
+    "checkpointId": "cp-design"
+  },
+  "task": {
+    "kind": "reviewer",
+    "question": "Identify review issues from prior checkpoint context that could cause implementation rework.",
+    "targetRefs": [
+      "docs/plan.md"
+    ]
+  },
+  "profileRef": "fixtures/member-surface/members/skill-designer.json",
+  "roleHistoryRefs": [
+    "docs/role-memory/skill-designer-corrections.md"
+  ],
+  "targetRefs": [
+    "docs/plan.md"
+  ],
+  "requestedMaterials": [
+    "docs/contracts/member-task-run-record-contract.md"
+  ],
+  "expectedResultReturn": "parent-agent",
+  "materialSnapshots": [
+    {
+      "kind": "member-profile",
+      "materialRef": "fixtures/member-surface/members/skill-designer.json",
+      "sourceRef": "fixtures/member-surface/members/skill-designer.json",
+      "contentDigest": "sha256:73ad52e6bfa0a933b4fa9c7c4d7aec7c7eb06b058a79678e670457eaec7a004b",
+      "inlineContent": "{\n  \"name\": \"skill-designer\",\n  \"description\": \"Use when reviewing native spawn member wiring.\",\n  \"role\": \"Skill Designer\",\n  \"responsibilities\": [\n    \"Review member wiring\"\n  ],\n  \"standardsRefs\": [\n    \"docs/contracts/member-task-run-record-contract.md\"\n  ],\n  \"roleMemoryRefs\": [\n    \"docs/role-memory/skill-designer-corrections.md\"\n  ],\n  \"activationHints\": [\n    \"member task run\"\n  ],\n  \"negativeActivationHints\": [\n    \"fresh thread only\"\n  ]\n}\n"
+    },
+    {
+      "kind": "role-history",
+      "materialRef": "docs/role-memory/skill-designer-corrections.md",
+      "sourceRef": "docs/role-memory/skill-designer-corrections.md",
+      "contentDigest": "sha256:8da28052c482cc386412dc8529d0c844fed3aec81a1efda80240379c428eae7c",
+      "inlineContent": "ROLE-CANARY-natural-final\nPrefer current repo corrections.\n"
+    },
+    {
+      "kind": "target-material",
+      "materialRef": "docs/plan.md",
+      "sourceRef": "docs/plan.md",
+      "contentDigest": "sha256:2fddae74616c2eeaf85781713c51598603c701212f0a2b946c55a60e0ade8686",
+      "inlineContent": "TARGET-CANARY-natural-final\nPlan material for the child.\n"
+    },
+    {
+      "kind": "requested-material",
+      "materialRef": "docs/contracts/member-task-run-record-contract.md",
+      "sourceRef": "docs/contracts/member-task-run-record-contract.md",
+      "snapshotRef": "docs/contracts/member-task-run-record-contract.md#member-task-run-record-contract"
+    }
+  ],
+  "lifecycleTrace": [
+    {
+      "event": "prepared",
+      "at": "2026-07-06T12:34:56.000Z"
+    },
+    {
+      "event": "dispatched",
+      "at": "2026-07-08T06:08:11.991Z"
+    },
+    {
+      "event": "dispatch-ack",
+      "at": "2026-07-08T06:08:12.094Z"
+    },
+    {
+      "event": "child-completed",
+      "at": "2026-07-08T06:08:12.096Z"
+    },
+    {
+      "event": "recorded",
+      "at": "2026-07-08T06:08:12.100Z"
+    }
+  ]
+}

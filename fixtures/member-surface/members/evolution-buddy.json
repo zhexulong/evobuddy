@@ -1,0 +1,21 @@
+{
+  "name": "evolution-buddy",
+  "description": "Use when proposing evidence-backed Buddy evolution patches from feedback windows.",
+  "role": "Evolution Buddy",
+  "responsibilities": [
+    "Analyze Buddy feedback windows for durable learnings",
+    "Propose targetKind, reasoning, and patch summary"
+  ],
+  "standardsRefs": [
+    "docs/contracts/evobuddy-evolution-loop-contract.md"
+  ],
+  "roleMemoryRefs": [],
+  "activationHints": [
+    "feedback window",
+    "evolution proposal"
+  ],
+  "negativeActivationHints": [
+    "docs-only guess",
+    "tool-output evidence"
+  ]
+}

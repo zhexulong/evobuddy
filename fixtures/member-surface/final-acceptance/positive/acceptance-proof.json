@@ -1,0 +1,98 @@
+{
+  "artifactKind": "codex-native-spawn-capability-artifact",
+  "caseId": "current-boundary-spawn-canary",
+  "acceptanceMode": "natural-scenario-provider-driven-native-spawn",
+  "acceptanceLabel": "natural prompt + provider-driven one-segment native spawn proof",
+  "deterministicProviderProof": true,
+  "providerDrivenNativeSpawnProof": true,
+  "autonomousNativeSpawnProof": false,
+  "providerForcedLiveProof": false,
+  "acceptanceTier": {
+    "id": "natural-provider-driven-native-spawn",
+    "mechanism": "provider-driven",
+    "scope": "single-parent-turn",
+    "runtimeNativeSpawn": true,
+    "autonomousTrigger": false,
+    "defaultRegression": true,
+    "productRole": "mechanism-proof"
+  },
+  "naturalPromptAudit": {
+    "forbiddenPromptTermsPresent": []
+  },
+  "acceptanceProofPath": "fixtures/member-surface/final-acceptance/positive/acceptance-proof.json",
+  "sourceThreadId": "natural-parent-thread",
+  "checkpointAnchor": {
+    "turnId": "natural-parent-turn",
+    "createdAt": "2026-07-06T12:34:56.000Z"
+  },
+  "spawnedAgentId": "natural-child-thread",
+  "forkMode": "fork_turns_all",
+  "memberMaterialProof": {
+    "status": "pass",
+    "required": {
+      "roleHistory": [
+        "ROLE-CANARY-natural-final"
+      ],
+      "targetMaterial": [
+        "TARGET-CANARY-natural-final"
+      ]
+    },
+    "observed": [
+      "{\"answer\": \"known\", \"values\": [\"CTREE-SURVIVE-natural-final-proof\", \"ROLE-CANARY-natural-final\", \"TARGET-CANARY-natural-final\"]}",
+      "CTREE-SURVIVE-natural-final-proof",
+      "ROLE-CANARY-natural-final",
+      "TARGET-CANARY-natural-final"
+    ],
+    "missing": {
+      "roleHistory": [],
+      "targetMaterial": []
+    },
+    "pass": true,
+    "detail": "Specialist material proof satisfied all required canaries."
+  },
+  "childThreadId": "natural-child-thread",
+  "observableChildId": "natural-child-thread",
+  "waitCompletion": {
+    "completionObserved": true,
+    "timedOut": false,
+    "proof": "v1-terminal-status"
+  },
+  "observedAnswer": "{\"answer\": \"known\", \"values\": [\"CTREE-SURVIVE-natural-final-proof\", \"ROLE-CANARY-natural-final\", \"TARGET-CANARY-natural-final\"]}",
+  "checkpointManifestPath": "fixtures/member-surface/final-acceptance/positive/checkpoint-manifest.json",
+  "spawnRunManifestPath": "fixtures/member-surface/final-acceptance/positive/spawn-manifest.json",
+  "spawnResultManifestPath": "fixtures/member-surface/final-acceptance/positive/spawn-result.json",
+  "artifactRefs": {
+    "outputDir": "fixtures/member-surface/final-acceptance/positive",
+    "checkpointManifestPath": "fixtures/member-surface/final-acceptance/positive/checkpoint-manifest.json",
+    "spawnRunManifestPath": "fixtures/member-surface/final-acceptance/positive/spawn-manifest.json",
+    "spawnResultManifestPath": "fixtures/member-surface/final-acceptance/positive/spawn-result.json",
+    "memberTaskRequestPath": "fixtures/member-surface/final-acceptance/positive/member-task-request.json",
+    "memberTaskRunPath": "fixtures/member-surface/final-acceptance/positive/member-task-run.json"
+  },
+  "evidenceRefs": [
+    {
+      "kind": "reviewer-answer",
+      "ref": "native-spawn:natural-child-thread:final",
+      "threadId": "natural-child-thread",
+      "excerpt": "{\"answer\": \"known\", \"values\": [\"CTREE-SURVIVE-natural-final-proof\", \"ROLE-CANARY-natural-final\", \"TARGET-CANARY-natural-final\"]}"
+    },
+    {
+      "kind": "native-spawn-result",
+      "ref": "native-spawn:natural-parent-thread:natural-child-thread:v1-terminal-status",
+      "sourceThreadId": "natural-parent-thread",
+      "childThreadId": "natural-child-thread",
+      "observableChildId": "natural-child-thread",
+      "waitProof": "v1-terminal-status"
+    },
+    {
+      "kind": "turn-read",
+      "ref": "thread/read:natural-child-thread",
+      "threadId": "natural-child-thread",
+      "turnId": "natural-child-turn",
+      "itemId": "natural-child-answer",
+      "source": "thread/read"
+    }
+  ],
+  "materialSelectionMode": "native-fork",
+  "fidelity": "native-context-fork"
+}

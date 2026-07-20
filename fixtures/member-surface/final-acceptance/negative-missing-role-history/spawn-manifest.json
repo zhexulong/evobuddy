@@ -1,0 +1,44 @@
+{
+  "id": "spawn-natural-child-thread-negative-role-history",
+  "baseCheckpointId": "cp-design",
+  "requesterNodeId": "node-parent",
+  "task": {
+    "kind": "reviewer",
+    "prompt": "Reduced fixture prompt with target-material present and role-history intentionally omitted.",
+    "targetRefs": [
+      "docs/plan.md"
+    ]
+  },
+  "materialSelectionMode": "native-fork",
+  "fidelity": "native-context-fork",
+  "verdict": "inconclusive",
+  "evidenceRefs": [
+    {
+      "kind": "reviewer-answer",
+      "ref": "native-spawn:natural-child-thread:final",
+      "threadId": "natural-child-thread",
+      "excerpt": "{\"answer\": \"known\", \"values\": [\"CTREE-SURVIVE-natural-final-proof\", \"TARGET-CANARY-natural-final\"]}"
+    },
+    {
+      "kind": "native-spawn-result",
+      "ref": "native-spawn:natural-parent-thread:natural-child-thread:v1-terminal-status",
+      "sourceThreadId": "natural-parent-thread",
+      "childThreadId": "natural-child-thread",
+      "observableChildId": "natural-child-thread",
+      "waitProof": "v1-terminal-status"
+    },
+    {
+      "kind": "turn-read",
+      "ref": "thread/read:natural-child-thread",
+      "threadId": "natural-child-thread",
+      "turnId": "natural-child-turn",
+      "itemId": "natural-child-answer",
+      "source": "thread/read"
+    }
+  ],
+  "knownLosses": [
+    "no model KV/cache",
+    "no provider prompt cache"
+  ],
+  "childNodeId": "natural-child-thread"
+}

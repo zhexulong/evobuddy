@@ -1,0 +1,192 @@
+{
+  "id": "mtr-skill-designer-reviewer-20260706123456-negative-target-material",
+  "memberName": "skill-designer",
+  "requesterRef": "node-parent",
+  "activationPoint": {
+    "turnId": "natural-parent-turn",
+    "createdAt": "2026-07-06T12:34:56.000Z",
+    "checkpointId": "cp-design"
+  },
+  "task": {
+    "kind": "reviewer",
+    "question": "Identify review issues from prior checkpoint context that could cause implementation rework.",
+    "targetRefs": []
+  },
+  "memberTaskRequestRef": "fixtures/member-surface/final-acceptance/negative-missing-target-material/member-task-request.json",
+  "contextSources": [
+    {
+      "kind": "parent-session",
+      "sessionRef": "natural-parent-thread",
+      "anchor": {
+        "turnId": "natural-parent-turn",
+        "createdAt": "2026-07-06T12:34:56.000Z"
+      }
+    },
+    {
+      "kind": "runtime-native-fork",
+      "runtimeRef": "natural-child-thread",
+      "forkMode": "fork_turns_all"
+    },
+    {
+      "kind": "member-profile",
+      "memberName": "skill-designer",
+      "profileRef": "fixtures/member-surface/members/skill-designer.json"
+    },
+    {
+      "kind": "role-history",
+      "memberName": "skill-designer",
+      "historyRef": "docs/role-memory/skill-designer-corrections.md"
+    }
+  ],
+  "materials": {
+    "items": [
+      {
+        "materialRef": "fixtures/member-surface/members/skill-designer.json",
+        "sourceRef": "fixtures/member-surface/members/skill-designer.json",
+        "selectionMode": "prepared-prompt",
+        "visibility": "intended-model-input",
+        "evidenceRefs": [
+          {
+            "kind": "prompt-audit",
+            "ref": "fixtures/member-surface/final-acceptance/negative-missing-target-material/member-task-request.json"
+          }
+        ],
+        "contentDigest": "sha256:73ad52e6bfa0a933b4fa9c7c4d7aec7c7eb06b058a79678e670457eaec7a004b"
+      },
+      {
+        "materialRef": "docs/role-memory/skill-designer-corrections.md",
+        "sourceRef": "docs/role-memory/skill-designer-corrections.md",
+        "selectionMode": "prepared-prompt",
+        "visibility": "intended-model-input",
+        "evidenceRefs": [
+          {
+            "kind": "prompt-audit",
+            "ref": "fixtures/member-surface/final-acceptance/negative-missing-target-material/member-task-request.json"
+          }
+        ],
+        "contentDigest": "sha256:8da28052c482cc386412dc8529d0c844fed3aec81a1efda80240379c428eae7c"
+      },
+      {
+        "materialRef": "codex-thread:natural-parent-thread",
+        "sourceRef": "codex-thread:natural-parent-thread",
+        "selectionMode": "native-fork",
+        "visibility": "unknown",
+        "evidenceRefs": [
+          {
+            "kind": "native-spawn-result",
+            "ref": "native-spawn:natural-parent-thread:natural-child-thread:v1-terminal-status"
+          }
+        ],
+        "digestUnavailable": "native-fork-context-not-snapshotted"
+      }
+    ],
+    "intendedInputEvidenceRefs": [
+      {
+        "kind": "prompt-audit",
+        "ref": "fixtures/member-surface/final-acceptance/negative-missing-target-material/member-task-request.json"
+      }
+    ],
+    "runtimeInputEvidenceRefs": [],
+    "providerModelInputEvidenceRefs": [],
+    "mountedEvidenceRefs": [],
+    "searchableEvidenceRefs": [],
+    "sourceOnlyRefs": []
+  },
+  "lifecycleTrace": [
+    {
+      "event": "prepared",
+      "at": "2026-07-06T12:34:56.000Z"
+    },
+    {
+      "event": "dispatched",
+      "at": "2026-07-08T06:08:12.026Z"
+    },
+    {
+      "event": "dispatch-ack",
+      "at": "2026-07-08T06:08:12.130Z"
+    },
+    {
+      "event": "child-completed",
+      "at": "2026-07-08T06:08:12.132Z"
+    },
+    {
+      "event": "recorded",
+      "at": "2026-07-08T06:08:12.133Z"
+    }
+  ],
+  "materialSelectionMode": "native-fork",
+  "fidelity": "native-context-fork",
+  "evidenceRefs": [
+    {
+      "kind": "reviewer-answer",
+      "ref": "native-spawn:natural-child-thread:final",
+      "threadId": "natural-child-thread",
+      "excerpt": "{\"answer\": \"known\", \"values\": [\"CTREE-SURVIVE-natural-final-proof\", \"ROLE-CANARY-natural-final\"]}"
+    },
+    {
+      "kind": "native-spawn-result",
+      "ref": "native-spawn:natural-parent-thread:natural-child-thread:v1-terminal-status",
+      "sourceThreadId": "natural-parent-thread",
+      "childThreadId": "natural-child-thread",
+      "observableChildId": "natural-child-thread",
+      "waitProof": "v1-terminal-status"
+    },
+    {
+      "kind": "turn-read",
+      "ref": "thread/read:natural-child-thread",
+      "threadId": "natural-child-thread",
+      "turnId": "natural-child-turn",
+      "itemId": "natural-child-answer",
+      "source": "thread/read"
+    }
+  ],
+  "knownLosses": [
+    "no model KV/cache",
+    "no provider prompt cache"
+  ],
+  "outcome": {
+    "status": "pass",
+    "summary": "Native spawn member task run recorded.",
+    "detail": "Execution outcome is recorded separately; see materialProof.status for specialist material proof failure."
+  },
+  "materialProof": {
+    "status": "fail",
+    "negativeControlExpected": true,
+    "required": {
+      "roleHistory": [
+        "ROLE-CANARY-natural-final"
+      ],
+      "targetMaterial": [
+        "TARGET-CANARY-natural-final"
+      ]
+    },
+    "observed": [
+      "{\"answer\": \"known\", \"values\": [\"CTREE-SURVIVE-natural-final-proof\", \"ROLE-CANARY-natural-final\"]}",
+      "CTREE-SURVIVE-natural-final-proof",
+      "ROLE-CANARY-natural-final"
+    ],
+    "missing": {
+      "roleHistory": [],
+      "targetMaterial": [
+        "TARGET-CANARY-natural-final"
+      ]
+    },
+    "pass": false,
+    "detail": "Missing specialist material proof canaries: TARGET-CANARY-natural-final"
+  },
+  "result": {
+    "resultRef": "fixtures/member-surface/final-acceptance/negative-missing-target-material/spawn-result.json",
+    "returnedTo": "parent-agent",
+    "summary": "{\"answer\": \"known\", \"values\": [\"CTREE-SURVIVE-natural-final-proof\", \"ROLE-CANARY-natural-final\"]}"
+  },
+  "resolvedMemberId": "mem-sd-001",
+  "runtime": {
+    "runtimeAgentId": "natural-child-thread",
+    "runtimeAgentType": "codex-native-spawn"
+  },
+  "compatibilityRefs": {
+    "checkpointManifestRef": "fixtures/member-surface/final-acceptance/negative-missing-target-material/checkpoint-manifest.json",
+    "spawnRunManifestRef": "fixtures/member-surface/final-acceptance/negative-missing-target-material/spawn-manifest.json",
+    "spawnResultManifestRef": "fixtures/member-surface/final-acceptance/negative-missing-target-material/spawn-result.json"
+  }
+}

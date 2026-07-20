@@ -97,6 +97,47 @@ Within that aggregate, read the readiness cuts separately:
 - `readiness.forkLoopProductParity`: per-runtime fork-loop product proof; OpenCode can pass without claiming Claude/Codex
 - `readiness.threeRuntimeParity`: three-runtime observed-runtime parity readiness
 
+### Multi-runtime realtime fork/handoff live path
+
+```bash
+# OpenCode (primary product-observed path)
+npm run evobuddy:eval-realtime-fork-handoff-taskroom:live -- \
+  --project /home/prosumer/agent/context-tree \
+  --runtime opencode \
+  --out /tmp/evobuddy-realtime-fork-handoff-live
+
+# Claude (requires one coherent parent with builder + reviewer + evolution-agent children)
+npm run evobuddy:eval-realtime-fork-handoff-taskroom:live -- \
+  --project /home/prosumer/agent/context-tree \
+  --runtime claude \
+  --claude-project-dir ~/.claude/projects/-home-prosumer-agent-context-tree \
+  --out /tmp/evobuddy-claude-realtime-fork-handoff-live
+
+# Codex (requires parent spawn_agent/wait_agent evidence for builder + reviewer + evolution-agent)
+npm run evobuddy:eval-realtime-fork-handoff-taskroom:live -- \
+  --project /home/prosumer/agent/context-tree \
+  --runtime codex \
+  --codex-home ~/.codex \
+  --out /tmp/evobuddy-codex-realtime-fork-handoff-live
+
+# Aggregate with one or more realtime proofs (repeat the flag per runtime)
+npm run evobuddy:eval-july17-mvp-readiness -- \
+  --project /home/prosumer/agent/context-tree \
+  --out /tmp/evobuddy-july17-mvp-readiness-multi \
+  --plan1-report fixtures/evobuddy-workbench/team-taskroom-retained/plan1/evobuddy-team-agent-substrate-live-eval-report.json \
+  --plan2-report fixtures/evobuddy-workbench/team-taskroom-retained/plan2/three-runtime-team-subagent-release-report.json \
+  --plan3-report fixtures/evobuddy-workbench/team-taskroom-retained/taskrooms/opencode-taskroom-team-loop-report.json \
+  --realtime-fork-handoff-report /tmp/evobuddy-realtime-fork-handoff-live/evobuddy-fork-handoff-release-proof.json \
+  --realtime-fork-handoff-report /tmp/evobuddy-claude-realtime-fork-handoff-live/evobuddy-fork-handoff-release-proof.json \
+  --realtime-fork-handoff-report /tmp/evobuddy-codex-realtime-fork-handoff-live/evobuddy-fork-handoff-release-proof.json
+```
+
+Natural-use constraints still apply for every runtime:
+
+- parent user prompt must remain mechanism-clean (no `TaskRoom`, `fork`, `builder`, `reviewer`, `spawn`, `agent team`, …)
+- TeamAgent children must belong to one coherent parent cohort
+- Claude/Codex fork-loop product proof stays blocked until real observed runtime evidence exists
+
 It does **not** raise the claim ceiling to any of the following unless separate fresh evidence exists:
 
 - three-runtime TaskRoom parity;
@@ -104,6 +145,36 @@ It does **not** raise the claim ceiling to any of the following unless separate 
 - Codex TeamAgent selection/result proof complete;
 - Claude TaskRoom loop complete;
 - all EvoBuddy release gates complete.
+
+## Native TUI orchestration (tmux)
+
+TaskRoom-first interactive orchestration launches and attaches to native runtime TUIs through a **tmux prerequisite**. Operator runbook: `docs/evobuddy-native-tui-runbook.md`. Recovery: `docs/evobuddy-native-session-recovery-runbook.md`.
+
+```bash
+# Product workbench (Rust TUI when built)
+npm run evobuddy:tui-build
+node scripts/evobuddy/evobuddy.mjs workbench --project <project>
+
+# TaskRoom / native session CLI
+node scripts/evobuddy/evobuddy.mjs taskroom create --project <project> --room <id> --title <t> --objective <o>
+node scripts/evobuddy/evobuddy.mjs taskroom session reserve --project <project> --room <id> --instance <id> --runtime <name> --json
+node scripts/evobuddy/evobuddy.mjs taskroom session plan-open --project <project> --room <id> --instance <id> --runtime <name> --json
+node scripts/evobuddy/evobuddy.mjs taskroom session commit --project <project> --descriptor <id> --substrate-ref <ref> --json
+node scripts/evobuddy/evobuddy.mjs taskroom session inspect --project <project> --descriptor <id> --json
+node scripts/evobuddy/evobuddy.mjs taskroom session reconcile --project <project> --json
+node scripts/evobuddy/evobuddy.mjs taskroom session stop --project <project> --room <id> --instance <id> --reason <text> --json
+node scripts/evobuddy/evobuddy.mjs taskroom archive --project <project> --room <id> --json
+node scripts/evobuddy/evobuddy.mjs taskroom refresh --project <project> --room <id> --json
+```
+
+Live substrate / native TUI gates:
+
+```bash
+npm run evobuddy:eval-tmux-substrate:live -- --out <out>
+npm run evobuddy:eval-native-tui-tmux:live -- --project <project> --out <out>
+```
+
+Labels must stay honest: **exact resume** vs **continue with context** (and heuristic/fresh/unsupported). **Evidence limitations**: attach/detach and terminal output are not TaskRoom completion proof.
 
 ## Native runtime capability acceptance
 
@@ -121,6 +192,7 @@ Rules:
 - Exact resume is never required of every runtime; unsupported exact resume must not be mislabeled.
 - Permission prompts are never automated; needs-input is source-qualified or blocked as unknown.
 - Safe/no-op workspaces only; claim ceiling is capability probe + declared sources, not TaskRoom completion proof.
+- **native TUI** launch still requires the **tmux prerequisite** even when a runtime capability row is green.
 
 ## Adapter boundary
 

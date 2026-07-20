@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { statSync } from 'node:fs';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { exportClaudeCodeJsonlSessionCorpus } from './claude-session-corpus-export.mjs';
@@ -70,10 +71,11 @@ async function writeJsonl(path, rows) {
 }
 
 function buildDefaultClaudeForkHandoffRecords({ observedRoot, sessions }) {
-  const parent = sessions.find((session) => session.isSubagent === false);
-  const builder = findSessionByMemberName(sessions, 'builder');
-  const reviewer = findSessionByMemberName(sessions, 'reviewer');
-  const evolutionAgent = findSessionByMemberName(sessions, 'evolution-agent');
+  const selected = selectFreshestClaudeTaskroomCohort(sessions);
+  const parent = selected.parent;
+  const builder = selected.builder;
+  const reviewer = selected.reviewer;
+  const evolutionAgent = selected.evolutionAgent;
   const roomId = observedRoot.taskRoomLoop.roomId;
   const parentRuntimeRef = parent.sessionRef ?? `claude-session:${parent.sessionId}`;
   const createdAt = parent.updatedAt ?? new Date().toISOString();
@@ -268,22 +270,92 @@ function assistantMessages(session) {
   return (session?.messages ?? []).filter((message) => message.role === 'assistant' && nonEmptyString(message.text));
 }
 
+const REQUIRED_TEAM_AGENT_NAMES = ['builder', 'reviewer', 'evolution-agent'];
+
+function sourceFileMtimeEpoch(session) {
+  const sourcePath = session?.sourceRef?.path ?? (typeof session?.sourceRef === 'string' ? session.sourceRef : null);
+  if (!nonEmptyString(sourcePath)) return 0;
+  try {
+    const mtimeMs = statSync(sourcePath).mtimeMs;
+    return Number.isFinite(mtimeMs) ? mtimeMs : 0;
+  } catch {
+    return 0;
+  }
+}
+
+function sessionUpdatedAtEpoch(session) {
+  const parsed = Date.parse(session?.updatedAt ?? '');
+  if (Number.isFinite(parsed)) return parsed;
+  return sourceFileMtimeEpoch(session);
+}
+
+function sessionCreatedAtEpoch(session) {
+  const parsed = Date.parse(session?.createdAt ?? session?.updatedAt ?? '');
+  if (Number.isFinite(parsed)) return parsed;
+  return sourceFileMtimeEpoch(session);
+}
+
+function parentRefFor(session) {
+  return session?.sessionRef ?? (session?.sessionId ? `claude-session:${session.sessionId}` : null);
+}
+
+function isChildOfParent(session, parent) {
+  if (!session || !parent) return false;
+  if (session.parentSessionId === parent.sessionId) return true;
+  const parentRef = parentRefFor(parent);
+  const childParentRef = session?.nativeBuddy?.parentSessionRef;
+  return nonEmptyString(parentRef) && childParentRef === parentRef;
+}
+
 function findSessionByMemberName(sessions, memberName) {
-  return sessions.find((session) => session?.isSubagent === true && session?.nativeBuddy?.memberName === memberName);
+  return sessions
+    .filter((session) => session?.isSubagent === true && session?.nativeBuddy?.memberName === memberName)
+    .sort((left, right) => sessionUpdatedAtEpoch(right) - sessionUpdatedAtEpoch(left) || String(right.sessionId).localeCompare(String(left.sessionId)))[0] ?? null;
+}
+
+export function selectFreshestClaudeTaskroomCohort(sessions) {
+  const parents = sessions.filter((session) => session?.isSubagent === false);
+  if (parents.length === 0) {
+    return {
+      parent: null,
+      sessions: [],
+      builder: null,
+      reviewer: null,
+      evolutionAgent: null,
+      missingAgents: [...REQUIRED_TEAM_AGENT_NAMES],
+    };
+  }
+
+  return parents
+    .map((parent) => {
+      const cohortSessions = sessions.filter((session) => session.sessionId === parent.sessionId || isChildOfParent(session, parent));
+      const builder = findSessionByMemberName(cohortSessions, 'builder');
+      const reviewer = findSessionByMemberName(cohortSessions, 'reviewer');
+      const evolutionAgent = findSessionByMemberName(cohortSessions, 'evolution-agent');
+      return {
+        parent,
+        sessions: cohortSessions,
+        builder,
+        reviewer,
+        evolutionAgent,
+        missingAgents: REQUIRED_TEAM_AGENT_NAMES.filter((agentName) => !findSessionByMemberName(cohortSessions, agentName)),
+        parentCreatedAt: sessionCreatedAtEpoch(parent),
+      };
+    })
+    .sort((left, right) => right.parentCreatedAt - left.parentCreatedAt
+      || sessionUpdatedAtEpoch(right.parent) - sessionUpdatedAtEpoch(left.parent)
+      || String(right.parent.sessionId).localeCompare(String(left.parent.sessionId)))[0];
 }
 
 function buildObservedRootFromExport({ corpus, manifest, runtime = 'claude', surfaceCurrentAnchors = [] }) {
   const sessions = Array.isArray(corpus?.sessions) ? corpus.sessions : [];
   const corpusLimitations = Array.isArray(corpus?.limitations) ? corpus.limitations.filter(nonEmptyString) : [];
-  const parent = sessions.find((session) => session?.isSubagent === false) ?? null;
-  const builder = findSessionByMemberName(sessions, 'builder');
-  const reviewer = findSessionByMemberName(sessions, 'reviewer');
-  const evolutionAgent = findSessionByMemberName(sessions, 'evolution-agent');
-  const missingAgents = [
-    ['builder', builder],
-    ['reviewer', reviewer],
-    ['evolution-agent', evolutionAgent],
-  ].filter(([, session]) => !session).map(([name]) => name);
+  const selected = selectFreshestClaudeTaskroomCohort(sessions);
+  const parent = selected.parent;
+  const builder = selected.builder;
+  const reviewer = selected.reviewer;
+  const evolutionAgent = selected.evolutionAgent;
+  const missingAgents = selected.missingAgents;
 
   if (sessions.length === 0 && corpusLimitations.length > 0) {
     return blockResult(corpusLimitations, undefined, {
@@ -305,6 +377,7 @@ function buildObservedRootFromExport({ corpus, manifest, runtime = 'claude', sur
     ], undefined, {
       source: 'exported-claude-taskroom-root-blocked',
       exporterManifest: manifest,
+      selectedParentSessionId: parent.sessionId,
     });
   }
 
@@ -534,15 +607,12 @@ export async function produceClaudeRealtimeForkHandoffTaskRoomProof({
     projectIdentity: projectRoot,
   });
   const sessions = Array.isArray(exportResult?.corpus?.sessions) ? exportResult.corpus.sessions : [];
-  const parent = sessions.find((session) => session?.isSubagent === false) ?? null;
-  const builder = findSessionByMemberName(sessions, 'builder');
-  const reviewer = findSessionByMemberName(sessions, 'reviewer');
-  const evolutionAgent = findSessionByMemberName(sessions, 'evolution-agent');
-  const missingAgents = [
-    ['builder', builder],
-    ['reviewer', reviewer],
-    ['evolution-agent', evolutionAgent],
-  ].filter(([, session]) => !session).map(([name]) => name);
+  const selected = selectFreshestClaudeTaskroomCohort(sessions);
+  const parent = selected.parent;
+  const builder = selected.builder;
+  const reviewer = selected.reviewer;
+  const evolutionAgent = selected.evolutionAgent;
+  const missingAgents = selected.missingAgents;
 
   if (!parent) {
     return blockResult(['fresh Claude taskroom evidence is missing a parent session'], undefined, {
@@ -552,6 +622,7 @@ export async function produceClaudeRealtimeForkHandoffTaskRoomProof({
   if (missingAgents.length > 0) {
     return blockResult([`fresh Claude taskroom evidence is missing required TeamAgent session(s): ${missingAgents.join(', ')}`], undefined, {
       source: 'exported-claude-fork-handoff-proof-blocked',
+      selectedParentSessionId: parent.sessionId,
     });
   }
 
@@ -563,7 +634,7 @@ export async function produceClaudeRealtimeForkHandoffTaskRoomProof({
     actorSessionRefs: new Map([['builder', builderRef], ['reviewer', reviewerRef]]),
   });
   const built = buildObservedRootFromExport({
-    corpus: exportResult?.corpus,
+    corpus: { ...(exportResult?.corpus ?? {}), sessions: selected.sessions },
     manifest: exportResult?.manifest,
     runtime,
     surfaceCurrentAnchors,
@@ -572,6 +643,7 @@ export async function produceClaudeRealtimeForkHandoffTaskRoomProof({
     return blockResult(built.blockedReasons?.length > 0 ? built.blockedReasons : built.issues, built.report, {
       source: 'exported-claude-fork-handoff-proof-blocked',
       exporterManifest: built.exporterManifest,
+      selectedParentSessionId: parent.sessionId,
     });
   }
 
@@ -582,7 +654,7 @@ export async function produceClaudeRealtimeForkHandoffTaskRoomProof({
     `exporter:spawn:${evolutionAgent.sessionId}`,
   ];
 
-  const selectedSessions = [parent, builder, reviewer, evolutionAgent];
+  const selectedSessions = selected.sessions;
   const defaultRecords = buildDefaultClaudeForkHandoffRecords({ observedRoot: built.observedRoot, sessions: selectedSessions });
   const forkHandoff = buildForkHandoffRecords({ observedRoot: built.observedRoot, sessions: selectedSessions, defaultRecords }) ?? defaultRecords;
   const releaseProofInput = {

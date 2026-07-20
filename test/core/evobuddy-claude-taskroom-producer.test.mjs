@@ -166,6 +166,77 @@ test('writes Claude realtime fork/handoff release proof artifacts from exported 
   }
 });
 
+test('prefers a coherent freshest Claude parent cohort and does not reuse TeamAgents from an older parent', async () => {
+  const out = mkdtempSync(join(tmpdir(), 'evobuddy-claude-fork-handoff-cohort-'));
+  try {
+    const base = claudeTaskroomExportFixture();
+    // Older complete parent cohort.
+    const oldParent = structuredClone(base.corpus.sessions[0]);
+    oldParent.sessionId = 'claude-parent-old';
+    oldParent.sessionRef = 'claude-session:claude-parent-old';
+    oldParent.updatedAt = '2026-07-17T00:00:00.000Z';
+    oldParent.nativeBuddy.parentSessionRef = 'claude-session:claude-parent-old';
+    oldParent.nativeBuddy.resultReturn.resultRef = 'claude-session:claude-parent-old:result';
+    const oldBuilder = structuredClone(base.corpus.sessions[1]);
+    oldBuilder.sessionId = 'claude-builder-old';
+    oldBuilder.sessionRef = 'claude-session:claude-builder-old';
+    oldBuilder.parentSessionId = 'claude-parent-old';
+    oldBuilder.nativeBuddy.parentSessionRef = 'claude-session:claude-parent-old';
+    oldBuilder.updatedAt = '2026-07-17T00:01:00.000Z';
+    const oldReviewer = structuredClone(base.corpus.sessions[2]);
+    oldReviewer.sessionId = 'claude-reviewer-old';
+    oldReviewer.sessionRef = 'claude-session:claude-reviewer-old';
+    oldReviewer.parentSessionId = 'claude-parent-old';
+    oldReviewer.nativeBuddy.parentSessionRef = 'claude-session:claude-parent-old';
+    oldReviewer.updatedAt = '2026-07-17T00:02:00.000Z';
+    const oldEvolution = structuredClone(base.corpus.sessions[3]);
+    oldEvolution.sessionId = 'claude-evolution-old';
+    oldEvolution.sessionRef = 'claude-session:claude-evolution-old';
+    oldEvolution.parentSessionId = 'claude-parent-old';
+    oldEvolution.nativeBuddy.parentSessionRef = 'claude-session:claude-parent-old';
+    oldEvolution.updatedAt = '2026-07-17T00:03:00.000Z';
+
+    // Newer incomplete parent: only builder, no reviewer/evolution.
+    const newParent = structuredClone(base.corpus.sessions[0]);
+    newParent.sessionId = 'claude-parent-new';
+    newParent.sessionRef = 'claude-session:claude-parent-new';
+    newParent.updatedAt = '2026-07-19T00:00:00.000Z';
+    newParent.createdAt = '2026-07-19T00:00:00.000Z';
+    newParent.nativeBuddy.parentSessionRef = 'claude-session:claude-parent-new';
+    newParent.nativeBuddy.resultReturn.resultRef = 'claude-session:claude-parent-new:result';
+    const newBuilder = structuredClone(base.corpus.sessions[1]);
+    newBuilder.sessionId = 'claude-builder-new';
+    newBuilder.sessionRef = 'claude-session:claude-builder-new';
+    newBuilder.parentSessionId = 'claude-parent-new';
+    newBuilder.nativeBuddy.parentSessionRef = 'claude-session:claude-parent-new';
+    newBuilder.updatedAt = '2026-07-19T00:01:00.000Z';
+
+    const result = await produceClaudeRealtimeForkHandoffTaskRoomProof({
+      projectRoot: REPO_ROOT,
+      runtime: 'claude',
+      out,
+      claudeProjectDir: '/tmp/claude-project',
+      exportSessionCorpus: async () => ({
+        corpus: {
+          source: 'claude-code-jsonl-session-corpus-export',
+          projectIdentity: '/repo',
+          sessions: [oldParent, oldBuilder, oldReviewer, oldEvolution, newParent, newBuilder],
+        },
+        manifest: base.manifest,
+      }),
+    });
+
+    assert.equal(result.status, 'blocked');
+    assert.ok(
+      result.blockedReasons.some((reason) => /missing required TeamAgent session\(s\): reviewer, evolution-agent/i.test(reason)),
+      JSON.stringify(result.blockedReasons),
+    );
+    assert.ok(!result.blockedReasons.some((reason) => /mechanism terms/i.test(reason)));
+  } finally {
+    rmSync(out, { recursive: true, force: true });
+  }
+});
+
 test('blocks Claude realtime fork/handoff proof when natural input names mechanism terms', async () => {
   const out = mkdtempSync(join(tmpdir(), 'evobuddy-claude-fork-handoff-mech-'));
   try {

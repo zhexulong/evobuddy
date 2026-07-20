@@ -50,6 +50,36 @@ fn team_member_workspace_snapshot_shows_structured_team_room_and_member_actions(
 }
 
 #[test]
+fn trace_drawer_snapshot_shows_recovery_and_proof_taxonomy_only_in_trace() {
+    let mut app = load_app("evobuddy-workbench-state-v1.json");
+    app.view_mode = ViewMode::TraceDrawer;
+    let snapshot = render_current_snapshot(&app, 120, 40).expect("render trace");
+    for landmark in [
+        "Trace",
+        "Claim ceiling",
+        "Recovery diagnostics",
+        "Proof taxonomy (trace only)",
+        "exact-resume",
+        "heuristic-resume",
+        "continue-with-context",
+        "fresh-session",
+    ] {
+        assert!(
+            snapshot.contains(landmark),
+            "missing trace landmark `{landmark}` in snapshot:\n{snapshot}"
+        );
+    }
+    assert!(
+        !snapshot
+            .lines()
+            .next()
+            .unwrap_or("")
+            .contains("PRODUCT PASS"),
+        "proof taxonomy must not appear as first-level product pass"
+    );
+}
+
+#[test]
 fn focused_buddy_workspace_snapshot_shows_delegate_boundary_and_buddy_actions() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     app.focus = FocusPane::TeamBuddies;

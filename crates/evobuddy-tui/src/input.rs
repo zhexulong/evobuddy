@@ -47,7 +47,9 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
             WorkbenchEffect::None
         }
         KeyInput::Enter | KeyInput::Right => {
-            if app.view_mode == ViewMode::TaskRoomForm {
+            if app.view_mode == ViewMode::ConfirmAction {
+                app.confirm_pending_action()
+            } else if app.view_mode == ViewMode::TaskRoomForm {
                 app.submit_task_room_form()
             } else if app.view_mode == ViewMode::HandoffForm {
                 app.submit_handoff_form()
@@ -77,7 +79,11 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
             }
         }
         KeyInput::Left | KeyInput::Escape => {
-            app.pop_view();
+            if app.view_mode == ViewMode::ConfirmAction {
+                app.cancel_pending_confirmation();
+            } else {
+                app.pop_view();
+            }
             WorkbenchEffect::None
         }
         KeyInput::Search => {
@@ -96,7 +102,10 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
             WorkbenchEffect::None
         }
         KeyInput::Actions => {
-            if matches!(app.view_mode, ViewMode::Dashboard | ViewMode::TaskRoomWorkspace) {
+            if matches!(
+                app.view_mode,
+                ViewMode::Dashboard | ViewMode::TaskRoomWorkspace
+            ) {
                 app.open_native_runtime_effect()
             } else {
                 WorkbenchEffect::None

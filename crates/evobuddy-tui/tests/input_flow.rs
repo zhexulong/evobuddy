@@ -170,18 +170,21 @@ fn new_room_form_opens_from_dashboard_and_submits_typed_effect() {
 
     let effect = handle_key_event(&mut app, KeyInput::Enter);
 
-    assert_eq!(app.view_mode, ViewMode::ActionProgress);
-    assert_eq!(
-        effect,
-        WorkbenchEffect::CreateTaskRoom(CreateTaskRoomDraft {
-            objective: "MV".to_string(),
-            acceptance_criteria: "Do".to_string(),
-            workspace: String::new(),
-            actor: String::new(),
-            runtime: String::new(),
-            safety_mode: String::new(),
-        })
-    );
+    assert_eq!(app.view_mode, ViewMode::ConfirmAction);
+    match effect {
+        WorkbenchEffect::RequestConfirmation(pending) => {
+            assert!(pending.effect_label.to_lowercase().contains("create"));
+            assert!(matches!(
+                pending.action,
+                evobuddy_tui::app::ConfirmedAction::CreateTaskRoom(CreateTaskRoomDraft {
+                    objective,
+                    acceptance_criteria,
+                    ..
+                }) if objective == "MV" && acceptance_criteria == "Do"
+            ));
+        }
+        other => panic!("expected RequestConfirmation, got {other:?}"),
+    }
     assert!(app.durable_writes.is_empty());
 }
 
@@ -202,18 +205,21 @@ fn handoff_form_opens_from_taskroom_workspace_and_submits_typed_effect() {
     handle_key_event(&mut app, KeyInput::Char('O'));
 
     let effect = handle_key_event(&mut app, KeyInput::Enter);
-    assert_eq!(
-        effect,
-        WorkbenchEffect::CreateHandoff(CreateHandoffDraft {
-            sender: "B".to_string(),
-            receiver: "R".to_string(),
-            body: "O".to_string(),
-            artifact_refs: String::new(),
-            expected_next_action: String::new(),
-            return_destination: String::new(),
-        })
-    );
-    assert_eq!(app.view_mode, ViewMode::ActionProgress);
+    assert_eq!(app.view_mode, ViewMode::ConfirmAction);
+    match effect {
+        WorkbenchEffect::RequestConfirmation(pending) => {
+            assert!(matches!(
+                pending.action,
+                evobuddy_tui::app::ConfirmedAction::CreateHandoff(CreateHandoffDraft {
+                    sender,
+                    receiver,
+                    body,
+                    ..
+                }) if sender == "B" && receiver == "R" && body == "O"
+            ));
+        }
+        other => panic!("expected RequestConfirmation, got {other:?}"),
+    }
 }
 
 #[test]

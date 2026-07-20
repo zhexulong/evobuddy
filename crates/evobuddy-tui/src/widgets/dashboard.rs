@@ -315,6 +315,7 @@ fn render_active_workspace(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect
     lines.push("Actions".to_string());
     lines.push("• Open TaskRoom".to_string());
     lines.extend(app.selected_task_room_action_lines());
+    lines.push(app.evidence_action_summary_line());
     frame.render_widget(
         Paragraph::new(lines.join("\n"))
             .block(surface_block("Active Workspace · Selected TaskRoom", false)),
@@ -325,7 +326,10 @@ fn render_active_workspace(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect
 fn render_inspector(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
     let mut lines = vec![Line::from(Span::styled("Inspector", section_style()))];
     if let Some(room) = app.selected_task_room() {
-        lines.push(Line::from(Span::styled(room.title.clone(), selected_style())));
+        lines.push(Line::from(Span::styled(
+            room.title.clone(),
+            selected_style(),
+        )));
         lines.push(Line::from(Span::styled(
             format!("{} participants", room.participants.len()),
             muted_style(),
@@ -341,6 +345,18 @@ fn render_inspector(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
                 .unwrap_or_else(|| "No attention source".to_string()),
             action_style(),
         )));
+        lines.push(Line::from(Span::styled("Runtime actions", section_style())));
+        for action in app.selected_runtime_actions() {
+            lines.push(Line::from(if action.enabled {
+                format!("• {}", action.label)
+            } else {
+                format!(
+                    "• {} ({})",
+                    action.label,
+                    action.disabled_reason.as_deref().unwrap_or("unavailable")
+                )
+            }));
+        }
     }
     frame.render_widget(
         Paragraph::new(lines).block(surface_block("Inspector", false)),
@@ -359,7 +375,11 @@ fn render_task_rooms(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect, titl
             .take(area.height.saturating_sub(2) as usize)
             .enumerate()
             .map(|(index, room)| {
-                let prefix = if index == app.selected_task_room { "❯" } else { " " };
+                let prefix = if index == app.selected_task_room {
+                    "❯"
+                } else {
+                    " "
+                };
                 ListItem::new(format!(
                     "{} {} {} {}",
                     prefix,

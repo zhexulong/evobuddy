@@ -34,6 +34,26 @@ pub fn render_trace_drawer(frame: &mut Frame<'_>, app: &WorkbenchApp, area: rata
                 .map(|reason| Line::from(reason.clone())),
         );
     }
+    lines.push(Line::from(Span::styled(
+        "Recovery diagnostics",
+        section_style(),
+    )));
+    let recovery = app.recovery_diagnostic_lines();
+    if recovery.is_empty() {
+        lines.push(Line::from(Span::styled(
+            "No recovery diagnostics",
+            muted_style(),
+        )));
+    } else {
+        lines.extend(recovery.into_iter().map(Line::from));
+    }
+    lines.push(Line::from(Span::styled(
+        "Proof taxonomy (trace only)",
+        section_style(),
+    )));
+    lines.push(Line::from(
+        "exact-resume · heuristic-resume · continue-with-context · fresh-session",
+    ));
     frame.render_widget(
         Paragraph::new(lines).block(surface_block("Trace", true)),
         area,

@@ -24,16 +24,16 @@ pub fn render_task_composer(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rec
         .block(surface_block("Action Progress", true)),
         rows[0],
     );
-    let body = app.action_status.clone().unwrap_or_else(|| "No action recorded".to_string());
+    let body = app
+        .action_status
+        .clone()
+        .unwrap_or_else(|| "No action recorded".to_string());
     frame.render_widget(
         Paragraph::new(body).block(surface_block("Status", false)),
         rows[1],
     );
     frame.render_widget(
-        Paragraph::new(Line::from(Span::styled(
-            "Esc back",
-            muted_style(),
-        ))),
+        Paragraph::new(Line::from(Span::styled("Esc back", muted_style()))),
         rows[2],
     );
 }

@@ -52,7 +52,7 @@ fn dashboard_snapshot_120x40_shows_agent_command_center() {
         "/ search",
         ": commands",
         "Open TaskRoom",
-        "Open native runtime",
+        "Open session",
     ] {
         assert!(
             snapshot.contains(landmark),
@@ -88,6 +88,42 @@ fn dashboard_snapshot_groups_agents_by_attention_status() {
     );
     assert!(snapshot.contains("returned · 2"));
     assert!(snapshot.contains("available · 4"));
+}
+
+#[test]
+fn dashboard_snapshot_shows_evidence_backed_runtime_action_labels() {
+    let app = load_app("evobuddy-workbench-state-v1.json");
+    let actions = app.selected_runtime_actions();
+    let labels: Vec<_> = actions.iter().map(|action| action.label.as_str()).collect();
+    for landmark in [
+        "Open session",
+        "Resume conversation",
+        "Continue with TaskRoom context",
+        "Start new session",
+        "View evidence",
+        "Retry",
+        "Open native runtime",
+    ] {
+        assert!(
+            labels.contains(&landmark),
+            "missing evidence-backed action label `{landmark}` in {:?}",
+            labels
+        );
+    }
+    let resume = actions
+        .iter()
+        .find(|action| action.id == "resume-conversation")
+        .expect("resume");
+    assert!(!resume.enabled);
+    assert!(resume
+        .disabled_reason
+        .as_deref()
+        .unwrap_or("")
+        .contains("validated provider conversation identity"));
+
+    let snapshot = render_dashboard_snapshot(&app, 120, 40).expect("render snapshot");
+    assert!(snapshot.contains("Open session") || snapshot.contains("Actions:"));
+    assert!(snapshot.contains("Open native runtime") || snapshot.contains("Open session"));
 }
 
 #[test]
@@ -131,7 +167,7 @@ fn dashboard_snapshot_prioritizes_selected_taskroom_attention_and_actions() {
         "Complete the retained OpenCode review loop",
         "Acceptance",
         "Reviewer continuity passes",
-        "Open native runtime",
+        "Open session",
     ] {
         assert!(
             snapshot.contains(landmark),
@@ -192,5 +228,8 @@ fn narrow_dashboard_uses_selected_sorted_taskroom_not_raw_first_room() {
 
     handle_key_event(&mut app, KeyInput::Down);
     let moved_snapshot = render_dashboard_snapshot(&app, 60, 20).expect("render moved snapshot");
-    assert!(moved_snapshot.contains("Completed room raw-first"), "{moved_snapshot}");
+    assert!(
+        moved_snapshot.contains("Completed room raw-first"),
+        "{moved_snapshot}"
+    );
 }

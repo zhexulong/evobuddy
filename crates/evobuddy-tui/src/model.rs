@@ -105,7 +105,7 @@ pub struct AttentionSource {
     pub stale_after: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct ActionAvailability {
     pub id: String,
     pub label: String,

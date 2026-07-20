@@ -213,6 +213,7 @@ pub fn session_plan_open_command(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub fn session_reserve_command(
     project: &Path,
     room_id: &str,

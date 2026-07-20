@@ -44,7 +44,7 @@ fn validate_plan_id(plan_id: &str) -> Result<()> {
 }
 
 fn shell_escape(value: &str) -> String {
-    format!("'{}'", value.replace('"' , "\"").replace('\'', "'\\''"))
+    format!("'{}'", value.replace('\'', "'\\''"))
 }
 
 pub fn compute_launch_plan_digest(plan: &LaunchPlan) -> Result<String> {
@@ -54,7 +54,9 @@ pub fn compute_launch_plan_digest(plan: &LaunchPlan) -> Result<String> {
     let hash = Sha256::digest(encoded);
     Ok(format!(
         "sha256:{}",
-        hash.iter().map(|byte| format!("{byte:02x}")).collect::<String>()
+        hash.iter()
+            .map(|byte| format!("{byte:02x}"))
+            .collect::<String>()
     ))
 }
 

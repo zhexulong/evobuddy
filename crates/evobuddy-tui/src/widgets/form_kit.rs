@@ -40,9 +40,7 @@ fn inactive_style() -> Style {
 }
 
 fn error_style() -> Style {
-    Style::default()
-        .fg(Color::Red)
-        .add_modifier(Modifier::BOLD)
+    Style::default().fg(Color::Red).add_modifier(Modifier::BOLD)
 }
 
 fn muted_style() -> Style {
@@ -96,7 +94,7 @@ pub fn render_form(
         };
         let caret = if field.active { "█" } else { " " };
         let value_display = if field.value.is_empty() && field.active {
-            format!("{caret}")
+            caret.to_string()
         } else {
             format!("{}{caret}", field.value)
         };

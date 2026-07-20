@@ -1,3 +1,4 @@
+#![allow(clippy::type_complexity)]
 use std::path::PathBuf;
 
 use anyhow::Result;
@@ -22,8 +23,7 @@ pub enum EffectOutcome {
     Failed { message: String },
 }
 
-pub type OpenNativeFn =
-    Box<dyn FnMut(&mut WorkbenchApp, &str, &str) -> Result<EffectOutcome>>;
+pub type OpenNativeFn = Box<dyn FnMut(&mut WorkbenchApp, &str, &str) -> Result<EffectOutcome>>;
 
 pub struct EffectDeps {
     pub project: PathBuf,
@@ -130,10 +130,7 @@ fn execute_create_task_room(
         Err(error) => return fail(app, format!("{error:#}")),
     };
     let Some(room_id) = json_string_field(&stdout, &["roomId", "id"]) else {
-        return fail(
-            app,
-            "taskroom create response missing roomId".to_string(),
-        );
+        return fail(app, "taskroom create response missing roomId".to_string());
     };
     let title = json_string_field(&stdout, &["title", "objective"])
         .unwrap_or_else(|| draft.objective.trim().to_string());

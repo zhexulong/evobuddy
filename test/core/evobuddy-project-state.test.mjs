@@ -26,9 +26,13 @@ describe('EvoBuddy project state', () => {
     assert.equal(state.nativeSessionLaunchPlansPath, join(resolve('/tmp/example'), '.evobuddy/native-session-launch-plans'));
     assert.equal(state.locksPath, join(resolve('/tmp/example'), '.evobuddy/locks'));
     assert.equal(state.evidenceRefreshPath, join(resolve('/tmp/example'), '.evobuddy/evidence-refresh'));
+    assert.equal(state.taskroomsPath, join(resolve('/tmp/example'), '.evobuddy/taskrooms'));
+    assert.equal(state.taskroomsIndexPath, join(resolve('/tmp/example'), '.evobuddy/taskrooms/index.json'));
     assert.equal(state.nativeSessionPath('session-1'), join(resolve('/tmp/example'), '.evobuddy/native-sessions/session-1.json'));
     assert.equal(state.agentInstanceSessionLockPath('instance-1'), join(resolve('/tmp/example'), '.evobuddy/locks/session-instance-1.lock'));
     assert.equal(state.evidenceRefreshRecordPath('room-1'), join(resolve('/tmp/example'), '.evobuddy/evidence-refresh/room-1.json'));
+    assert.equal(state.taskroomPath('room-1'), join(resolve('/tmp/example'), '.evobuddy/taskrooms/room-1'));
+    assert.equal(state.taskroomRoomJsonPath('room-1'), join(resolve('/tmp/example'), '.evobuddy/taskrooms/room-1/room.json'));
   });
 
   it('seeds bundled Buddy presets into a new project registry', async () => {
@@ -71,8 +75,11 @@ describe('EvoBuddy project state', () => {
       assert.equal(existsSync(join(resolve(root), '.evobuddy/native-session-launch-plans')), true);
       assert.equal(existsSync(join(resolve(root), '.evobuddy/locks')), true);
       assert.equal(existsSync(join(resolve(root), '.evobuddy/evidence-refresh')), true);
+      assert.equal(existsSync(join(resolve(root), '.evobuddy/taskrooms')), true);
       assert.equal(existsSync(join(resolve(root), '.evobuddy/native-sessions/index.json')), true);
+      assert.equal(existsSync(join(resolve(root), '.evobuddy/taskrooms/index.json')), true);
       assert.equal(statSync(join(resolve(root), '.evobuddy/native-sessions/index.json')).mode & 0o777, 0o600);
+      assert.equal(statSync(join(resolve(root), '.evobuddy/taskrooms/index.json')).mode & 0o777, 0o600);
       assert.equal(existsSync(join(resolve(root), '.evobuddy/mutations.jsonl')), false);
       assert.equal(existsSync(join(resolve(root), '.evobuddy/library')), false);
       assert.equal(existsSync(join(resolve(root), '.evobuddy/workflows')), false);
@@ -85,6 +92,7 @@ describe('EvoBuddy project state', () => {
       assert.equal(schema.nativeSessionLaunchPlanRoot, '.evobuddy/native-session-launch-plans');
       assert.equal(schema.lockRoot, '.evobuddy/locks');
       assert.equal(schema.evidenceRefreshRoot, '.evobuddy/evidence-refresh');
+      assert.equal(schema.taskroomsRoot, '.evobuddy/taskrooms');
       assert.equal(schema.materialRoot, undefined);
       assert.equal(schema.evidenceRoot, undefined);
       assert.equal(schema.mutationLog, undefined);

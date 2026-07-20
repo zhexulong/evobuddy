@@ -46,4 +46,6 @@ coverage/
 .worktrees/
 
 # Documentation is local-only (not product source of truth for release)
-docs/
+# Keep product docs tracked; ignore agent plan scratch only when untracked
+docs/superpowers/plans/*
+!docs/superpowers/plans/.gitkeep

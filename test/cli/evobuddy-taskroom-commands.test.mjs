@@ -53,7 +53,7 @@ describe('evobuddy taskroom mutation CLI', () => {
       const exported = await exportEvobuddyWorkbenchState({ projectRoot });
       const exportedRoom = exported.taskRooms.find((entry) => entry.id === payload.roomId);
       assert.ok(exportedRoom);
-      assert.equal(exportedRoom.availableActions.some((action) => action.enabled && action.id === 'open-native-runtime'), true);
+      assert.equal(exportedRoom.availableActions.some((action) => action.enabled && ['start-new-session','open-session','resume-conversation','heuristic-resume','continue-with-taskroom-context'].includes(action.id)), true);
     } finally {
       rmSync(projectRoot, { recursive: true, force: true });
     }

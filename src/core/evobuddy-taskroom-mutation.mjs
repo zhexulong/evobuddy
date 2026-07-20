@@ -148,43 +148,74 @@ function runtimeCapabilityFor(runtime) {
   };
 }
 
-function buildAvailableActions(room) {
+function buildAvailableActions(room, runtimeCapabilities = []) {
   const runtime = optionalString(room.runtime) ?? optionalString(room.participants?.[0]?.runtime);
   if (!runtime || !SUPPORTED_RUNTIMES.has(runtime)) {
     return [{
-      id: 'open-native-runtime',
-      label: 'Open native runtime',
+      id: 'open-session',
+      label: 'Open session',
       enabled: false,
-      disabledReason: 'Runtime capability is unavailable.',
+      disabledReason: runtime
+        ? `Runtime ${runtime} is not a supported native runtime.`
+        : 'No runtime selected for this TaskRoom.',
     }];
   }
-  const capability = runtimeCapabilityFor(runtime);
-  const continuation = deriveContinuationAction({
-    capabilityId: capability.capabilityId,
-    runtime: capability.runtime,
-    supportsFreshSession: capability.supportsFreshSession,
-    supportsContextContinuation: capability.supportsContextContinuation,
-    exactResume: {
-      supported: capability.exactResumeSupported,
-      requiresValidatedProviderConversationRef: true,
-    },
-    heuristicResume: {
-      supported: capability.heuristicResumeSupported,
-      source: null,
-    },
-    unsupportedReason: capability.unsupportedReason,
-    notes: [],
-  }, {
-    contextPacketRef: room.roomId ?? room.id,
-  });
-  return [{
-    id: 'open-native-runtime',
-    label: 'Open native runtime',
-    enabled: continuation.kind !== 'unsupported',
-    disabledReason: continuation.kind === 'unsupported'
-      ? continuation.reason ?? capability.unsupportedReason
-      : null,
-  }];
+  const projected = (Array.isArray(runtimeCapabilities) ? runtimeCapabilities : []).find((entry) => entry.runtime === runtime);
+  const capability = projected
+    ? {
+        capabilityId: projected.capabilityId ?? `runtime-capability:${runtime}`,
+        runtime,
+        supportsFreshSession: projected.supportsFreshSession !== false,
+        supportsContextContinuation: projected.supportsContextContinuation === true,
+        exactResumeSupported: projected.exactResumeSupported === true,
+        heuristicResumeSupported: projected.heuristicResumeSupported === true,
+        unsupportedReason: projected.unsupportedReason ?? null,
+      }
+    : runtimeCapabilityFor(runtime);
+
+  const actions = [];
+  if (capability.exactResumeSupported) {
+    actions.push({
+      id: 'resume-conversation',
+      label: 'Resume conversation',
+      enabled: true,
+      disabledReason: null,
+    });
+  }
+  if (capability.heuristicResumeSupported) {
+    actions.push({
+      id: 'heuristic-resume',
+      label: 'Heuristic resume',
+      enabled: true,
+      disabledReason: null,
+    });
+  }
+  if (capability.supportsContextContinuation) {
+    actions.push({
+      id: 'continue-with-taskroom-context',
+      label: 'Continue with TaskRoom context',
+      enabled: true,
+      disabledReason: null,
+    });
+  }
+  if (capability.supportsFreshSession) {
+    actions.push({
+      id: 'start-new-session',
+      label: 'Start new session',
+      enabled: true,
+      disabledReason: null,
+    });
+  }
+  if (actions.length === 0) {
+    actions.push({
+      id: 'open-session',
+      label: 'Open session',
+      enabled: false,
+      disabledReason: capability.unsupportedReason
+        ?? `${runtime} cannot open a native session right now.`,
+    });
+  }
+  return actions;
 }
 
 function projectDurableRoom(room) {
@@ -237,7 +268,7 @@ function projectDurableRoom(room) {
     ...projected,
     participants: room.participants,
     roomId: room.roomId,
-  });
+  }, []);
   return projected;
 }
 

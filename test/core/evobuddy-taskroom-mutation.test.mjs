@@ -55,13 +55,13 @@ describe('evobuddy taskroom mutations', () => {
       assert.match(projected[0].acceptanceCriteria, /Room persists and export enables open-native-runtime/);
       assert.equal(projected[0].participants.length, 1);
       assert.equal(Array.isArray(projected[0].availableActions), true);
-      assert.equal(projected[0].availableActions[0].id, 'open-native-runtime');
+      assert.ok(['start-new-session','continue-with-taskroom-context','resume-conversation','heuristic-resume'].includes(projected[0].availableActions[0].id));
       assert.equal(projected[0].availableActions[0].enabled, true);
 
       const exported = await exportEvobuddyWorkbenchState({ projectRoot });
       const exportedRoom = exported.taskRooms.find((room) => room.id === created.roomId);
       assert.ok(exportedRoom, 'export must include durable room');
-      assert.equal(exportedRoom.availableActions.some((action) => action.id === 'open-native-runtime' && action.enabled), true);
+      assert.equal(exportedRoom.availableActions.some((action) => ['start-new-session','open-session','resume-conversation','heuristic-resume','continue-with-taskroom-context'].includes(action.id) && action.enabled), true);
       assert.equal(Array.isArray(exported.nativeSessions), true);
       assert.equal(Array.isArray(exported.runtimeCapabilities), true);
       const codexCapability = exported.runtimeCapabilities.find((entry) => entry.runtime === 'codex');

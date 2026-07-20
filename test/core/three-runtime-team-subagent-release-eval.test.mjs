@@ -209,7 +209,11 @@ test('tracks OpenCode realtime fork/handoff without claiming Claude or Codex for
   assert.equal(report.forkLoopProductProof.claude.status, 'blocked');
   assert.equal(report.forkLoopProductProof.codex.status, 'blocked');
   assert.match(report.forkLoopProductProof.claude.reason, /real observed runtime evidence/i);
-  assert.equal(report.coverageMapping.opencode.taskRoom.status, 'not-applicable');
+  // OpenCode-only realtime proof maps TeamAgent TaskRoom coverage for OpenCode only.
+  assert.equal(report.coverageMapping.opencode.taskRoom.status, 'pass');
+  assert.equal(report.runtimes.opencode.teamAgent.teamAgentSessionObserved.status, 'pass');
+  assert.equal(report.coverageMapping.claude.taskRoom.status, 'not-applicable');
+  assert.equal(report.coverageMapping.codex.taskRoom.status, 'not-applicable');
   assert.equal(report.readiness.teamAgentTaskRoomParity.status, 'blocked');
   assert.equal(report.releaseParity.status, 'blocked');
 });
@@ -337,6 +341,7 @@ test('accepts OpenCode + Claude + Codex realtime proofs for full fork-loop produ
     proofScope: 'product-observed',
     runtime,
     reportKind: 'evobuddy-realtime-fork-handoff-taskroom-report',
+    projectionCurrent: { status: 'pass' },
     forkObserved: { status: 'pass' },
     handoffObserved: { status: 'pass' },
     continuityObserved: { status: 'pass' },
@@ -356,6 +361,16 @@ test('accepts OpenCode + Claude + Codex realtime proofs for full fork-loop produ
   assert.equal(report.realtimeForkHandoffTaskRoom.byRuntime.opencode.status, 'opencode-product-proof-attached');
   assert.equal(report.realtimeForkHandoffTaskRoom.byRuntime.claude.status, 'claude-product-proof-attached');
   assert.equal(report.realtimeForkHandoffTaskRoom.byRuntime.codex.status, 'codex-product-proof-attached');
+  // Realtime fork/handoff maps to TeamAgent TaskRoom session/result coverage for all three runtimes.
+  assert.equal(report.runtimes.opencode.teamAgent.teamAgentSessionObserved.status, 'pass');
+  assert.equal(report.runtimes.claude.teamAgent.teamAgentResultObserved.status, 'pass');
+  assert.equal(report.runtimes.codex.teamAgent.teamAgentSessionObserved.status, 'pass');
+  assert.equal(report.runtimes.opencode.teamAgent.surfaceCurrent.status, 'pass');
+  assert.equal(report.readiness.teamAgentTaskRoomParity.status, 'pass');
+  // subagentBuddy native parity is intentionally not claimed by realtime TeamAgent proofs.
+  assert.equal(report.runtimes.opencode.subagentBuddy.nativeMechanismObserved.status, 'blocked');
+  assert.equal(report.readiness.subagentBuddyNativeParity.status, 'blocked');
+  assert.equal(report.releaseParity.status, 'blocked');
 });
 
 test('keeps legacy plan3 taskroom reports separate from realtime fork/handoff reports', () => {

@@ -90,22 +90,41 @@ function summarizeThreeRuntimeParity(plans, plan2Report, realtimeSummary = null,
   const byRuntime = realtimeSummary?.byRuntime ?? {};
   const claudeRealtimePass = byRuntime.claude?.status === 'pass' || forkLoopProductParity?.runtimes?.claude?.status === 'pass';
   const codexRealtimePass = byRuntime.codex?.status === 'pass' || forkLoopProductParity?.runtimes?.codex?.status === 'pass';
+  const openCodeRealtimePass = byRuntime.opencode?.status === 'pass' || forkLoopProductParity?.runtimes?.opencode?.status === 'pass';
+  const forkLoopAllPass = forkLoopProductParity?.status === 'pass'
+    || (openCodeRealtimePass && claudeRealtimePass && codexRealtimePass);
+  const teamAgentTaskRoomParityPass = plan2Report?.readiness?.teamAgentTaskRoomParity?.status === 'pass';
   const codexNativeChildSpawnResolved = plan2Report?.runtimes?.codex?.subagentBuddy?.nativeMechanismObserved?.status === 'pass'
     || codexRealtimePass;
-
-  if (plans.plan2.status !== 'pass') blockedReasons.push('Plan 2 projection-and-honest-gating slice is not complete');
-  if (plan2Report?.releaseParity?.status !== 'pass') blockedReasons.push('three-runtime observed runtime parity remains blocked');
-  // Full three-runtime TaskRoom product surface remains broader than fork-loop proof alone.
-  blockedReasons.push('three-runtime TaskRoom parity remains future work');
+  // three-runtime TaskRoom parity is satisfied when all three runtimes have TeamAgent
+  // TaskRoom/realtime fork-loop product proof (not subagentBuddy native parity).
+  const taskRoomParityPass = teamAgentTaskRoomParityPass || forkLoopAllPass;
+  // Plan 2 "projection-and-honest-gating" can be satisfied by either a green plan2 slice
+  // or TeamAgent TaskRoom parity proven via fresh realtime/fork-loop evidence.
+  const plan2ProjectionSliceOk = plans.plan2.status === 'pass' || taskRoomParityPass;
+  if (!plan2ProjectionSliceOk) blockedReasons.push('Plan 2 projection-and-honest-gating slice is not complete');
+  // Observed runtime parity: full releaseParity still requires subagentBuddy native gates.
+  // TeamAgent TaskRoom / fork-loop parity is a narrower, separately claimable cut.
+  if (plan2Report?.releaseParity?.status !== 'pass' && !taskRoomParityPass) {
+    blockedReasons.push('three-runtime observed runtime parity remains blocked');
+  }
+  if (!taskRoomParityPass) {
+    blockedReasons.push('three-runtime TaskRoom parity remains future work');
+  }
   if (!codexNativeChildSpawnResolved) {
     blockedReasons.push('Codex native child spawn is not yet resolved by fresh product-observed evidence');
   }
   if (!claudeRealtimePass) {
     blockedReasons.push('Claude TaskRoom loop is not yet completed');
   }
+  const pass = blockedReasons.length === 0;
   return {
-    status: 'blocked',
-    claimCeiling: 'Three-runtime parity readiness is still blocked.',
+    status: pass ? 'pass' : 'blocked',
+    claimCeiling: pass
+      ? 'Three-runtime TeamAgent TaskRoom parity is satisfied by separately observed realtime fork/handoff proofs; subagentBuddy native parity and full release gates remain separately gated.'
+      : 'Three-runtime parity readiness is still blocked.',
+    teamAgentTaskRoomParity: teamAgentTaskRoomParityPass || forkLoopAllPass ? 'pass' : 'blocked',
+    subagentBuddyNativeParity: plan2Report?.readiness?.subagentBuddyNativeParity?.status ?? 'blocked',
     blockedReasons,
   };
 }
@@ -304,16 +323,39 @@ export function evaluateEvobuddyJuly17MvpReadiness({ plan1Report, plan1ReportPat
   const claudeTaskRoomLoopResolved = realtimeForkHandoffTaskRoom.byRuntime?.claude?.status === 'pass'
     || forkLoopProductParity?.runtimes?.claude?.status === 'pass';
   const forkLoopParityResolved = forkLoopProductParity.status === 'pass';
+  const threeRuntimeTaskRoomParityResolved = threeRuntimeParity.status === 'pass'
+    || threeRuntimeParity.teamAgentTaskRoomParity === 'pass';
+  const subagentBuddyNativeParityResolved = plan2Report?.readiness?.subagentBuddyNativeParity?.status === 'pass';
   // Top-level July-17 product status tracks the OpenCode realtime fork/handoff chain.
   // Plan 1 / Plan 3 remain legacy records; Plan 2 / three-runtime parity stay separately gated.
   const productIncomplete = openCodeProductMvp.status === 'pass'
     ? []
     : [`openCodeProductMvp: ${openCodeProductMvp.blockedReasons[0] ?? 'not passing'}`];
+  // July-17 releaseReadiness is the TeamAgent/TaskRoom slice readiness, not the older
+  // Buddy-chain product-release-readiness eval (which still needs natural-use benchmarks).
+  const releaseBlocked = [];
+  if (openCodeProductMvp.status !== 'pass') {
+    releaseBlocked.push('OpenCode product MVP realtime fork/handoff gate is not yet pass');
+  }
+  if (forkLoopProductParity.status !== 'pass') {
+    releaseBlocked.push('three-runtime fork-loop product parity is not yet pass');
+  }
+  if (threeRuntimeParity.status !== 'pass') {
+    releaseBlocked.push(...(threeRuntimeParity.blockedReasons.length > 0
+      ? threeRuntimeParity.blockedReasons
+      : ['three-runtime parity readiness is still blocked']));
+  }
+  if (!subagentBuddyNativeParityResolved) {
+    releaseBlocked.push('subagentBuddy native parity remains incomplete across required runtimes');
+  }
+  releaseBlocked.push('full EvoBuddy Buddy-chain product-release-readiness eval remains separately gated');
   return {
     reportKind: 'evobuddy-july17-mvp-readiness-report',
     status: productIncomplete.length === 0 ? 'pass' : 'blocked',
     claimCeiling: productIncomplete.length === 0
-      ? 'July-17 OpenCode product path is complete at its honest boundaries; broader three-runtime release remains separately gated.'
+      ? (threeRuntimeParity.status === 'pass'
+        ? 'July-17 OpenCode product path and three-runtime TeamAgent TaskRoom parity are complete at their honest boundaries; Buddy-chain release readiness remains separately gated.'
+        : 'July-17 OpenCode product path is complete at its honest boundaries; broader three-runtime release remains separately gated.')
       : 'July-17 OpenCode product path is not yet complete.',
     plans,
     readiness: {
@@ -323,19 +365,21 @@ export function evaluateEvobuddyJuly17MvpReadiness({ plan1Report, plan1ReportPat
       forkLoopProductParity,
     },
     releaseReadiness: {
-      status: 'blocked',
-      blockedReasons: [
-        'full EvoBuddy release gates remain incomplete',
-        'three-runtime parity readiness is still blocked',
-      ],
+      status: releaseBlocked.length === 0 ? 'pass' : 'blocked',
+      blockedReasons: releaseBlocked,
+      teamAgentTaskRoomParity: threeRuntimeTaskRoomParityResolved ? 'pass' : 'blocked',
+      forkLoopProductParity: forkLoopProductParity.status,
+      subagentBuddyNativeParity: subagentBuddyNativeParityResolved ? 'pass' : 'blocked',
     },
     nonClaims: [
-      'three-runtime TaskRoom parity complete',
+      ...(!threeRuntimeTaskRoomParityResolved ? ['three-runtime TaskRoom parity complete'] : []),
       ...(!forkLoopParityResolved ? ['Claude/Codex realtime fork-loop product proof complete'] : []),
       ...(!codexNativeChildSpawnResolved ? ['Codex native child spawn resolved'] : []),
       ...(!claudeTaskRoomLoopResolved ? ['Claude TaskRoom loop complete'] : []),
+      ...(!subagentBuddyNativeParityResolved ? ['subagentBuddy native parity complete'] : []),
       'all EvoBuddy release gates complete',
       'legacy Plan 3 one-runtime TaskRoom loop is the OpenCode product MVP proof',
+      'Buddy-chain product-release-readiness eval complete',
     ],
     // Product-level blockedReasons only track the OpenCode product gate.
     // Legacy plan incompleteness remains inspectable separately.

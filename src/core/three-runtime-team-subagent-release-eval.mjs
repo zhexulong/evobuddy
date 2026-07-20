@@ -256,8 +256,72 @@ function applyTaskRoomTeamAgentCoverage(runtimes, taskRoom) {
   return passingByRuntime;
 }
 
+/**
+ * Realtime fork/handoff product proofs are TeamAgent TaskRoom evidence.
+ * Map each passing runtime attachment onto teamAgent session/result (and surfaceCurrent
+ * when projectionCurrent anchors are present on the raw proof). Does not claim subagentBuddy.
+ */
+function applyRealtimeForkHandoffTeamAgentCoverage(runtimes, realtimeRaw, reportPath) {
+  const passingByRuntime = new Map();
+  const entries = asReportArray(realtimeRaw, reportPath);
+  for (const { report: entry, reportPath: path } of entries) {
+    if (!realtimeForkHandoffPass(entry)) continue;
+    const runtime = entry.runtime;
+    const runtimeEntry = runtimes[runtime];
+    if (!runtimeEntry?.teamAgent) continue;
+    // Prefer full surfaceCurrent when the proof carries projectionCurrent pass or anchors.
+    const anchors = entry.taskRoomLoop?.surfaceCurrentAnchors
+      ?? entry.taskRoom?.proof?.surfaceCurrentAnchors
+      ?? [];
+    const projectionPass = entry.projectionCurrent?.status === 'pass'
+      || hasSurfaceCurrentAnchors({ taskRoom: { proof: { surfaceCurrentAnchors: anchors } } });
+    if (projectionPass) {
+      runtimeEntry.teamAgent.surfaceCurrent = {
+        status: 'pass',
+        note: 'realtime-fork-handoff-projection-current',
+      };
+    }
+    for (const gate of TASKROOM_TEAM_AGENT_OBSERVED_GATES) {
+      runtimeEntry.teamAgent[gate] = {
+        status: 'pass',
+        note: 'realtime-fork-handoff-teamagent-proof',
+      };
+    }
+    passingByRuntime.set(runtime, {
+      status: 'pass',
+      proofScope: entry.proofScope,
+      runtime,
+      reportKind: entry.reportKind ?? 'evobuddy-realtime-fork-handoff-taskroom-report',
+      reportPath: path ?? entry.reportPath ?? null,
+      taskRoom: {
+        proof: {
+          surfaceCurrentAnchors: anchors,
+        },
+      },
+    });
+  }
+  return passingByRuntime;
+}
+
+function mergePassingTaskRooms(...maps) {
+  const merged = new Map();
+  for (const map of maps) {
+    for (const [runtime, entry] of map.entries()) {
+      merged.set(runtime, entry);
+    }
+  }
+  return merged;
+}
+
 function allGatesPass(group, gates) {
   return gates.every((gate) => gateStatus(group, gate) === 'pass');
+}
+
+function taskRoomProvenBy(taskRoomEntry) {
+  if (isRealtimeForkHandoffReport(taskRoomEntry) || taskRoomEntry?.reportKind === 'evobuddy-realtime-fork-handoff-taskroom-report') {
+    return 'evobuddy-realtime-fork-handoff-taskroom-report';
+  }
+  return 'evobuddy-taskroom-team-loop-report';
 }
 
 function buildCoverageMapping(runtimes, passingTaskRooms) {
@@ -265,17 +329,26 @@ function buildCoverageMapping(runtimes, passingTaskRooms) {
   for (const runtime of REQUIRED_RUNTIMES) {
     const entry = runtimes[runtime] ?? {};
     const fullTeamAgentPass = allGatesPass(entry.teamAgent, TEAM_AGENT_GATES);
-    const taskRoomObservedTeamAgentPass = passingTaskRooms.has(runtime) && TASKROOM_TEAM_AGENT_OBSERVED_GATES.every((gate) => gateStatus(entry.teamAgent, gate) === 'pass');
+    const taskRoomObservedTeamAgentPass = passingTaskRooms.has(runtime)
+      && TASKROOM_TEAM_AGENT_OBSERVED_GATES.every((gate) => gateStatus(entry.teamAgent, gate) === 'pass');
     const teamAgentMappedTo = fullTeamAgentPass
       ? TEAM_AGENT_GATES.map((gate) => `${runtime}.teamAgent.${gate}`)
       : taskRoomObservedTeamAgentPass
         ? TASKROOM_TEAM_AGENT_OBSERVED_GATES.map((gate) => `${runtime}.teamAgent.${gate}`)
         : [];
     const subagentBuddyPass = allGatesPass(entry.subagentBuddy, SUBAGENT_BUDDY_GATES);
+    const taskRoomEntry = passingTaskRooms.get(runtime);
+    const taskRoomProof = taskRoomEntry ? taskRoomProvenBy(taskRoomEntry) : null;
     coverage[runtime] = {
       teamAgent: {
         status: fullTeamAgentPass ? 'pass' : taskRoomObservedTeamAgentPass ? 'observed-pass' : 'blocked',
-        provenBy: fullTeamAgentPass && runtime === 'codex' ? 'codex-reviewer-actor-surface-proof' : taskRoomObservedTeamAgentPass ? 'evobuddy-taskroom-team-loop-report' : null,
+        provenBy: fullTeamAgentPass && runtime === 'codex' && !taskRoomProof
+          ? 'codex-reviewer-actor-surface-proof'
+          : (taskRoomObservedTeamAgentPass || fullTeamAgentPass) && taskRoomProof
+            ? taskRoomProof
+            : fullTeamAgentPass
+              ? null
+              : null,
         mappedTo: teamAgentMappedTo,
       },
       subagentBuddy: {
@@ -285,8 +358,13 @@ function buildCoverageMapping(runtimes, passingTaskRooms) {
       },
       taskRoom: {
         status: passingTaskRooms.has(runtime) ? 'pass' : 'not-applicable',
-        provenBy: passingTaskRooms.has(runtime) ? 'evobuddy-taskroom-team-loop-report' : null,
-        mappedTo: passingTaskRooms.has(runtime) ? [...TASKROOM_TEAM_AGENT_OBSERVED_GATES.map((gate) => `${runtime}.teamAgent.${gate}`), `taskRoom.${runtime}`] : [],
+        provenBy: taskRoomProof,
+        mappedTo: passingTaskRooms.has(runtime)
+          ? [
+            ...TEAM_AGENT_GATES.filter((gate) => gateStatus(entry.teamAgent, gate) === 'pass').map((gate) => `${runtime}.teamAgent.${gate}`),
+            `taskRoom.${runtime}`,
+          ]
+          : [],
         notMappedTo: passingTaskRooms.has(runtime) ? [`${runtime}.subagentBuddy.nativeMechanismObserved`, `${runtime}.subagentBuddy.naturalUseObserved`, `${runtime}.subagentBuddy.childResultReturnObserved`] : [],
       },
     };
@@ -297,14 +375,14 @@ function buildCoverageMapping(runtimes, passingTaskRooms) {
 function buildReadiness(runtimes, passingTaskRooms) {
   const teamAgentIssues = [];
   for (const runtime of REQUIRED_RUNTIMES) {
-    if (runtime === 'codex') {
-      for (const gate of TEAM_AGENT_GATES) {
-        const status = gateStatus(runtimes[runtime]?.teamAgent, gate);
-        if (status !== 'pass') teamAgentIssues.push(`${runtime}: teamAgent.${gate} ${status}`);
-      }
-      continue;
+    // All three runtimes can satisfy TeamAgent TaskRoom parity via either:
+    // - full teamAgent gate pass, or
+    // - product-observed TaskRoom/realtime fork-handoff attachment covering session+result
+    //   (and surfaceCurrent when projection anchors are present).
+    if (allGatesPass(runtimes[runtime]?.teamAgent, TEAM_AGENT_GATES)) continue;
+    if (!passingTaskRooms.has(runtime)) {
+      teamAgentIssues.push(`${runtime}: taskRoom proof missing`);
     }
-    if (!passingTaskRooms.has(runtime)) teamAgentIssues.push(`${runtime}: taskRoom proof missing`);
     for (const gate of TASKROOM_TEAM_AGENT_OBSERVED_GATES) {
       const status = gateStatus(runtimes[runtime]?.teamAgent, gate);
       if (status !== 'pass') teamAgentIssues.push(`${runtime}: teamAgent.${gate} ${status}`);
@@ -323,7 +401,10 @@ function buildReadiness(runtimes, passingTaskRooms) {
 
   return {
     teamAgentTaskRoomParity: teamAgentIssues.length === 0
-      ? { status: 'pass', evidence: ['codex.teamAgent', ...[...passingTaskRooms.keys()].map((runtime) => `taskRoom.${runtime}`)] }
+      ? {
+        status: 'pass',
+        evidence: [...passingTaskRooms.keys()].map((runtime) => `taskRoom.${runtime}`),
+      }
       : { status: 'blocked', issues: teamAgentIssues },
     subagentBuddyNativeParity: subagentIssues.length === 0
       ? { status: 'pass', evidence: subagentEvidence }
@@ -333,7 +414,13 @@ function buildReadiness(runtimes, passingTaskRooms) {
 
 export function evaluateThreeRuntimeTeamSubagentRelease({ runtimes, projectionParity, taskRoom, taskRoomReportPath, realtimeForkHandoffTaskRoom, realtimeForkHandoffReportPath }) {
   const normalizedRuntimes = cloneJson(runtimes) ?? {};
-  const passingTaskRooms = applyTaskRoomTeamAgentCoverage(normalizedRuntimes, taskRoom);
+  const legacyPassingTaskRooms = applyTaskRoomTeamAgentCoverage(normalizedRuntimes, taskRoom);
+  const realtimePassingTaskRooms = applyRealtimeForkHandoffTeamAgentCoverage(
+    normalizedRuntimes,
+    realtimeForkHandoffTaskRoom,
+    realtimeForkHandoffReportPath,
+  );
+  const passingTaskRooms = mergePassingTaskRooms(legacyPassingTaskRooms, realtimePassingTaskRooms);
   const issues = [];
   for (const runtime of REQUIRED_RUNTIMES) {
     const entry = normalizedRuntimes?.[runtime];

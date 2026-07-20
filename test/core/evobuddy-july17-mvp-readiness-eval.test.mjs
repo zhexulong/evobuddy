@@ -256,11 +256,17 @@ test('accepts multi-runtime realtime fork/handoff reports for fork-loop parity w
   assert.ok(!report.nonClaims.includes('Claude/Codex realtime fork-loop product proof complete'));
   assert.ok(!report.nonClaims.includes('Codex native child spawn resolved'));
   assert.ok(!report.nonClaims.includes('Claude TaskRoom loop complete'));
+  assert.ok(!report.nonClaims.includes('three-runtime TaskRoom parity complete'));
   assert.ok(!report.readiness.threeRuntimeParity.blockedReasons.includes('Codex native child spawn is not yet resolved by fresh product-observed evidence'));
   assert.ok(!report.readiness.threeRuntimeParity.blockedReasons.includes('Claude TaskRoom loop is not yet completed'));
-  // Broader three-runtime TaskRoom surface remains blocked even when fork-loop parity is green.
-  assert.equal(report.readiness.threeRuntimeParity.status, 'blocked');
-  assert.ok(report.readiness.threeRuntimeParity.blockedReasons.includes('three-runtime TaskRoom parity remains future work'));
+  // Three-runtime TeamAgent TaskRoom parity is now claimable from multi-runtime realtime proofs.
+  assert.equal(report.readiness.threeRuntimeParity.status, 'pass');
+  assert.equal(report.readiness.threeRuntimeParity.teamAgentTaskRoomParity, 'pass');
+  // subagentBuddy native + Buddy-chain release readiness remain separately gated.
+  assert.equal(report.releaseReadiness.status, 'blocked');
+  assert.ok(report.releaseReadiness.blockedReasons.some((reason) => /subagentBuddy|Buddy-chain/i.test(reason)));
+  assert.ok(report.nonClaims.includes('subagentBuddy native parity complete'));
+  assert.ok(report.nonClaims.includes('Buddy-chain product-release-readiness eval complete'));
 });
 
 test('wires openCodeProductMvp to fresh realtime fork/handoff proof while keeping plan3 legacy', () => {

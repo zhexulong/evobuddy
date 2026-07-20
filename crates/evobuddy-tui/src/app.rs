@@ -133,8 +133,10 @@ pub struct WorkbenchApp {
     pub selected_command: usize,
     pub task_room_form: CreateTaskRoomDraft,
     pub task_room_form_field: usize,
+    pub task_room_form_field_errors: [Option<String>; 6],
     pub handoff_form: CreateHandoffDraft,
     pub handoff_form_field: usize,
+    pub handoff_form_field_errors: [Option<String>; 6],
     pub structured_question: Option<StructuredQuestion>,
     pub action_status: Option<String>,
     pub durable_writes: Vec<String>,
@@ -174,6 +176,7 @@ impl WorkbenchApp {
                 safety_mode: String::new(),
             },
             task_room_form_field: 0,
+            task_room_form_field_errors: [None, None, None, None, None, None],
             handoff_form: CreateHandoffDraft {
                 sender: String::new(),
                 receiver: String::new(),
@@ -183,6 +186,7 @@ impl WorkbenchApp {
                 return_destination: String::new(),
             },
             handoff_form_field: 0,
+            handoff_form_field_errors: [None, None, None, None, None, None],
             structured_question: None,
             action_status: None,
             durable_writes: Vec::new(),
@@ -403,6 +407,7 @@ impl WorkbenchApp {
             safety_mode: String::new(),
         };
         self.task_room_form_field = 0;
+        self.task_room_form_field_errors = [None, None, None, None, None, None];
         self.push_view(ViewMode::TaskRoomForm);
     }
 
@@ -416,6 +421,7 @@ impl WorkbenchApp {
             return_destination: String::new(),
         };
         self.handoff_form_field = 0;
+        self.handoff_form_field_errors = [None, None, None, None, None, None];
         self.push_view(ViewMode::HandoffForm);
     }
 
@@ -431,26 +437,54 @@ impl WorkbenchApp {
         }
     }
 
+    pub fn reverse_active_form_field(&mut self) {
+        match self.view_mode {
+            ViewMode::TaskRoomForm => {
+                self.task_room_form_field = self.task_room_form_field.saturating_sub(1);
+            }
+            ViewMode::HandoffForm => {
+                self.handoff_form_field = self.handoff_form_field.saturating_sub(1);
+            }
+            _ => {}
+        }
+    }
+
     pub fn append_to_active_input(&mut self, ch: char) {
         match self.view_mode {
-            ViewMode::TaskRoomForm => match self.task_room_form_field {
-                0 => self.task_room_form.objective.push(ch),
-                1 => self.task_room_form.acceptance_criteria.push(ch),
-                2 => self.task_room_form.workspace.push(ch),
-                3 => self.task_room_form.actor.push(ch),
-                4 => self.task_room_form.runtime.push(ch),
-                5 => self.task_room_form.safety_mode.push(ch),
-                _ => {}
-            },
-            ViewMode::HandoffForm => match self.handoff_form_field {
-                0 => self.handoff_form.sender.push(ch),
-                1 => self.handoff_form.receiver.push(ch),
-                2 => self.handoff_form.body.push(ch),
-                3 => self.handoff_form.artifact_refs.push(ch),
-                4 => self.handoff_form.expected_next_action.push(ch),
-                5 => self.handoff_form.return_destination.push(ch),
-                _ => {}
-            },
+            ViewMode::TaskRoomForm => {
+                if let Some(err) = self
+                    .task_room_form_field_errors
+                    .get_mut(self.task_room_form_field)
+                {
+                    *err = None;
+                }
+                match self.task_room_form_field {
+                    0 => self.task_room_form.objective.push(ch),
+                    1 => self.task_room_form.acceptance_criteria.push(ch),
+                    2 => self.task_room_form.workspace.push(ch),
+                    3 => self.task_room_form.actor.push(ch),
+                    4 => self.task_room_form.runtime.push(ch),
+                    5 => self.task_room_form.safety_mode.push(ch),
+                    _ => {}
+                }
+            }
+            ViewMode::HandoffForm => {
+                if let Some(err) = self
+                    .handoff_form_field_errors
+                    .get_mut(self.handoff_form_field)
+                {
+                    *err = None;
+                }
+                match self.handoff_form_field {
+                    0 => self.handoff_form.sender.push(ch),
+                    1 => self.handoff_form.receiver.push(ch),
+                    2 => self.handoff_form.body.push(ch),
+                    3 => self.handoff_form.artifact_refs.push(ch),
+                    4 => self.handoff_form.expected_next_action.push(ch),
+                    5 => self.handoff_form.return_destination.push(ch),
+                    _ => {}
+                }
+            }
             ViewMode::StructuredQuestion => {
                 if let Some(question) = &mut self.structured_question {
                     if question.allows_free_text {
@@ -462,7 +496,90 @@ impl WorkbenchApp {
         }
     }
 
+    pub fn pop_active_input(&mut self) {
+        match self.view_mode {
+            ViewMode::TaskRoomForm => {
+                if let Some(err) = self
+                    .task_room_form_field_errors
+                    .get_mut(self.task_room_form_field)
+                {
+                    *err = None;
+                }
+                match self.task_room_form_field {
+                    0 => {
+                        self.task_room_form.objective.pop();
+                    }
+                    1 => {
+                        self.task_room_form.acceptance_criteria.pop();
+                    }
+                    2 => {
+                        self.task_room_form.workspace.pop();
+                    }
+                    3 => {
+                        self.task_room_form.actor.pop();
+                    }
+                    4 => {
+                        self.task_room_form.runtime.pop();
+                    }
+                    5 => {
+                        self.task_room_form.safety_mode.pop();
+                    }
+                    _ => {}
+                }
+            }
+            ViewMode::HandoffForm => match self.handoff_form_field {
+                0 => {
+                    self.handoff_form.sender.pop();
+                }
+                1 => {
+                    self.handoff_form.receiver.pop();
+                }
+                2 => {
+                    self.handoff_form.body.pop();
+                }
+                3 => {
+                    self.handoff_form.artifact_refs.pop();
+                }
+                4 => {
+                    self.handoff_form.expected_next_action.pop();
+                }
+                5 => {
+                    self.handoff_form.return_destination.pop();
+                }
+                _ => {}
+            },
+            ViewMode::StructuredQuestion => {
+                if let Some(question) = &mut self.structured_question {
+                    if question.allows_free_text {
+                        question.free_text.pop();
+                    }
+                }
+            }
+            ViewMode::CommandPalette => {
+                self.command_query.pop();
+            }
+            ViewMode::Search => {
+                self.search_query.pop();
+            }
+            _ => {}
+        }
+    }
+
     pub fn submit_task_room_form(&mut self) -> WorkbenchEffect {
+        self.task_room_form_field_errors = [None, None, None, None, None, None];
+        let mut invalid = false;
+        if self.task_room_form.objective.trim().is_empty() {
+            self.task_room_form_field_errors[0] =
+                Some("Objective is required".to_string());
+            invalid = true;
+        }
+        if self.task_room_form.runtime.trim().is_empty() {
+            self.task_room_form_field_errors[4] = Some("Runtime is required".to_string());
+            invalid = true;
+        }
+        if invalid {
+            return WorkbenchEffect::None;
+        }
         let draft = self.task_room_form.clone();
         self.action_status = Some("taskroom creation queued".to_string());
         self.push_view(ViewMode::ActionProgress);
@@ -470,6 +587,23 @@ impl WorkbenchApp {
     }
 
     pub fn submit_handoff_form(&mut self) -> WorkbenchEffect {
+        self.handoff_form_field_errors = [None, None, None, None, None, None];
+        let mut invalid = false;
+        if self.handoff_form.sender.trim().is_empty() {
+            self.handoff_form_field_errors[0] = Some("Sender is required".to_string());
+            invalid = true;
+        }
+        if self.handoff_form.receiver.trim().is_empty() {
+            self.handoff_form_field_errors[1] = Some("Receiver is required".to_string());
+            invalid = true;
+        }
+        if self.handoff_form.body.trim().is_empty() {
+            self.handoff_form_field_errors[2] = Some("Body is required".to_string());
+            invalid = true;
+        }
+        if invalid {
+            return WorkbenchEffect::None;
+        }
         let draft = self.handoff_form.clone();
         self.action_status = Some("handoff creation queued".to_string());
         self.push_view(ViewMode::ActionProgress);

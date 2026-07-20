@@ -1,6 +1,7 @@
 pub mod command_palette;
 pub mod dashboard;
 pub mod detail;
+pub mod form_kit;
 pub mod handoff_form;
 pub mod help;
 pub mod peek;

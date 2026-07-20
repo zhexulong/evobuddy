@@ -97,6 +97,8 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
         KeyCode::Right => Some(KeyInput::Right),
         KeyCode::Enter => Some(KeyInput::Enter),
         KeyCode::Esc => Some(KeyInput::Escape),
+        KeyCode::Backspace => Some(KeyInput::Backspace),
+        KeyCode::Delete => Some(KeyInput::Delete),
         KeyCode::Tab if key.modifiers.contains(KeyModifiers::CONTROL) => Some(KeyInput::NextField),
         KeyCode::Tab => Some(if key.modifiers.contains(KeyModifiers::SHIFT) {
             KeyInput::ShiftTab
@@ -134,6 +136,17 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
         }
         _ => None,
     }
+}
+
+/// Returns the effect names (discriminant short identifiers) that
+/// `run_interactive_app` actually dispatches.  This is the single source of
+/// truth for tests that gate whether an effect is handled vs. discarded.
+/// When a new effect branch is added to `run_interactive_app`, this list
+/// MUST be updated at the same time.
+pub fn effect_names_handled_by_ui() -> Vec<&'static str> {
+    // ── Keep in sync with `run_interactive_app` dispatch ──────────────
+    // Currently only OpenNativeRuntime has a real execution branch.
+    vec!["OpenNativeRuntime"]
 }
 
 pub fn run_interactive_app(app: &mut WorkbenchApp) -> Result<()> {

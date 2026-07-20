@@ -7,6 +7,7 @@ use evobuddy_tui::app::{
 };
 use evobuddy_tui::input::{handle_key_event, KeyInput};
 use evobuddy_tui::model::parse_workbench_state;
+use evobuddy_tui::ui::effect_names_handled_by_ui;
 use evobuddy_tui::views::{DetailView, ViewMode};
 
 fn load_app(name: &str) -> WorkbenchApp {
@@ -167,6 +168,11 @@ fn new_room_form_opens_from_dashboard_and_submits_typed_effect() {
     handle_key_event(&mut app, KeyInput::NextField);
     handle_key_event(&mut app, KeyInput::Char('D'));
     handle_key_event(&mut app, KeyInput::Char('o'));
+    handle_key_event(&mut app, KeyInput::NextField);
+    handle_key_event(&mut app, KeyInput::NextField);
+    handle_key_event(&mut app, KeyInput::NextField);
+    handle_key_event(&mut app, KeyInput::Char('o'));
+    handle_key_event(&mut app, KeyInput::Char('p'));
 
     let effect = handle_key_event(&mut app, KeyInput::Enter);
 
@@ -178,7 +184,7 @@ fn new_room_form_opens_from_dashboard_and_submits_typed_effect() {
             acceptance_criteria: "Do".to_string(),
             workspace: String::new(),
             actor: String::new(),
-            runtime: String::new(),
+            runtime: "op".to_string(),
             safety_mode: String::new(),
         })
     );
@@ -214,6 +220,17 @@ fn handoff_form_opens_from_taskroom_workspace_and_submits_typed_effect() {
         })
     );
     assert_eq!(app.view_mode, ViewMode::ActionProgress);
+}
+
+#[test]
+fn empty_task_room_form_fields_block_submit() {
+    let mut app = load_app("evobuddy-workbench-state-v1.json");
+    handle_key_event(&mut app, KeyInput::NewRoom);
+    let effect = handle_key_event(&mut app, KeyInput::Enter);
+    assert_eq!(effect, WorkbenchEffect::None);
+    assert_eq!(app.view_mode, ViewMode::TaskRoomForm);
+    assert!(app.task_room_form_field_errors[0].is_some());
+    assert!(app.task_room_form_field_errors[4].is_some());
 }
 
 #[test]
@@ -278,24 +295,31 @@ fn taskroom_first_home_exposes_contextual_actions_from_selected_room() {
 #[test]
 fn create_task_room_effect_is_executed_not_discarded() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
+    app.task_room_form.objective = "obj".to_string();
+    app.task_room_form.runtime = "opencode".to_string();
     let effect = app.submit_task_room_form();
     assert!(matches!(effect, WorkbenchEffect::CreateTaskRoom(_)));
+    let handled = effect_names_handled_by_ui();
     assert!(
-        !app.durable_writes.is_empty()
-            || app.action_status.as_deref() != Some("taskroom creation queued"),
-        "CreateTaskRoom must be executed (durable path), not discarded after mock queue status"
+        handled.contains(&"CreateTaskRoom"),
+        "CreateTaskRoom must be executed by the interactive UI, not discarded after mock queue status"
+    );
+    assert!(
+        !app.durable_writes.is_empty(),
+        "CreateTaskRoom must signal durable write path (durable_writes must not be empty)"
+    );
+    assert!(
+        app.action_status.as_deref() != Some("taskroom creation queued"),
+        "CreateTaskRoom must not stop at mock-only queue status without durable execution"
     );
 }
 
 #[test]
 fn open_native_runtime_is_not_the_only_executed_effect() {
-    let handled = effect_names_handled_by_ui_gate();
+    let handled = effect_names_handled_by_ui();
     assert!(handled.contains(&"CreateTaskRoom"));
     assert!(handled.contains(&"CreateHandoff"));
     assert!(handled.contains(&"AnswerQuestion"));
     assert!(handled.contains(&"RefreshEvidence"));
 }
 
-fn effect_names_handled_by_ui_gate() -> Vec<&'static str> {
-    vec!["OpenNativeRuntime"]
-}

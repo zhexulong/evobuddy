@@ -26,16 +26,33 @@ pub enum KeyInput {
     Quit,
     StructuredAnswer(u8),
     Char(char),
+    Backspace,
+    Delete,
+}
+
+fn is_form_view(mode: &ViewMode) -> bool {
+    matches!(
+        mode,
+        ViewMode::TaskRoomForm | ViewMode::HandoffForm | ViewMode::StructuredQuestion
+    )
 }
 
 pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEffect {
     match input {
         KeyInput::Tab => {
-            app.focus = next_focus(app.focus);
+            if is_form_view(&app.view_mode) {
+                app.advance_active_form_field();
+            } else {
+                app.focus = next_focus(app.focus);
+            }
             WorkbenchEffect::None
         }
         KeyInput::ShiftTab => {
-            app.focus = previous_focus(app.focus);
+            if is_form_view(&app.view_mode) {
+                app.reverse_active_form_field();
+            } else {
+                app.focus = previous_focus(app.focus);
+            }
             WorkbenchEffect::None
         }
         KeyInput::Up => {
@@ -140,6 +157,10 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
         }
         KeyInput::StructuredAnswer(choice) => {
             app.submit_structured_answer(choice.saturating_sub(1) as usize)
+        }
+        KeyInput::Backspace | KeyInput::Delete => {
+            app.pop_active_input();
+            WorkbenchEffect::None
         }
         KeyInput::Char(ch) => {
             if app.view_mode == ViewMode::CommandPalette {

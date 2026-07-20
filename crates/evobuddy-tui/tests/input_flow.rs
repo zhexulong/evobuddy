@@ -1,10 +1,13 @@
 use std::fs;
 use std::path::PathBuf;
 
+use anyhow::{bail, Result};
 use evobuddy_tui::app::{
     CreateHandoffDraft, CreateTaskRoomDraft, FocusPane, SelectedActor, StructuredQuestion,
     StructuredQuestionChoice, WorkbenchApp, WorkbenchEffect,
 };
+use evobuddy_tui::backend::BackendCommand;
+use evobuddy_tui::effects::{execute_effect, EffectDeps, EffectOutcome};
 use evobuddy_tui::input::{handle_key_event, KeyInput};
 use evobuddy_tui::model::parse_workbench_state;
 use evobuddy_tui::ui::effect_names_handled_by_ui;
@@ -304,6 +307,22 @@ fn create_task_room_effect_is_executed_not_discarded() {
         handled.contains(&"CreateTaskRoom"),
         "CreateTaskRoom must be executed by the interactive UI, not discarded after mock queue status"
     );
+
+    let reloaded = app.state.clone();
+    let mut deps = EffectDeps {
+        project: PathBuf::from(&app.state.project_root),
+        run_command: Box::new(|cmd: &BackendCommand| -> Result<String> {
+            if cmd.args.windows(2).any(|w| w == ["taskroom", "create"]) {
+                Ok(r#"{"roomId":"taskroom:obj","title":"obj","objective":"obj"}"#.to_string())
+            } else {
+                bail!("unexpected command: {} {}", cmd.program, cmd.args.join(" "))
+            }
+        }),
+        load_state: Box::new(move || Ok(reloaded.clone())),
+        open_native: None,
+    };
+    let outcome = execute_effect(&mut app, effect, &mut deps).expect("execute");
+    assert!(matches!(outcome, EffectOutcome::StateReloaded));
     assert!(
         !app.durable_writes.is_empty(),
         "CreateTaskRoom must signal durable write path (durable_writes must not be empty)"
@@ -311,6 +330,13 @@ fn create_task_room_effect_is_executed_not_discarded() {
     assert!(
         app.action_status.as_deref() != Some("taskroom creation queued"),
         "CreateTaskRoom must not stop at mock-only queue status without durable execution"
+    );
+    assert!(
+        app.action_status
+            .as_deref()
+            .is_some_and(|s| s.contains("Created TaskRoom")),
+        "got {:?}",
+        app.action_status
     );
 }
 

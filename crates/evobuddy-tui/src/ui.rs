@@ -10,6 +10,7 @@ use std::time::Duration;
 
 use crate::app::{WorkbenchApp, WorkbenchEffect};
 use crate::backend::{load_workbench_state, BackendOptions};
+use crate::effects::{execute_effect, EffectDeps, EffectOutcome};
 use crate::input::{handle_key_event, KeyInput};
 use crate::router::{
     build_open_request, default_tmux_socket_name, RuntimeSessionAction, RuntimeSessionResult,
@@ -138,15 +139,16 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
     }
 }
 
-/// Returns the effect names (discriminant short identifiers) that
-/// `run_interactive_app` actually dispatches.  This is the single source of
-/// truth for tests that gate whether an effect is handled vs. discarded.
-/// When a new effect branch is added to `run_interactive_app`, this list
-/// MUST be updated at the same time.
 pub fn effect_names_handled_by_ui() -> Vec<&'static str> {
-    // ── Keep in sync with `run_interactive_app` dispatch ──────────────
-    // Currently only OpenNativeRuntime has a real execution branch.
-    vec!["OpenNativeRuntime"]
+    vec![
+        "CreateTaskRoom",
+        "CreateHandoff",
+        "AnswerQuestion",
+        "RefreshEvidence",
+        "OpenNativeRuntime",
+        "ExecuteCommand",
+        "None",
+    ]
 }
 
 pub fn run_interactive_app(app: &mut WorkbenchApp) -> Result<()> {
@@ -155,6 +157,15 @@ pub fn run_interactive_app(app: &mut WorkbenchApp) -> Result<()> {
     let stdout: Stdout = io::stdout();
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend).context("failed to create terminal")?;
+
+    let project = PathBuf::from(&app.state.project_root);
+    let mut deps = EffectDeps::production(project);
+    deps.open_native = Some(Box::new(
+        move |app: &mut WorkbenchApp, room_id: &str, instance_id: &str| {
+            app.action_status = Some(format!("opening native runtime {room_id}/{instance_id}"));
+            Ok(EffectOutcome::OpenedNativeRuntime)
+        },
+    ));
 
     let result = (|| -> Result<()> {
         loop {
@@ -169,18 +180,27 @@ pub fn run_interactive_app(app: &mut WorkbenchApp) -> Result<()> {
                             break;
                         }
                         let effect = handle_key_event(app, mapped);
-                        if let WorkbenchEffect::OpenNativeRuntime {
-                            room_id,
-                            instance_id,
-                        } = effect
-                        {
-                            execute_open_native_runtime(
-                                app,
-                                &mut terminal,
-                                &mut control,
-                                &room_id,
-                                &instance_id,
-                            )?;
+                        let pending_open = match &effect {
+                            WorkbenchEffect::OpenNativeRuntime {
+                                room_id,
+                                instance_id,
+                            } => Some((room_id.clone(), instance_id.clone())),
+                            WorkbenchEffect::AnswerQuestion(answer) => app
+                                .selected_task_room()
+                                .map(|room| (room.id.clone(), answer.clone())),
+                            _ => None,
+                        };
+                        let outcome = execute_effect(app, effect, &mut deps)?;
+                        if let EffectOutcome::OpenedNativeRuntime = outcome {
+                            if let Some((room_id, instance_id)) = pending_open {
+                                execute_open_native_runtime(
+                                    app,
+                                    &mut terminal,
+                                    &mut control,
+                                    &room_id,
+                                    &instance_id,
+                                )?;
+                            }
                         }
                     }
                 }

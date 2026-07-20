@@ -5,6 +5,7 @@ use std::process::Command;
 use anyhow::{bail, Context, Result};
 use serde::Deserialize;
 
+use crate::app::{CreateHandoffDraft, CreateTaskRoomDraft};
 use crate::model::{parse_workbench_state, WorkbenchState};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -335,4 +336,104 @@ pub fn session_list_command(project: &Path) -> BackendCommand {
             "--json".to_string(),
         ],
     }
+}
+
+pub fn taskroom_create_command(project: &Path, draft: &CreateTaskRoomDraft) -> BackendCommand {
+    let mut args = vec![
+        "scripts/evobuddy/evobuddy.mjs".to_string(),
+        "taskroom".to_string(),
+        "create".to_string(),
+        "--project".to_string(),
+        project.display().to_string(),
+        "--objective".to_string(),
+        draft.objective.clone(),
+        "--runtime".to_string(),
+        draft.runtime.clone(),
+    ];
+    if !draft.acceptance_criteria.trim().is_empty() {
+        args.push("--acceptance".to_string());
+        args.push(draft.acceptance_criteria.clone());
+    }
+    if !draft.workspace.trim().is_empty() {
+        args.push("--workspace".to_string());
+        args.push(draft.workspace.clone());
+    }
+    if !draft.actor.trim().is_empty() {
+        args.push("--actor".to_string());
+        args.push(draft.actor.clone());
+    }
+    if !draft.safety_mode.trim().is_empty() {
+        args.push("--safety-mode".to_string());
+        args.push(draft.safety_mode.clone());
+    }
+    args.push("--json".to_string());
+    BackendCommand {
+        program: "node".to_string(),
+        args,
+    }
+}
+
+pub fn taskroom_handoff_create_command(
+    project: &Path,
+    room_id: &str,
+    draft: &CreateHandoffDraft,
+) -> BackendCommand {
+    BackendCommand {
+        program: "node".to_string(),
+        args: vec![
+            "scripts/evobuddy/evobuddy.mjs".to_string(),
+            "taskroom".to_string(),
+            "handoff".to_string(),
+            "create".to_string(),
+            "--project".to_string(),
+            project.display().to_string(),
+            "--room".to_string(),
+            room_id.to_string(),
+            "--from".to_string(),
+            draft.sender.clone(),
+            "--to".to_string(),
+            draft.receiver.clone(),
+            "--body".to_string(),
+            draft.body.clone(),
+            "--json".to_string(),
+        ],
+    }
+}
+
+pub fn taskroom_refresh_command(project: &Path, room_id: &str) -> BackendCommand {
+    BackendCommand {
+        program: "node".to_string(),
+        args: vec![
+            "scripts/evobuddy/evobuddy.mjs".to_string(),
+            "taskroom".to_string(),
+            "refresh".to_string(),
+            "--project".to_string(),
+            project.display().to_string(),
+            "--room".to_string(),
+            room_id.to_string(),
+            "--json".to_string(),
+        ],
+    }
+}
+
+pub fn run_backend_command(project: &Path, command: &BackendCommand) -> Result<String> {
+    let output = Command::new(&command.program)
+        .args(&command.args)
+        .current_dir(project)
+        .output()
+        .with_context(|| {
+            format!(
+                "failed to run backend command: {} {}",
+                command.program,
+                command.args.join(" ")
+            )
+        })?;
+    if !output.status.success() {
+        bail!(
+            "backend command failed with status {}: {}",
+            output.status,
+            String::from_utf8_lossy(&output.stderr)
+        );
+    }
+    String::from_utf8(output.stdout).context("backend command stdout was not valid UTF-8")
 }

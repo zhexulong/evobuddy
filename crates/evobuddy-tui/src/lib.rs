@@ -1,5 +1,6 @@
 pub mod app;
 pub mod backend;
+pub mod effects;
 pub mod input;
 pub mod launcher;
 pub mod model;

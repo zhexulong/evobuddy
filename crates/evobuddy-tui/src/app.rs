@@ -87,6 +87,7 @@ pub enum WorkbenchEffect {
     ExecuteCommand(DeterministicCommand),
     AnswerQuestion(String),
     OpenNativeRuntime { room_id: String, instance_id: String },
+    RefreshEvidence { room_id: String },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -581,7 +582,7 @@ impl WorkbenchApp {
             return WorkbenchEffect::None;
         }
         let draft = self.task_room_form.clone();
-        self.action_status = Some("taskroom creation queued".to_string());
+        self.action_status = Some("creating TaskRoom…".to_string());
         self.push_view(ViewMode::ActionProgress);
         WorkbenchEffect::CreateTaskRoom(draft)
     }
@@ -605,7 +606,7 @@ impl WorkbenchApp {
             return WorkbenchEffect::None;
         }
         let draft = self.handoff_form.clone();
-        self.action_status = Some("handoff creation queued".to_string());
+        self.action_status = Some("creating handoff…".to_string());
         self.push_view(ViewMode::ActionProgress);
         WorkbenchEffect::CreateHandoff(draft)
     }
@@ -742,6 +743,21 @@ impl WorkbenchApp {
     ) {
         self.state = state;
         self.restore_selection(snapshot);
+    }
+
+    pub fn select_task_room_by_id(&mut self, room_id: &str) -> bool {
+        if let Some(index) = self
+            .state
+            .task_rooms
+            .iter()
+            .position(|room| room.id == room_id)
+        {
+            self.selected_task_room = index;
+            self.focus = FocusPane::TaskRooms;
+            true
+        } else {
+            false
+        }
     }
 
     pub fn native_open_context(

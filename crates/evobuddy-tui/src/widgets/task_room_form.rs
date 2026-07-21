@@ -6,12 +6,12 @@ use crate::widgets::form_kit::{place_form_cursor, render_form, FormFieldView};
 
 pub fn task_room_form_fields(app: &WorkbenchApp) -> Vec<FormFieldView> {
     let labels = [
-        "Objective",
-        "Acceptance criteria",
-        "Workspace",
-        "Actor",
-        "Runtime",
-        "Safety mode",
+        "What should we do?",
+        "Done when (optional)",
+        "Workspace (advanced)",
+        "Actor (advanced)",
+        "Runtime (advanced)",
+        "Safety mode (advanced)",
     ];
     let values = [
         app.task_room_form.objective.clone(),
@@ -42,9 +42,9 @@ pub fn render_task_room_form(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Re
     render_form(
         frame,
         area,
-        "TaskRoom Form",
+        "New work",
         &fields,
-        "Enter submit · Esc cancel · Tab/Ctrl+Tab next field · Shift+Tab previous",
+        "Enter create · Esc cancel · Tab advanced · title derives from first line",
     );
     place_form_cursor(frame, area, &fields);
 }

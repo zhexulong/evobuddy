@@ -105,9 +105,9 @@ pub fn render_selected_task_room_detail(
         )),
         Line::from(format!("Session: {session_line}")),
         Line::from(format!("Who: {}", truncate(&who, 72))),
-        Line::from(format!("Objective: {}", truncate(&room.objective, 72))),
+        Line::from(format!("Work: {}", truncate(&room.objective, 72))),
         Line::from(format!(
-            "Acceptance: {}",
+            "Done when: {}",
             truncate(&room.acceptance_criteria, 56)
         )),
         Line::from(Span::styled(

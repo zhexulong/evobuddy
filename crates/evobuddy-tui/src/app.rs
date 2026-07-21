@@ -284,11 +284,11 @@ impl WorkbenchApp {
             ));
         }
         if !room.objective.is_empty() {
-            lines.push("Objective".to_string());
+            lines.push("Work".to_string());
             lines.push(room.objective.clone());
         }
         if !room.acceptance_criteria.is_empty() {
-            lines.push("Acceptance".to_string());
+            lines.push("Done when".to_string());
             lines.push(room.acceptance_criteria.clone());
         }
         lines
@@ -413,10 +413,10 @@ impl WorkbenchApp {
         self.task_room_form = CreateTaskRoomDraft {
             objective: String::new(),
             acceptance_criteria: String::new(),
-            workspace: String::new(),
+            workspace: self.state.project_root.clone(),
             actor: String::new(),
-            runtime: String::new(),
-            safety_mode: String::new(),
+            runtime: default_runtime_for_create(&self.state),
+            safety_mode: "workspace-write".to_string(),
         };
         self.task_room_form_field = 0;
         self.task_room_form_field_errors = [None, None, None, None, None, None];
@@ -579,16 +579,23 @@ impl WorkbenchApp {
 
     pub fn submit_task_room_form(&mut self) -> WorkbenchEffect {
         self.task_room_form_field_errors = [None, None, None, None, None, None];
-        let mut invalid = false;
         if self.task_room_form.objective.trim().is_empty() {
-            self.task_room_form_field_errors[0] = Some("Objective is required".to_string());
-            invalid = true;
+            self.task_room_form_field_errors[0] =
+                Some("Describe the work (required)".to_string());
+            return WorkbenchEffect::None;
         }
         if self.task_room_form.runtime.trim().is_empty() {
-            self.task_room_form_field_errors[4] = Some("Runtime is required".to_string());
-            invalid = true;
+            self.task_room_form.runtime = default_runtime_for_create(&self.state);
         }
-        if invalid {
+        if self.task_room_form.workspace.trim().is_empty() {
+            self.task_room_form.workspace = self.state.project_root.clone();
+        }
+        if self.task_room_form.safety_mode.trim().is_empty() {
+            self.task_room_form.safety_mode = "workspace-write".to_string();
+        }
+        if self.task_room_form.runtime.trim().is_empty() {
+            self.task_room_form_field_errors[4] =
+                Some("No runtime default — set Runtime under advanced".to_string());
             return WorkbenchEffect::None;
         }
         let draft = self.task_room_form.clone();
@@ -1050,6 +1057,24 @@ impl WorkbenchApp {
             .map(|entry| format!("Codex {}", entry.status.as_label()))
             .unwrap_or_else(|| "Codex unknown".to_string())
     }
+}
+
+fn default_runtime_for_create(state: &WorkbenchState) -> String {
+    let preferred = ["opencode", "claude", "codex"];
+    for name in preferred {
+        if state
+            .runtime_setup
+            .iter()
+            .any(|entry| entry.runtime.eq_ignore_ascii_case(name))
+        {
+            return name.to_string();
+        }
+    }
+    state
+        .runtime_setup
+        .first()
+        .map(|entry| entry.runtime.to_ascii_lowercase())
+        .unwrap_or_else(|| "opencode".to_string())
 }
 
 fn command_registry() -> Vec<CommandEntry> {

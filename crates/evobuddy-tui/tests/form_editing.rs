@@ -154,7 +154,9 @@ fn active_field_cursor_coordinates_are_set() {
     app.task_room_form.objective = "typed".to_string();
     let snapshot = render_current_snapshot(&app, 80, 24).expect("snapshot");
     assert!(
-        snapshot.contains("Objective") || snapshot.contains("typed"),
+        snapshot.contains("What should we do?")
+            || snapshot.contains("Objective")
+            || snapshot.contains("typed"),
         "form snapshot must show field content"
     );
     assert!(
@@ -180,19 +182,19 @@ fn empty_objective_blocks_submit_with_field_error() {
 }
 
 #[test]
-fn empty_runtime_blocks_submit_with_field_error() {
+fn empty_runtime_is_filled_from_project_default_on_submit() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     handle_key_event(&mut app, KeyInput::NewRoom);
     app.task_room_form.objective = "ship it".to_string();
-    // runtime left empty
+    app.task_room_form.runtime.clear();
 
     let effect = handle_key_event(&mut app, KeyInput::Enter);
-    assert_eq!(effect, WorkbenchEffect::None);
-    assert_eq!(app.view_mode, ViewMode::TaskRoomForm);
     assert!(
-        app.task_room_form_field_errors[4].is_some(),
-        "empty runtime must set field error on runtime field"
+        matches!(effect, WorkbenchEffect::CreateTaskRoom(_)),
+        "runtime should default from project setup, got {effect:?}"
     );
+    assert_eq!(app.view_mode, ViewMode::ActionProgress);
+    assert_eq!(app.task_room_form.runtime, "opencode");
 }
 
 #[test]
@@ -219,11 +221,11 @@ fn valid_submit_clears_errors_and_emits_effect() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     handle_key_event(&mut app, KeyInput::NewRoom);
     app.task_room_form.objective = "do work".to_string();
-    app.task_room_form.runtime = "opencode".to_string();
 
     let effect = handle_key_event(&mut app, KeyInput::Enter);
     assert!(matches!(effect, WorkbenchEffect::CreateTaskRoom(_)));
     assert_eq!(app.view_mode, ViewMode::ActionProgress);
+    assert!(!app.task_room_form.runtime.is_empty());
 }
 
 #[test]
@@ -252,7 +254,6 @@ fn form_right_does_not_submit_only_enter_does() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     handle_key_event(&mut app, KeyInput::NewRoom);
     app.task_room_form.objective = "do work".to_string();
-    app.task_room_form.runtime = "opencode".to_string();
 
     let effect = handle_key_event(&mut app, KeyInput::Right);
     assert_eq!(effect, WorkbenchEffect::None);

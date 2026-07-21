@@ -7,10 +7,22 @@ impl WorkbenchApp {
         self.task_room_form = CreateTaskRoomDraft {
             objective: String::new(),
             acceptance_criteria: String::new(),
-            workspace: String::new(),
+            workspace: self.state.project_root.clone(),
             actor: String::new(),
-            runtime: String::new(),
-            safety_mode: String::new(),
+            runtime: {
+                let preferred = ["opencode", "claude", "codex"];
+                preferred
+                    .into_iter()
+                    .find(|name| {
+                        self.state
+                            .runtime_setup
+                            .iter()
+                            .any(|entry| entry.runtime.eq_ignore_ascii_case(name))
+                    })
+                    .unwrap_or("opencode")
+                    .to_string()
+            },
+            safety_mode: "workspace-write".to_string(),
         };
         self.task_room_form_field = 0;
         self.push_view(ViewMode::TaskRoomForm);

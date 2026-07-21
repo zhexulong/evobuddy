@@ -3,8 +3,8 @@ use std::path::PathBuf;
 
 use anyhow::{bail, Result};
 use evobuddy_tui::app::{
-    CreateHandoffDraft, CreateTaskRoomDraft, FocusPane, SelectedActor, StructuredQuestion,
-    StructuredQuestionChoice, WorkbenchApp, WorkbenchEffect,
+    CreateHandoffDraft, FocusPane, SelectedActor, StructuredQuestion, StructuredQuestionChoice,
+    WorkbenchApp, WorkbenchEffect,
 };
 use evobuddy_tui::backend::BackendCommand;
 use evobuddy_tui::effects::{execute_effect, EffectDeps, EffectOutcome};
@@ -179,29 +179,19 @@ fn new_room_form_opens_from_dashboard_and_submits_typed_effect() {
 
     handle_key_event(&mut app, KeyInput::Char('M'));
     handle_key_event(&mut app, KeyInput::Char('V'));
-    handle_key_event(&mut app, KeyInput::NextField);
-    handle_key_event(&mut app, KeyInput::Char('D'));
-    handle_key_event(&mut app, KeyInput::Char('o'));
-    handle_key_event(&mut app, KeyInput::NextField);
-    handle_key_event(&mut app, KeyInput::NextField);
-    handle_key_event(&mut app, KeyInput::NextField);
-    handle_key_event(&mut app, KeyInput::Char('o'));
-    handle_key_event(&mut app, KeyInput::Char('p'));
 
     let effect = handle_key_event(&mut app, KeyInput::Enter);
 
     assert_eq!(app.view_mode, ViewMode::ActionProgress);
-    assert_eq!(
-        effect,
-        WorkbenchEffect::CreateTaskRoom(CreateTaskRoomDraft {
-            objective: "MV".to_string(),
-            acceptance_criteria: "Do".to_string(),
-            workspace: String::new(),
-            actor: String::new(),
-            runtime: "op".to_string(),
-            safety_mode: String::new(),
-        })
-    );
+    match effect {
+        WorkbenchEffect::CreateTaskRoom(draft) => {
+            assert_eq!(draft.objective, "MV");
+            assert_eq!(draft.runtime, "opencode");
+            assert_eq!(draft.workspace, app.state.project_root);
+            assert_eq!(draft.safety_mode, "workspace-write");
+        }
+        other => panic!("expected CreateTaskRoom, got {other:?}"),
+    }
     assert!(app.durable_writes.is_empty());
 }
 
@@ -243,8 +233,15 @@ fn empty_task_room_form_fields_block_submit() {
     let effect = handle_key_event(&mut app, KeyInput::Enter);
     assert_eq!(effect, WorkbenchEffect::None);
     assert_eq!(app.view_mode, ViewMode::TaskRoomForm);
-    assert!(app.task_room_form_field_errors[0].is_some());
-    assert!(app.task_room_form_field_errors[4].is_some());
+    assert!(
+        app.task_room_form_field_errors[0].is_some(),
+        "empty work description must block submit"
+    );
+    assert!(
+        app.task_room_form_field_errors[4].is_none(),
+        "runtime is defaulted; must not require field error"
+    );
+    assert_eq!(app.task_room_form.runtime, "opencode");
 }
 
 #[test]

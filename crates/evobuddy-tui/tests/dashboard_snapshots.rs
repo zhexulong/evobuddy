@@ -26,8 +26,8 @@ fn dashboard_snapshot_120x40_shows_full_panes() {
     assert!(snapshot.contains("❯"));
     assert!(snapshot.contains("Work inbox") || snapshot.contains("TaskRoom inbox"));
     assert!(snapshot.contains("Selected TaskRoom"));
-    assert!(snapshot.contains("Objective"));
-    assert!(snapshot.contains("Acceptance"));
+    assert!(snapshot.contains("Work:") || snapshot.contains("Objective"));
+    assert!(snapshot.contains("Done when:") || snapshot.contains("Acceptance"));
     assert!(snapshot.contains("New room") || snapshot.contains("n  New"));
     assert!(!snapshot.contains("Read-only boundary"));
 }
@@ -40,8 +40,8 @@ fn dashboard_snapshot_120x40_shows_agent_command_center() {
         "need input",
         "Work inbox",
         "Selected TaskRoom",
-        "Objective",
-        "Acceptance",
+        "Work:",
+        "Done when:",
         "New room",
         "Search",
         "Help",
@@ -78,7 +78,11 @@ fn dashboard_snapshot_80x24_compacts_but_preserves_inbox() {
     let app = load_app("evobuddy-workbench-state-v1.json");
     let snapshot = render_dashboard_snapshot(&app, 80, 24).expect("render snapshot");
     assert!(snapshot.contains("Work inbox") || snapshot.contains("TaskRoom"));
-    assert!(snapshot.contains("Selected TaskRoom") || snapshot.contains("Objective"));
+    assert!(
+        snapshot.contains("Selected TaskRoom")
+            || snapshot.contains("Work:")
+            || snapshot.contains("Objective")
+    );
     assert!(!snapshot.contains("Read-only boundary"));
 }
 
@@ -92,9 +96,9 @@ fn dashboard_snapshot_prioritizes_selected_taskroom_attention_and_actions() {
         "Now ·",
         "Session:",
         "Who:",
-        "Objective",
+        "Work:",
         "Complete the retained OpenCode",
-        "Acceptance",
+        "Done when:",
         "Attach",
         "attachable",
     ] {

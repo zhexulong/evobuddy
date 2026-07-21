@@ -158,15 +158,12 @@ fn taskroom_form_snapshot_shows_fields_and_submit_hints() {
 
     let snapshot = render_current_snapshot(&app, 120, 40).expect("render task room form snapshot");
     for landmark in [
-        "TaskRoom Form",
-        "Objective",
-        "Acceptance criteria",
-        "Workspace",
-        "Actor",
-        "Runtime",
-        "Safety mode",
+        "New work",
+        "What should we do?",
+        "Done when (optional)",
+        "Runtime (advanced)",
         "map",
-        "Enter submit",
+        "Enter create",
         "Esc cancel",
     ] {
         assert!(

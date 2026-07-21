@@ -10,7 +10,7 @@ pub fn render_help(frame: &mut Frame<'_>, area: ratatui::layout::Rect) {
         Line::from("Home: n new work · Enter Attach · / search · ? help"),
         Line::from("Quit: q · Ctrl+C · Ctrl+D · Ctrl+Q"),
         Line::from("j/k select room · Enter attach · Esc back"),
-        Line::from("n opens free-text create (no config fields)"),
+        Line::from("n opens compose box (type work, Enter create)"),
         Line::from("Detach native session: Ctrl+B d"),
     ];
     frame.render_widget(

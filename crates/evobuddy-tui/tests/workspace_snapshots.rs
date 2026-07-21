@@ -159,7 +159,7 @@ fn taskroom_form_snapshot_shows_fields_and_submit_hints() {
     let snapshot = render_current_snapshot(&app, 120, 40).expect("render task room form snapshot");
     for landmark in [
         "New work",
-        "What should we do?",
+        "compose",
         "map",
         "Enter create",
         "Esc cancel",
@@ -167,12 +167,16 @@ fn taskroom_form_snapshot_shows_fields_and_submit_hints() {
     ] {
         assert!(
             snapshot.contains(landmark),
-            "missing task room form landmark `{landmark}` in snapshot:\n{snapshot}"
+            "missing new-work composer landmark `{landmark}` in snapshot:\n{snapshot}"
         );
     }
     assert!(
-        !snapshot.contains("Destination:"),
-        "form_kit forms do not show Destination chrome:\n{snapshot}"
+        !snapshot.contains("What should we do?"),
+        "composer must not use labeled form fields:\n{snapshot}"
+    );
+    assert!(
+        !snapshot.contains("Runtime (advanced)"),
+        "composer must not show config fields:\n{snapshot}"
     );
 }
 

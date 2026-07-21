@@ -154,10 +154,10 @@ fn active_field_cursor_coordinates_are_set() {
     app.task_room_form.objective = "typed".to_string();
     let snapshot = render_current_snapshot(&app, 80, 24).expect("snapshot");
     assert!(
-        snapshot.contains("What should we do?")
-            || snapshot.contains("Objective")
+        snapshot.contains("compose")
+            || snapshot.contains("New work")
             || snapshot.contains("typed"),
-        "form snapshot must show field content"
+        "composer snapshot must show body content"
     );
     assert!(
         snapshot.contains('█') || snapshot.contains('|') || snapshot.contains("typed"),

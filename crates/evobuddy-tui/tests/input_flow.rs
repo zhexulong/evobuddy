@@ -227,21 +227,21 @@ fn handoff_form_opens_from_taskroom_workspace_and_submits_typed_effect() {
 }
 
 #[test]
-fn empty_task_room_form_fields_block_submit() {
+fn empty_new_work_composer_blocks_submit() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     handle_key_event(&mut app, KeyInput::NewRoom);
+    assert_eq!(app.view_mode, ViewMode::TaskRoomForm);
+    assert!(
+        !app.task_room_form.runtime.is_empty(),
+        "runtime defaults on open"
+    );
     let effect = handle_key_event(&mut app, KeyInput::Enter);
     assert_eq!(effect, WorkbenchEffect::None);
     assert_eq!(app.view_mode, ViewMode::TaskRoomForm);
     assert!(
         app.task_room_form_field_errors[0].is_some(),
-        "empty work description must block submit"
+        "empty compose body must block submit"
     );
-    assert!(
-        app.task_room_form_field_errors[4].is_none(),
-        "runtime is defaulted; must not require field error"
-    );
-    assert_eq!(app.task_room_form.runtime, "opencode");
 }
 
 #[test]

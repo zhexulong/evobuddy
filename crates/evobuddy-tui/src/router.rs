@@ -116,16 +116,23 @@ where
             return Ok(RuntimeSessionResult::NeedsChoice { plan });
         }
 
-        if let Ok(existing) = self.backend.inspect(&plan.descriptor_id) {
-            if matches!(
-                existing.lifecycle.as_str(),
-                "attachable" | "detached" | "attached"
-            ) {
+        // Prefer attaching a live same-instance session before reserve.
+        if let Ok(listed) = self.backend.list() {
+            for existing in listed {
+                if existing.agent_instance_id != request.agent_instance_id {
+                    continue;
+                }
+                if !matches!(
+                    existing.lifecycle.as_str(),
+                    "attachable" | "detached" | "attached"
+                ) {
+                    continue;
+                }
                 if let Ok(facts) = self
                     .substrate
                     .inspect(&SubstrateSessionRef(existing.terminal_session_ref.clone()))
                 {
-                    if facts.exists {
+                    if facts.exists && facts.child_process_alive {
                         return Ok(RuntimeSessionResult::Ready {
                             action: RuntimeSessionAction::Attach {
                                 session_ref: facts.session_ref.clone(),

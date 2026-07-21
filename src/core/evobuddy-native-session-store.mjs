@@ -189,14 +189,46 @@ export async function reserveNativeSession(projectRoot, descriptorInput) {
   const candidate = createNativeSessionDescriptor({ ...descriptorInput, lifecycle: 'creating' });
   return mutateSessionSet(projectRoot, candidate.agentInstanceId, async (state, { index, descriptors }) => {
     if (index.descriptorIds.includes(candidate.descriptorId)) throw new Error(`existing native session descriptor: ${candidate.descriptorId}`);
-    const duplicate = descriptors.find((descriptor) => (
+
+    let working = descriptors;
+    let workingIds = [...index.descriptorIds];
+
+    const abandoned = working.filter((descriptor) => (
+      descriptor.agentInstanceId === candidate.agentInstanceId
+      && descriptor.lifecycle === 'stale'
+    ));
+    for (const dead of abandoned) {
+      const terminated = transitionNativeSessionDescriptor(dead, { kind: 'terminated' });
+      await writeDescriptor(state, terminated);
+      working = working.map((d) => (d.descriptorId === dead.descriptorId ? terminated : d));
+    }
+
+    const stuckCreating = working.filter((descriptor) => (
+      descriptor.agentInstanceId === candidate.agentInstanceId
+      && descriptor.lifecycle === 'creating'
+    ));
+    for (const dead of stuckCreating) {
+      const terminated = transitionNativeSessionDescriptor(dead, { kind: 'terminated' });
+      await writeDescriptor(state, terminated);
+      working = working.map((d) => (d.descriptorId === dead.descriptorId ? terminated : d));
+    }
+
+    const duplicate = working.find((descriptor) => (
       descriptor.agentInstanceId === candidate.agentInstanceId
       && ACTIVE_DUPLICATE_LIFECYCLES.has(descriptor.lifecycle)
     ));
-    if (duplicate) throw new Error(`existing native session for agent instance: ${candidate.agentInstanceId}`);
-    await maybeCallHook('afterPrepareReserve', { descriptor: candidate, descriptors });
+    if (duplicate) {
+      throw new Error(
+        `existing native session for agent instance: ${candidate.agentInstanceId} (${duplicate.lifecycle} ${duplicate.descriptorId})`,
+      );
+    }
+
+    await maybeCallHook('afterPrepareReserve', { descriptor: candidate, descriptors: working });
     await writeDescriptor(state, candidate);
-    await writeIndex(state, [...index.descriptorIds, candidate.descriptorId]);
+    if (!workingIds.includes(candidate.descriptorId)) {
+      workingIds = [...workingIds, candidate.descriptorId];
+    }
+    await writeIndex(state, workingIds);
     return candidate;
   });
 }

@@ -64,29 +64,43 @@ describe('evobuddy native session store', () => {
 
       const [firstResult, secondResult] = await Promise.allSettled([first, second]);
       assert.equal(firstResult.status, 'fulfilled');
-      assert.equal(secondResult.status, 'rejected');
-      assert.match(secondResult.reason.message, /existing|duplicate|lock/i);
+      // Serialized by instance lock: second runs after first wrote `creating`, then
+      // reclaims the abandoned creating row and opens a new reserve (reopen semantics).
+      assert.equal(secondResult.status, 'fulfilled');
+      assert.equal(secondResult.value.descriptorId, 'session-2');
+      assert.equal(secondResult.value.lifecycle, 'creating');
 
       const listed = await listNativeSessions(projectRoot);
-      assert.deepEqual(listed.map((item) => item.descriptorId), ['session-1']);
+      const byId = new Map(listed.map((item) => [item.descriptorId, item]));
+      assert.equal(byId.get('session-1')?.lifecycle, 'terminated');
+      assert.equal(byId.get('session-2')?.lifecycle, 'creating');
     } finally {
       __setNativeSessionStoreTestHooks(null);
       rmSync(projectRoot, { recursive: true, force: true });
     }
   });
 
-  it('reserve then failed create remains reconcilable and cannot duplicate', async () => {
+  it('reserve then failed create remains reconcilable and can reopen', async () => {
     const projectRoot = mkdtempSync(join(tmpdir(), 'evobuddy-native-session-store-'));
     try {
       await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
       const reserved = await reserveNativeSession(projectRoot, descriptorInput());
       assert.equal(reserved.lifecycle, 'creating');
 
-      await assert.rejects(
-        () => reserveNativeSession(projectRoot, descriptorInput({ descriptorId: 'session-2', terminalSessionRef: 'tmux:pending-session-2' })),
-        /locked|existing|duplicate/i,
-      );
+      // Failed create leaves `creating`; a later open reclaims it and reserves again.
+      const reopened = await reserveNativeSession(projectRoot, descriptorInput({
+        descriptorId: 'session-2',
+        terminalSessionRef: 'tmux:pending-session-2',
+      }));
+      assert.equal(reopened.descriptorId, 'session-2');
+      assert.equal(reopened.lifecycle, 'creating');
 
+      const listed = await listNativeSessions(projectRoot);
+      const byId = new Map(listed.map((item) => [item.descriptorId, item]));
+      assert.equal(byId.get(reserved.descriptorId)?.lifecycle, 'terminated');
+      assert.equal(byId.get('session-2')?.lifecycle, 'creating');
+
+      // Original reserved row (pre-reclaim snapshot) is reconcilable as stale without substrate.
       const classifications = classifySessionReconciliation([reserved], []);
       assert.equal(classifications[0].classification, 'stale');
       assert.equal(classifications[0].descriptorId, reserved.descriptorId);

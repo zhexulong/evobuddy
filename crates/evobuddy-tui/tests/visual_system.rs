@@ -10,7 +10,7 @@ use evobuddy_tui::theme::{
     selected_style, status_style, task_room_status_style, theme, ThemeTokens,
 };
 use evobuddy_tui::ui::render_dashboard_snapshot;
-use ratatui::style::{Color, Modifier, Styled};
+use ratatui::style::{Color, Modifier, Style, Styled};
 use ratatui::widgets::{Block, Borders, Padding};
 
 fn app_with_rooms() -> WorkbenchApp {
@@ -31,7 +31,7 @@ fn render_snapshot(app: &WorkbenchApp, width: u16, height: u16) -> Result<String
 #[test]
 fn home_is_taskroom_inbox_not_debug_dashboard() {
     let frame = render_snapshot(&app_with_rooms(), 120, 40).unwrap();
-    assert!(frame.contains("Needs input") || frame.contains("Needs Input"));
+    assert!(frame.contains("need input") || frame.contains("Needs"));
     assert!(frame.contains("Work inbox") || frame.contains("TaskRoom inbox"));
     assert!(!frame.contains("Read-only boundary"));
     assert!(
@@ -147,11 +147,13 @@ fn pane_block_distinguishes_focused_and_unfocused_borders() {
         .title("Work inbox".to_string())
         .borders(Borders::ALL)
         .border_style(focused_border)
+        .style(Style::default().bg(t.surface).fg(t.text))
         .padding(Padding::horizontal(1));
     let expected_unfocused = Block::default()
         .title("Work inbox".to_string())
         .borders(Borders::ALL)
         .border_style(unfocused_border)
+        .style(Style::default().bg(t.surface).fg(t.text))
         .padding(Padding::horizontal(1));
     assert_eq!(
         focused, expected_focused,

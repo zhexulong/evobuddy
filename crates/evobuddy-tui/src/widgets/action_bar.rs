@@ -19,7 +19,9 @@ pub fn render_action_bar(
         if i > 0 {
             spans.push(Span::styled(
                 "  ",
-                Style::default().fg(tokens.action_bar_fg),
+                Style::default()
+                    .fg(tokens.action_bar_fg)
+                    .bg(tokens.action_bar_bg),
             ));
         }
         let key_style = if hint.enabled {
@@ -72,7 +74,7 @@ pub fn render_action_bar(
     }
     if spans.is_empty() {
         spans.push(Span::styled(
-            " Enter Open   n New room   / Search   : Commands   ? Help ",
+            " Enter Open   n New room   / Search   ? Help ",
             Style::default()
                 .fg(tokens.action_bar_fg)
                 .bg(tokens.action_bar_bg),

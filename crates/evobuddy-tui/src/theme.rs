@@ -59,10 +59,12 @@ pub fn pane_border_style(focused: bool) -> Style {
 
 /// Outer/inner pane chrome: stronger border when focused, padding on content.
 pub fn pane_block(title: impl Into<String>, focused: bool) -> Block<'static> {
+    let t = theme();
     Block::default()
         .title(title.into())
         .borders(Borders::ALL)
         .border_style(pane_border_style(focused))
+        .style(Style::default().bg(t.surface).fg(t.text))
         .padding(Padding::horizontal(1))
 }
 

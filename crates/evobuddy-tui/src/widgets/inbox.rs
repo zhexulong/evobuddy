@@ -32,7 +32,7 @@ pub fn render_work_inbox(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect, 
             let status = format_status(&room.status);
             let runtime = primary_runtime(room);
             let title = truncate(&room.title, area_title_width(area));
-            let line = format!("{marker}{glyph} {status:<10} {title}  {runtime}");
+            let line = format!("{marker}{glyph} {status:<8} {title}  {runtime}");
             let style = if index == selected {
                 selected_style()
             } else {
@@ -72,7 +72,12 @@ pub fn render_selected_task_room_detail(
 
     let mut lines = vec![
         Line::from(Span::styled(
-            format!("{} · {}", format_status(&room.status), room.title),
+            format!(
+                "{} {}  {}",
+                status_glyph(&room.status),
+                format_status(&room.status),
+                room.title
+            ),
             selected_style(),
         )),
         Line::from(format!("Objective: {}", truncate(&room.objective, 72))),
@@ -156,16 +161,16 @@ fn visible_rooms(app: &WorkbenchApp) -> Vec<&TaskRoom> {
 
 fn format_status(status: &TaskRoomStatus) -> &'static str {
     match status {
-        TaskRoomStatus::NeedsInput => "Needs input",
-        TaskRoomStatus::NeedsReview => "Needs review",
+        TaskRoomStatus::NeedsInput => "Needs",
+        TaskRoomStatus::NeedsReview => "Review",
         TaskRoomStatus::Working => "Working",
         TaskRoomStatus::Returned => "Returned",
-        TaskRoomStatus::Completed => "Completed",
+        TaskRoomStatus::Completed => "Done",
         TaskRoomStatus::Blocked => "Blocked",
         TaskRoomStatus::Queued => "Queued",
         TaskRoomStatus::Failed => "Failed",
         TaskRoomStatus::Archived => "Archived",
-        TaskRoomStatus::Unknown => "Unknown",
+        TaskRoomStatus::Unknown => "—",
     }
 }
 

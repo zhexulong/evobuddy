@@ -91,7 +91,12 @@ function buildCommandArgv(adapter, continuation, input, candidates) {
 }
 
 export function buildManagedTerminalSessionRef({ runtime, roomId, agentInstanceId }) {
-  return `tmux:${runtime}:${roomId}:${agentInstanceId}`;
+  const sanitize = (value) => String(value ?? '')
+    .replace(/[^A-Za-z0-9._-]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '')
+    .slice(0, 80) || 'x';
+  return `eb_${sanitize(runtime)}_${sanitize(roomId)}_${sanitize(agentInstanceId)}`.slice(0, 200);
 }
 
 export function getRuntimeSessionAdapter(runtime, adapters = DEFAULT_ADAPTERS) {

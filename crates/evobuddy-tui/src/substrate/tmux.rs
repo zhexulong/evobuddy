@@ -2,7 +2,7 @@ use anyhow::{bail, Context, Result};
 use std::cell::RefCell;
 use std::collections::{BTreeMap, BTreeSet};
 use std::io::{self, Write};
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::rc::Rc;
 
@@ -31,6 +31,50 @@ impl AttachPath {
 
 pub fn managed_status_line() -> &'static str {
     MANAGED_STATUS_LINE
+}
+
+fn resolve_program_path(program: &Path) -> Result<PathBuf> {
+    if program.is_absolute() && program.exists() {
+        return Ok(program.to_path_buf());
+    }
+    let name = program
+        .to_str()
+        .filter(|s| !s.is_empty())
+        .context("empty program path")?;
+    if name.contains('/') {
+        let p = PathBuf::from(name);
+        if p.exists() {
+            return Ok(p);
+        }
+        bail!("program not found: {name}");
+    }
+    let path = std::env::var_os("PATH").unwrap_or_default();
+    for dir in std::env::split_paths(&path) {
+        let candidate = dir.join(name);
+        if candidate.is_file() {
+            return Ok(candidate);
+        }
+    }
+    // Common local install locations for opencode / claude / codex.
+    for dir in [
+        dirs_fallback_home_bin(),
+        Some(PathBuf::from("/usr/local/bin")),
+        Some(PathBuf::from("/usr/bin")),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        let candidate = dir.join(name);
+        if candidate.is_file() {
+            return Ok(candidate);
+        }
+    }
+    bail!("program `{name}` not found on PATH; install runtime or set full path");
+}
+
+fn dirs_fallback_home_bin() -> Option<PathBuf> {
+    let home = std::env::var_os("HOME")?;
+    Some(PathBuf::from(home).join(".opencode/bin"))
 }
 
 pub fn format_pre_attach_notice(
@@ -270,9 +314,16 @@ impl TerminalSubstrate for TmuxSubstrate {
 
     fn create_session(&self, request: &CreateSessionRequest) -> Result<SubstrateSessionFacts> {
         let session_name = &request.session_ref.0;
+        if session_name.contains(':') {
+            bail!(
+                "tmux session name must not contain ':' (got {session_name}); \
+tmux treats colon as window separator and renames the session"
+            );
+        }
         if self.session_exists(&request.session_ref)? {
             bail!("session already exists");
         }
+        let program = resolve_program_path(&request.program)?;
         let mut command = self.command();
         command
             .arg("new-session")
@@ -281,12 +332,18 @@ impl TerminalSubstrate for TmuxSubstrate {
             .arg(session_name)
             .arg("-c")
             .arg(&request.cwd)
-            .arg(&request.program);
+            .arg(&program);
         command.args(&request.args);
         let status = command.status().context("create tmux session")?;
         if !status.success() {
-            bail!("tmux new-session failed");
+            bail!(
+                "tmux new-session failed for program {} args {:?}",
+                program.display(),
+                request.args
+            );
         }
+
+        std::thread::sleep(std::time::Duration::from_millis(150));
 
         let _ = self.command_output(&[
             "set-option",

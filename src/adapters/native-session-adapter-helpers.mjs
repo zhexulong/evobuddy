@@ -73,9 +73,15 @@ export function createCliNativeSessionAdapter(config, deps = {}) {
     buildHeuristicResumeArgv() {
       return [binary, ...(config.heuristic?.args ?? [])];
     },
-    async discoverHeuristicCandidates({ projectRoot }) {
+    async discoverHeuristicCandidates({ projectRoot, roomId }) {
       const sessions = await listSessions(projectRoot);
-      return sortSessions(sessions.filter((session) => session.runtime === config.runtime)).map((session) => ({
+      const liveLifecycles = new Set(['attachable', 'detached', 'attached']);
+      return sortSessions(sessions.filter((session) => {
+        if (session.runtime !== config.runtime) return false;
+        if (roomId && session.roomId && session.roomId !== roomId) return false;
+        if (session.lifecycle && !liveLifecycles.has(session.lifecycle)) return false;
+        return true;
+      })).map((session) => ({
         candidateId: session.descriptorId,
         label: `${config.runtime} ${session.providerConversationRef ?? 'latest'}`,
         providerConversationRef: session.providerConversationRef ?? null,

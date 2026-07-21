@@ -111,7 +111,8 @@ pub fn selected_style() -> Style {
 pub fn status_glyph(status: &TaskRoomStatus) -> &'static str {
     match status {
         TaskRoomStatus::NeedsInput | TaskRoomStatus::NeedsReview | TaskRoomStatus::Blocked => "●",
-        TaskRoomStatus::Working | TaskRoomStatus::Queued => "◉",
+        TaskRoomStatus::Working => "◉",
+        TaskRoomStatus::Queued => "·",
         TaskRoomStatus::Returned | TaskRoomStatus::Completed => "○",
         _ => "·",
     }
@@ -173,7 +174,8 @@ pub fn task_room_status_style(status: &TaskRoomStatus) -> Style {
         TaskRoomStatus::Blocked | TaskRoomStatus::Failed => {
             Style::default().fg(t.danger).add_modifier(Modifier::BOLD)
         }
-        TaskRoomStatus::Working | TaskRoomStatus::Queued => Style::default().fg(t.warning),
+        TaskRoomStatus::Working => Style::default().fg(t.warning),
+        TaskRoomStatus::Queued => Style::default().fg(t.text_muted),
         TaskRoomStatus::Returned => Style::default().fg(t.info).add_modifier(Modifier::BOLD),
         TaskRoomStatus::Completed => Style::default().fg(t.success),
         TaskRoomStatus::Archived => muted_style(),

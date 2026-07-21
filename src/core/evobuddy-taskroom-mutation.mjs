@@ -18,6 +18,7 @@ import {
   createRuntimeCapabilityDescriptor,
   deriveContinuationAction,
 } from './evobuddy-runtime-capability.mjs';
+import { listNativeSessions } from './evobuddy-native-session-store.mjs';
 
 const SUPPORTED_RUNTIMES = new Set(['opencode', 'claude', 'codex', 'gemini']);
 
@@ -111,13 +112,27 @@ function normalizeTaskRoomStatus(value) {
   if (!raw) return 'Queued';
   if (['completed'].includes(raw)) return 'Completed';
   if (['pass', 'returned', 'done'].includes(raw)) return 'Returned';
-  if (['working', 'running', 'in-progress', 'active'].includes(raw)) return 'Working';
+  if (['active', 'open', 'ready', 'todo', 'queued', 'pending', 'idle'].includes(raw)) return 'Queued';
+  if (['working', 'running', 'in-progress', 'in_progress'].includes(raw)) return 'Working';
   if (['needs-input', 'needs input', 'waiting'].includes(raw)) return 'NeedsInput';
   if (['needs-review', 'needs review', 'review-needed'].includes(raw)) return 'NeedsReview';
   if (['blocked', 'partial', 'projected', 'not-applicable', 'stale', 'unknown'].includes(raw)) return 'Blocked';
   if (['fail', 'failed', 'error'].includes(raw)) return 'Failed';
   if (['archived', 'inactive'].includes(raw)) return 'Archived';
   return 'Blocked';
+}
+
+function deriveStatusFromNativeSessions(roomId, durableStatus, nativeSessions = []) {
+  const sessions = (Array.isArray(nativeSessions) ? nativeSessions : []).filter((session) => (
+    session?.roomId === roomId || session?.room_id === roomId
+  ));
+  if (sessions.some((session) => session.lifecycle === 'attached')) return 'Working';
+  if (sessions.some((session) => session.lifecycle === 'attachable' || session.lifecycle === 'detached')) {
+    return 'Working';
+  }
+  if (sessions.some((session) => session.lifecycle === 'creating')) return 'Queued';
+  if (sessions.some((session) => session.lifecycle === 'failed')) return 'Failed';
+  return normalizeTaskRoomStatus(durableStatus);
 }
 
 function runtimeCapabilityFor(runtime) {
@@ -218,7 +233,7 @@ function buildAvailableActions(room, runtimeCapabilities = []) {
   return actions;
 }
 
-function projectDurableRoom(room) {
+function projectDurableRoom(room, nativeSessions = []) {
   const runtime = optionalString(room.participants?.[0]?.runtime) ?? 'unknown';
   const acceptance = optionalString(room.acceptanceCriteria)
     ?? (Array.isArray(room.messages)
@@ -232,25 +247,26 @@ function projectDurableRoom(room) {
       to: message.toParticipantIds?.[0] ?? 'unknown',
       summary: message.body ?? '',
     }));
+  const status = deriveStatusFromNativeSessions(room.roomId, room.status, nativeSessions);
   const projected = {
     id: room.roomId,
     title: room.title,
     runtime: SUPPORTED_RUNTIMES.has(runtime) ? runtime : 'unknown',
-    status: normalizeTaskRoomStatus(room.status),
+    status,
     objective: room.objective,
     acceptanceCriteria: acceptance,
     participants: (room.participants ?? []).map((participant) => ({
       id: participant.participantId,
       displayName: titleCase(participant.actorName ?? participant.participantId),
       kind: participant.actorKind ?? 'team-agent',
-      status: normalizeTaskRoomStatus(room.status),
+      status,
     })),
     rounds: [],
     handoffs,
     reviewerContinuity: { status: 'unknown', summary: '' },
     evolutionHandoff: { status: 'unknown', summary: '' },
     attention: {
-      state: normalizeTaskRoomStatus(room.status),
+      state: status,
       sourceKind: 'durable-taskroom',
       sourceRef: room.roomId,
       observedAt: room.createdAt,
@@ -371,16 +387,23 @@ export async function createHandoffFromDraft(projectRoot, draft) {
   return handoff;
 }
 
-export async function projectTaskRoomsForWorkbench(projectRoot) {
+export async function projectTaskRoomsForWorkbench(projectRoot, options = {}) {
   requireString(projectRoot, 'projectRoot');
   const rooms = await listTaskRooms(projectRoot);
+  let nativeSessions = Array.isArray(options.nativeSessions) ? options.nativeSessions : null;
+  if (!nativeSessions) {
+    try {
+      nativeSessions = await listNativeSessions(projectRoot);
+    } catch {
+      nativeSessions = [];
+    }
+  }
   return rooms.map((room) => {
-    // Recover acceptanceCriteria from first user-request message when present.
     const acceptanceMessage = (room.messages ?? []).find((message) => message.kind === 'user-request');
     return projectDurableRoom({
       ...room,
       acceptanceCriteria: acceptanceMessage?.body,
       runtime: room.participants?.[0]?.runtime,
-    });
+    }, nativeSessions);
   });
 }

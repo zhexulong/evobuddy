@@ -50,7 +50,7 @@ describe('evobuddy taskroom mutations', () => {
       const projected = await projectTaskRoomsForWorkbench(projectRoot);
       assert.equal(projected.length, 1);
       assert.equal(projected[0].id, created.roomId);
-      assert.equal(projected[0].status, 'Working');
+      assert.equal(projected[0].status, 'Queued');
       assert.equal(projected[0].objective, 'Ship durable TaskRoom create path');
       assert.match(projected[0].acceptanceCriteria, /Room persists and export enables open-native-runtime/);
       assert.equal(projected[0].participants.length, 1);

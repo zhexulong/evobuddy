@@ -131,7 +131,7 @@ fn attention_phrase(status: &TaskRoomStatus) -> &'static str {
         TaskRoomStatus::Returned => "returned",
         TaskRoomStatus::Completed => "done",
         TaskRoomStatus::Blocked => "blocked",
-        TaskRoomStatus::Queued => "queued",
+        TaskRoomStatus::Queued => "ready · not started",
         TaskRoomStatus::Failed => "failed",
         TaskRoomStatus::Archived => "archived",
         TaskRoomStatus::Unknown => "—",
@@ -197,8 +197,9 @@ pub fn attention_counts(app: &WorkbenchApp) -> (usize, usize, usize) {
             TaskRoomStatus::NeedsInput | TaskRoomStatus::NeedsReview | TaskRoomStatus::Blocked => {
                 needs += 1;
             }
-            TaskRoomStatus::Working | TaskRoomStatus::Queued => working += 1,
+            TaskRoomStatus::Working => working += 1,
             TaskRoomStatus::Returned | TaskRoomStatus::Completed => returned += 1,
+            // Queued = room exists, not started — do not count as working.
             _ => {}
         }
     }
@@ -230,7 +231,7 @@ fn format_status(status: &TaskRoomStatus) -> &'static str {
         TaskRoomStatus::Returned => "Returned",
         TaskRoomStatus::Completed => "Done",
         TaskRoomStatus::Blocked => "Blocked",
-        TaskRoomStatus::Queued => "Queued",
+        TaskRoomStatus::Queued => "Ready",
         TaskRoomStatus::Failed => "Failed",
         TaskRoomStatus::Archived => "Archived",
         TaskRoomStatus::Unknown => "—",

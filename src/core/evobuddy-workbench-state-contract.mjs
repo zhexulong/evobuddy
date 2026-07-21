@@ -76,7 +76,8 @@ function normalizeTaskRoomStatus(value) {
   if (!raw) return 'Queued';
   if (['completed'].includes(raw)) return 'Completed';
   if (['pass', 'returned', 'done'].includes(raw)) return 'Returned';
-  if (['working', 'running', 'in-progress', 'active'].includes(raw)) return 'Working';
+  if (['active', 'open', 'ready', 'todo', 'queued', 'pending', 'idle'].includes(raw)) return 'Queued';
+  if (['working', 'running', 'in-progress', 'in_progress'].includes(raw)) return 'Working';
   if (['needs-input', 'needs input', 'waiting'].includes(raw)) return 'NeedsInput';
   if (['needs-review', 'needs review', 'review-needed'].includes(raw)) return 'NeedsReview';
   if (['blocked', 'partial', 'projected', 'not-applicable', 'external-plan3-proof-attached', 'stale', 'unknown'].includes(raw)) return 'Blocked';

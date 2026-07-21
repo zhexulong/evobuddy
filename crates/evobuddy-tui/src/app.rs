@@ -440,7 +440,7 @@ impl WorkbenchApp {
     pub fn advance_active_form_field(&mut self) {
         match self.view_mode {
             ViewMode::TaskRoomForm => {
-                self.task_room_form_field = (self.task_room_form_field + 1).min(5);
+                self.task_room_form_field = 0;
             }
             ViewMode::HandoffForm => {
                 self.handoff_form_field = (self.handoff_form_field + 1).min(5);
@@ -452,7 +452,7 @@ impl WorkbenchApp {
     pub fn reverse_active_form_field(&mut self) {
         match self.view_mode {
             ViewMode::TaskRoomForm => {
-                self.task_room_form_field = self.task_room_form_field.saturating_sub(1);
+                self.task_room_form_field = 0;
             }
             ViewMode::HandoffForm => {
                 self.handoff_form_field = self.handoff_form_field.saturating_sub(1);
@@ -470,15 +470,8 @@ impl WorkbenchApp {
                 {
                     *err = None;
                 }
-                match self.task_room_form_field {
-                    0 => self.task_room_form.objective.push(ch),
-                    1 => self.task_room_form.acceptance_criteria.push(ch),
-                    2 => self.task_room_form.workspace.push(ch),
-                    3 => self.task_room_form.actor.push(ch),
-                    4 => self.task_room_form.runtime.push(ch),
-                    5 => self.task_room_form.safety_mode.push(ch),
-                    _ => {}
-                }
+                self.task_room_form_field = 0;
+                self.task_room_form.objective.push(ch);
             }
             ViewMode::HandoffForm => {
                 if let Some(err) = self
@@ -517,27 +510,8 @@ impl WorkbenchApp {
                 {
                     *err = None;
                 }
-                match self.task_room_form_field {
-                    0 => {
-                        self.task_room_form.objective.pop();
-                    }
-                    1 => {
-                        self.task_room_form.acceptance_criteria.pop();
-                    }
-                    2 => {
-                        self.task_room_form.workspace.pop();
-                    }
-                    3 => {
-                        self.task_room_form.actor.pop();
-                    }
-                    4 => {
-                        self.task_room_form.runtime.pop();
-                    }
-                    5 => {
-                        self.task_room_form.safety_mode.pop();
-                    }
-                    _ => {}
-                }
+                self.task_room_form_field = 0;
+                self.task_room_form.objective.pop();
             }
             ViewMode::HandoffForm => match self.handoff_form_field {
                 0 => {
@@ -594,8 +568,8 @@ impl WorkbenchApp {
             self.task_room_form.safety_mode = "workspace-write".to_string();
         }
         if self.task_room_form.runtime.trim().is_empty() {
-            self.task_room_form_field_errors[4] =
-                Some("No runtime default — set Runtime under advanced".to_string());
+            self.task_room_form_field_errors[0] =
+                Some("No runtime available — fix project runtime setup".to_string());
             return WorkbenchEffect::None;
         }
         let draft = self.task_room_form.clone();

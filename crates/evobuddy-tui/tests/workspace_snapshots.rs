@@ -160,11 +160,10 @@ fn taskroom_form_snapshot_shows_fields_and_submit_hints() {
     for landmark in [
         "New work",
         "What should we do?",
-        "Done when (optional)",
-        "Runtime (advanced)",
         "map",
         "Enter create",
         "Esc cancel",
+        "Ctrl+C quit",
     ] {
         assert!(
             snapshot.contains(landmark),

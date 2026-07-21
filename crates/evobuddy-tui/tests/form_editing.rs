@@ -198,22 +198,19 @@ fn empty_runtime_is_filled_from_project_default_on_submit() {
 }
 
 #[test]
-fn tab_and_ctrl_tab_move_form_fields() {
+fn tab_on_new_work_stays_on_single_body() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     handle_key_event(&mut app, KeyInput::NewRoom);
     assert_eq!(app.task_room_form_field, 0);
 
     handle_key_event(&mut app, KeyInput::Tab);
-    assert_eq!(app.task_room_form_field, 1);
+    assert_eq!(app.task_room_form_field, 0);
 
-    handle_key_event(&mut app, KeyInput::NextField); // Ctrl+Tab
-    assert_eq!(app.task_room_form_field, 2);
-
-    handle_key_event(&mut app, KeyInput::ShiftTab);
-    assert_eq!(app.task_room_form_field, 1);
+    handle_key_event(&mut app, KeyInput::NextField);
+    assert_eq!(app.task_room_form_field, 0);
 
     handle_key_event(&mut app, KeyInput::Char('z'));
-    assert_eq!(app.task_room_form.acceptance_criteria, "z");
+    assert_eq!(app.task_room_form.objective, "z");
 }
 
 #[test]
@@ -247,6 +244,42 @@ fn map_key_event_on_task_room_form_types_shortcut_letters() {
 
     assert_eq!(app.task_room_form.objective, "nhar");
     assert_eq!(app.view_mode, ViewMode::TaskRoomForm);
+}
+
+#[test]
+fn ctrl_c_maps_to_quit_even_on_new_work_form() {
+    let mut app = load_app("evobuddy-workbench-state-v1.json");
+    handle_key_event(&mut app, KeyInput::NewRoom);
+    assert_eq!(app.view_mode, ViewMode::TaskRoomForm);
+
+    let mapped = map_key_event_for_app(
+        &app,
+        KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
+    );
+    assert_eq!(mapped, Some(KeyInput::Quit));
+
+    let mapped_d = map_key_event_for_app(
+        &app,
+        KeyEvent::new(KeyCode::Char('d'), KeyModifiers::CONTROL),
+    );
+    assert_eq!(mapped_d, Some(KeyInput::Quit));
+
+    let mapped_q = map_key_event_for_app(
+        &app,
+        KeyEvent::new(KeyCode::Char('q'), KeyModifiers::CONTROL),
+    );
+    assert_eq!(mapped_q, Some(KeyInput::Quit));
+}
+
+#[test]
+fn ctrl_c_maps_to_quit_on_dashboard() {
+    let app = load_app("evobuddy-workbench-state-v1.json");
+    assert_eq!(app.view_mode, ViewMode::Dashboard);
+    let mapped = map_key_event_for_app(
+        &app,
+        KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL),
+    );
+    assert_eq!(mapped, Some(KeyInput::Quit));
 }
 
 #[test]

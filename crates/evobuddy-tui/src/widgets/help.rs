@@ -7,11 +7,11 @@ use crate::theme::pane_border_style;
 pub fn render_help(frame: &mut Frame<'_>, area: ratatui::layout::Rect) {
     let lines = vec![
         Line::from("EvoBuddy TaskRoom workbench"),
-        Line::from("Home: n new room · Enter Attach · / search · ? help · q quit"),
-        Line::from("j/k or ↑/↓ select room · ←/→ do not open pages · Esc back"),
-        Line::from("Enter attaches/opens the selected room's native session"),
-        Line::from("Detach with Ctrl+B d (process keeps running)"),
-        Line::from("Create and attach mutate durable .evobuddy state"),
+        Line::from("Home: n new work · Enter Attach · / search · ? help"),
+        Line::from("Quit: q · Ctrl+C · Ctrl+D · Ctrl+Q"),
+        Line::from("j/k select room · Enter attach · Esc back"),
+        Line::from("n opens free-text create (no config fields)"),
+        Line::from("Detach native session: Ctrl+B d"),
     ];
     frame.render_widget(
         Paragraph::new(lines).block(

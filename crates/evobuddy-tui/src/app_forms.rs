@@ -42,7 +42,7 @@ impl WorkbenchApp {
     pub fn advance_active_form_field(&mut self) {
         match self.view_mode {
             ViewMode::TaskRoomForm => {
-                self.task_room_form_field = (self.task_room_form_field + 1).min(5);
+                self.task_room_form_field = 0;
             }
             ViewMode::HandoffForm => {
                 self.handoff_form_field = (self.handoff_form_field + 1).min(5);
@@ -52,15 +52,10 @@ impl WorkbenchApp {
     }
     pub fn append_to_active_input(&mut self, ch: char) {
         match self.view_mode {
-            ViewMode::TaskRoomForm => match self.task_room_form_field {
-                0 => self.task_room_form.objective.push(ch),
-                1 => self.task_room_form.acceptance_criteria.push(ch),
-                2 => self.task_room_form.workspace.push(ch),
-                3 => self.task_room_form.actor.push(ch),
-                4 => self.task_room_form.runtime.push(ch),
-                5 => self.task_room_form.safety_mode.push(ch),
-                _ => {}
-            },
+            ViewMode::TaskRoomForm => {
+                self.task_room_form_field = 0;
+                self.task_room_form.objective.push(ch);
+            }
             ViewMode::HandoffForm => match self.handoff_form_field {
                 0 => self.handoff_form.sender.push(ch),
                 1 => self.handoff_form.receiver.push(ch),

@@ -104,7 +104,25 @@ fn is_text_entry_view(app: &WorkbenchApp) -> bool {
     }
 }
 
+fn is_quit_chord(key: KeyEvent) -> bool {
+    if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
+        return true;
+    }
+    if key.code == KeyCode::Char('d') && key.modifiers.contains(KeyModifiers::CONTROL) {
+        return true;
+    }
+    if key.code == KeyCode::Char('q')
+        && (key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL))
+    {
+        return true;
+    }
+    false
+}
+
 fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
+    if is_quit_chord(key) {
+        return Some(KeyInput::Quit);
+    }
     match key.code {
         KeyCode::Up => Some(KeyInput::Up),
         KeyCode::Down => Some(KeyInput::Down),
@@ -120,8 +138,8 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
         } else {
             KeyInput::Tab
         }),
-        KeyCode::Char('j') => Some(KeyInput::Down),
-        KeyCode::Char('k') => Some(KeyInput::Up),
+        KeyCode::Char('j') if key.modifiers.is_empty() => Some(KeyInput::Down),
+        KeyCode::Char('k') if key.modifiers.is_empty() => Some(KeyInput::Up),
         KeyCode::Char('/')
             if key.modifiers.contains(KeyModifiers::CONTROL) || key.modifiers.is_empty() =>
         {
@@ -134,7 +152,7 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
         KeyCode::Char('h') if key.modifiers.is_empty() => Some(KeyInput::Handoff),
         KeyCode::Char('?') => Some(KeyInput::Help),
         KeyCode::Char('a') if key.modifiers.is_empty() => Some(KeyInput::Actions),
-        KeyCode::Char('r') => Some(KeyInput::Trace),
+        KeyCode::Char('r') if key.modifiers.is_empty() => Some(KeyInput::Trace),
         KeyCode::Char('e') if key.modifiers.is_empty() => Some(KeyInput::Evidence),
         KeyCode::Char('u') if key.modifiers.is_empty() => Some(KeyInput::Updates),
         KeyCode::Char('b') if key.modifiers.contains(KeyModifiers::CONTROL) => {
@@ -143,7 +161,6 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
         KeyCode::Char('t') if key.modifiers.contains(KeyModifiers::CONTROL) => {
             Some(KeyInput::ToggleUpdates)
         }
-        KeyCode::Char('q') if key.modifiers.is_empty() => Some(KeyInput::Quit),
         KeyCode::Char(ch @ '1'..='9') if key.modifiers.is_empty() => Some(
             KeyInput::StructuredAnswer(ch.to_digit(10).unwrap_or(1) as u8),
         ),
@@ -155,6 +172,9 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
 }
 
 pub fn map_key_event_for_app(app: &WorkbenchApp, key: KeyEvent) -> Option<KeyInput> {
+    if is_quit_chord(key) {
+        return Some(KeyInput::Quit);
+    }
     if is_text_entry_view(app) {
         match key.code {
             KeyCode::Up => Some(KeyInput::Up),

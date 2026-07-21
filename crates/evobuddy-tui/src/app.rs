@@ -1059,7 +1059,7 @@ fn command_registry() -> Vec<CommandEntry> {
             command: DeterministicCommand::OpenSelectedTaskRoom,
         },
         CommandEntry {
-            label: "open selected task room",
+            label: "attach selected task room",
             command: DeterministicCommand::OpenSelectedTaskRoom,
         },
         CommandEntry {

@@ -149,7 +149,7 @@ fn trace_drawer_snapshot_keeps_diagnostics_behind_drawer() {
 }
 
 #[test]
-fn taskroom_form_snapshot_names_destination_fields_and_effect() {
+fn taskroom_form_snapshot_shows_fields_and_submit_hints() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     handle_key_event(&mut app, KeyInput::NewRoom);
     handle_key_event(&mut app, KeyInput::Char('m'));
@@ -159,8 +159,6 @@ fn taskroom_form_snapshot_names_destination_fields_and_effect() {
     let snapshot = render_current_snapshot(&app, 120, 40).expect("render task room form snapshot");
     for landmark in [
         "TaskRoom Form",
-        "Destination: Create TaskRoom",
-        "Effect: durable TaskRoom draft",
         "Objective",
         "Acceptance criteria",
         "Workspace",
@@ -173,13 +171,17 @@ fn taskroom_form_snapshot_names_destination_fields_and_effect() {
     ] {
         assert!(
             snapshot.contains(landmark),
-            "missing task composer landmark `{landmark}` in snapshot:\n{snapshot}"
+            "missing task room form landmark `{landmark}` in snapshot:\n{snapshot}"
         );
     }
+    assert!(
+        !snapshot.contains("Destination:"),
+        "form_kit forms do not show Destination chrome:\n{snapshot}"
+    );
 }
 
 #[test]
-fn handoff_form_snapshot_names_destination_fields_and_effect() {
+fn handoff_form_snapshot_shows_fields_and_submit_hints() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     app.push_view(ViewMode::TaskRoomWorkspace);
     handle_key_event(&mut app, KeyInput::Handoff);
@@ -188,8 +190,6 @@ fn handoff_form_snapshot_names_destination_fields_and_effect() {
     let snapshot = render_current_snapshot(&app, 120, 40).expect("render handoff form snapshot");
     for landmark in [
         "Handoff Form",
-        "Destination: durable HandoffRecord",
-        "Effect: record handoff only",
         "Sender",
         "Receiver",
         "Body",
@@ -197,12 +197,18 @@ fn handoff_form_snapshot_names_destination_fields_and_effect() {
         "Expected next action",
         "Return destination",
         "b",
+        "Enter submit",
+        "Esc cancel",
     ] {
         assert!(
             snapshot.contains(landmark),
             "missing handoff form landmark `{landmark}` in snapshot:\n{snapshot}"
         );
     }
+    assert!(
+        !snapshot.contains("Destination: durable"),
+        "handoff form_kit does not show Destination chrome:\n{snapshot}"
+    );
 }
 
 #[test]

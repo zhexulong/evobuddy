@@ -21,6 +21,8 @@ context-tree-*-report.json
 context-tree-*-projections.json
 evobuddy-*-report.json
 evobuddy-*-projections.json
+# Track retained workbench fixtures used by contract tests
+!fixtures/evobuddy-workbench/team-taskroom-retained/**/evobuddy-*-report.json
 missing-parent-invocation.json
 
 # Local agent / IDE noise
@@ -41,8 +43,9 @@ coverage/
 *.tmp
 *.bak
 *.bak-test
+.worktrees/
 
 # Documentation is local-only (not product source of truth for release)
-docs/
-
-.worktrees/
+# Keep product docs tracked; ignore agent plan scratch only when untracked
+docs/superpowers/plans/*
+!docs/superpowers/plans/.gitkeep

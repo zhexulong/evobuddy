@@ -183,7 +183,7 @@ export async function createRuntimeSessionOpenPlan(input, deps = {}) {
         runtime,
         workspace,
         safetyMode,
-        detachShortcut: 'Ctrl+B d',
+        detachShortcut: 'F10 or Ctrl+\\\\',
       },
     },
     runtimeCapabilityRef,

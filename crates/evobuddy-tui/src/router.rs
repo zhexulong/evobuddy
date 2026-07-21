@@ -116,7 +116,6 @@ where
             return Ok(RuntimeSessionResult::NeedsChoice { plan });
         }
 
-        // Prefer attaching a live same-instance session before reserve.
         if let Ok(listed) = self.backend.list() {
             for existing in listed {
                 if existing.agent_instance_id != request.agent_instance_id {

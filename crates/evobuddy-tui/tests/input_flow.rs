@@ -43,7 +43,11 @@ fn home_enter_opens_native_runtime_not_workspace() {
         matches!(effect, WorkbenchEffect::OpenNativeRuntime { .. }),
         "Home Enter must attach/open native runtime, got {effect:?}"
     );
-    assert_eq!(app.view_mode, ViewMode::ActionProgress);
+    assert_eq!(
+        app.view_mode,
+        ViewMode::Dashboard,
+        "Attach stays on Home; no Working splash"
+    );
     assert!(app.durable_writes.is_empty());
 }
 
@@ -81,7 +85,7 @@ fn enter_on_task_rooms_opens_native_runtime() {
 
     assert_eq!(app.selected_task_room, 0);
     assert!(matches!(effect, WorkbenchEffect::OpenNativeRuntime { .. }));
-    assert_eq!(app.view_mode, ViewMode::ActionProgress);
+    assert_eq!(app.view_mode, ViewMode::Dashboard);
     assert!(app.durable_writes.is_empty());
 }
 
@@ -300,7 +304,7 @@ fn taskroom_first_home_exposes_contextual_actions_from_selected_room() {
 
     let effect = handle_key_event(&mut app, KeyInput::Enter);
     assert!(matches!(effect, WorkbenchEffect::OpenNativeRuntime { .. }));
-    assert_eq!(app.view_mode, ViewMode::ActionProgress);
+    assert_eq!(app.view_mode, ViewMode::Dashboard);
     assert!(app.durable_writes.is_empty());
 }
 

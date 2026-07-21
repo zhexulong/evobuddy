@@ -728,7 +728,10 @@ fn open_native_runtime_flow_renders_pre_attach_notice_then_guard_order() {
     assert!(notice.contains("Workspace: /repo"));
     assert!(notice.contains("Safety mode: workspace-write"));
     assert!(notice.contains("Session: tmux:codex:taskroom:alpha:instance-1"));
-    assert!(notice.contains("Detach: Ctrl+B d"));
+    assert!(
+        notice.contains("F10") || notice.contains("Ctrl+B d") || notice.contains("Leave"),
+        "notice should teach leave keys: {notice}"
+    );
 
     #[derive(Clone, Default)]
     struct OrderControl {

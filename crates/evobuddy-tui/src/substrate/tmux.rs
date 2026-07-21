@@ -12,7 +12,7 @@ use super::{
 };
 
 const SESSION_SEPARATOR: &str = "|||";
-const MANAGED_STATUS_LINE: &str = "EvoBuddy-managed | Detach: Ctrl+B d";
+const MANAGED_STATUS_LINE: &str = r"EvoBuddy | leave: F10 or Ctrl+\  (also Ctrl+B d)";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AttachPath {
@@ -82,7 +82,7 @@ pub fn format_pre_attach_notice(
     session: &SubstrateSessionRef,
 ) -> String {
     format!(
-        "Attaching to native runtime\nParticipant: {}\nRuntime: {}\nWorkspace: {}\nSafety mode: {}\nSession: {}\nDetach: Ctrl+B d\n",
+        "Opening native runtime\nParticipant: {}\nRuntime: {}\nWorkspace: {}\nSafety mode: {}\nSession: {}\nLeave session: F10  or  Ctrl+\\  (also Ctrl+B d)\n",
         display.participant,
         display.runtime,
         display.workspace,
@@ -353,7 +353,16 @@ tmux treats colon as window separator and renames the session"
             MANAGED_STATUS_LINE,
         ]);
         let _ =
-            self.command_output(&["set-option", "-t", session_name, "status-left-length", "80"]);
+            self.command_output(&["set-option", "-t", session_name, "status-left-length", "96"]);
+        let _ = self.command_output(&["bind-key", "-T", "root", "-n", "F10", "detach-client"]);
+        let _ = self.command_output(&[
+            "bind-key",
+            "-T",
+            "root",
+            "-n",
+            "C-\\",
+            "detach-client",
+        ]);
         self.terminated.borrow_mut().remove(session_name);
         self.inspect(&request.session_ref)
     }

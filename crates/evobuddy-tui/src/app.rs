@@ -678,8 +678,7 @@ impl WorkbenchApp {
             .first()
             .map(|participant| participant.id.clone())
             .unwrap_or_default();
-        self.action_status = Some(format!("attaching… ({})", label.to_lowercase()));
-        self.push_view(ViewMode::ActionProgress);
+        self.action_status = Some(format!("opening {label}…"));
         WorkbenchEffect::OpenNativeRuntime {
             room_id,
             instance_id,

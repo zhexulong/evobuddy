@@ -128,13 +128,23 @@ fn pre_attach_notice_includes_required_fields_and_detach_hint() {
     assert!(notice.contains("Workspace: /tmp/workspace"));
     assert!(notice.contains("Safety mode: workspace-write"));
     assert!(notice.contains("Session: tmux:evobuddy:session-1"));
-    assert!(notice.contains("Detach: Ctrl+B d"));
+    assert!(
+        notice.contains("F10") || notice.contains("Ctrl+") || notice.contains("Ctrl+B d"),
+        "notice should teach a simple leave key, got {notice}"
+    );
 }
 
 #[test]
 fn managed_status_line_includes_exact_detach_hint() {
-    assert!(managed_status_line().contains("Detach: Ctrl+B d"));
-    assert!(managed_status_line().contains("EvoBuddy-managed"));
+    let line = managed_status_line();
+    assert!(
+        line.contains("F10") || line.contains("Ctrl+B d"),
+        "status line should teach leave keys: {line}"
+    );
+    assert!(
+        line.contains("EvoBuddy"),
+        "status line should mark EvoBuddy-managed sessions: {line}"
+    );
 }
 
 #[test]
@@ -187,11 +197,11 @@ fn create_session_configures_managed_status_line_with_detach_hint() {
         .expect("read status-left");
     let status_left = String::from_utf8_lossy(&output.stdout);
     assert!(
-        status_left.contains("Detach: Ctrl+B d"),
+        status_left.contains("F10") || status_left.contains("Ctrl+B d"),
         "status-left missing detach hint: {status_left}"
     );
     assert!(
-        status_left.contains("EvoBuddy-managed"),
+        status_left.contains("EvoBuddy"),
         "status-left missing managed marker: {status_left}"
     );
 

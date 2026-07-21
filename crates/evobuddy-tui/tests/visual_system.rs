@@ -2,9 +2,9 @@ use std::fs;
 use std::path::PathBuf;
 
 use anyhow::Result;
+use evobuddy_tui::action_hints::action_hints;
 use evobuddy_tui::app::WorkbenchApp;
 use evobuddy_tui::model::{parse_workbench_state, ActorStatus, RuntimeSetupStatus, TaskRoomStatus};
-use evobuddy_tui::action_hints::action_hints;
 use evobuddy_tui::theme::{
     action_bar_block, field_style, pane_block, pane_border_style, runtime_status_style,
     selected_style, status_style, task_room_status_style, theme, ThemeTokens,
@@ -277,7 +277,6 @@ fn theme_module_source_defines_token_api_surface() {
         );
     }
 }
-
 
 #[test]
 fn selected_style_uses_background_or_reversed_emphasis() {

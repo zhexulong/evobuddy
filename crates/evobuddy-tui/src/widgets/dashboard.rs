@@ -111,10 +111,7 @@ fn render_narrow(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
 }
 
 fn render_secondary(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
-    let mut lines = vec![Line::from(Span::styled(
-        "Runtimes",
-        selected_style(),
-    ))];
+    let mut lines = vec![Line::from(Span::styled("Runtimes", selected_style()))];
     for setup in app.state.runtime_setup.iter().take(3) {
         lines.push(Line::from(format!(
             "  {} · {}",

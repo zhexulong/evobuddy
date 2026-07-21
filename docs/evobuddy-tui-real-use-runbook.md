@@ -22,8 +22,14 @@ node scripts/evobuddy/evobuddy.mjs workbench --project . --interactive
 
 ## Keys
 
-- `n` new room · Enter open/attach · Esc back · Tab fields
-- `/` search · `:` commands · `h` handoff · `e` evidence · `r` trace · `?` help
+**Home:** `Enter` open/attach · `n` new room · `/` search · `?` help · `j`/`k` move · `q` quit
+
+**Not on Home:** handoff (`h`), evidence (`e`), and trace (`r`) are not Home actions.
+
+**Room (after Enter into workspace):** attach via Enter; Esc back.
+
+**Native:** Detach with `Ctrl+B d` (process keeps running). Evidence refreshes automatically after detach.
+
 
 ## Prerequisites
 

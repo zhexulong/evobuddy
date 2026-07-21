@@ -30,15 +30,22 @@ fn home_action_hints_allowlist_max_four_without_handoff_evidence_trace() {
     assert!(keys.iter().any(|k| *k == "Enter" || k.starts_with("Enter")));
     assert!(keys.contains(&"n"));
     assert!(keys.contains(&"?"));
-    assert!(!keys.iter().any(|k| *k == "h"), "no handoff key: {keys:?}");
-    assert!(!keys.iter().any(|k| *k == "e"), "no evidence key: {keys:?}");
-    assert!(!keys.iter().any(|k| *k == "r"), "no trace key: {keys:?}");
-    assert!(!keys.iter().any(|k| *k == ":"), "no Commands on first-paint bar: {keys:?}");
+    assert!(!keys.contains(&"h"), "no handoff key: {keys:?}");
+    assert!(!keys.contains(&"e"), "no evidence key: {keys:?}");
+    assert!(!keys.contains(&"r"), "no trace key: {keys:?}");
+    assert!(
+        !keys.contains(&":"),
+        "no Commands on first-paint bar: {keys:?}"
+    );
     for h in &hints {
         let label = h.label.to_lowercase();
         assert!(!label.contains("handoff"), "forbidden {}", h.label);
         assert!(!label.contains("evidence"), "forbidden {}", h.label);
-        assert!(!label.contains("commands"), "forbidden bar label {}", h.label);
+        assert!(
+            !label.contains("commands"),
+            "forbidden bar label {}",
+            h.label
+        );
     }
 }
 

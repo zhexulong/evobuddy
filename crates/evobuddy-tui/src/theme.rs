@@ -115,7 +115,6 @@ pub fn status_glyph(status: &TaskRoomStatus) -> &'static str {
     }
 }
 
-
 pub fn section_style() -> Style {
     let t = theme();
     Style::default().fg(t.text).add_modifier(Modifier::BOLD)

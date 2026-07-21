@@ -167,10 +167,19 @@ fn action_bar_shows_contextual_dashboard_hints() {
         "missing contextual action bar landmarks:
 {snapshot}"
     );
-    assert!(!snapshot.to_lowercase().contains("handoff"), "Home must not promote handoff:
-{snapshot}");
-    assert!(!snapshot.contains("Evidence"), "Home must not promote Evidence:
-{snapshot}");
-    assert!(!snapshot.contains("Commands"), "Home bar must not show Commands landmark:
-{snapshot}");
+    assert!(
+        !snapshot.to_lowercase().contains("handoff"),
+        "Home must not promote handoff:
+{snapshot}"
+    );
+    assert!(
+        !snapshot.contains("Evidence"),
+        "Home must not promote Evidence:
+{snapshot}"
+    );
+    assert!(
+        !snapshot.contains("Commands"),
+        "Home bar must not show Commands landmark:
+{snapshot}"
+    );
 }

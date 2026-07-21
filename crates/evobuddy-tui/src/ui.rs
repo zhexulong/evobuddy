@@ -208,7 +208,7 @@ pub fn run_interactive_app(app: &mut WorkbenchApp) -> Result<()> {
     let mut deps = EffectDeps::production(project);
     deps.open_native = Some(Box::new(
         move |app: &mut WorkbenchApp, room_id: &str, instance_id: &str| {
-            app.action_status = Some(format!("opening native runtime {room_id}/{instance_id}"));
+            app.action_status = Some(format!("attaching {room_id}/{instance_id}"));
             Ok(EffectOutcome::OpenedNativeRuntime)
         },
     ));

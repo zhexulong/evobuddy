@@ -81,7 +81,7 @@ fn focused_buddy_workspace_snapshot_shows_delegate_boundary_and_buddy_actions() 
 #[test]
 fn task_room_workspace_snapshot_shows_collaborative_room_fields() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
-    handle_key_event(&mut app, KeyInput::Enter);
+    app.push_view(ViewMode::TaskRoomWorkspace);
 
     let snapshot =
         render_current_snapshot(&app, 120, 40).expect("render taskroom workspace snapshot");
@@ -111,7 +111,7 @@ fn command_palette_snapshot_shows_contextual_commands() {
     for landmark in [
         "Command Palette",
         "open selected agent",
-        "open selected task room",
+        "attach selected task room",
         "show handoffs",
         "filter blocked",
         "show runtime setup",
@@ -181,7 +181,7 @@ fn taskroom_form_snapshot_names_destination_fields_and_effect() {
 #[test]
 fn handoff_form_snapshot_names_destination_fields_and_effect() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
-    handle_key_event(&mut app, KeyInput::Enter);
+    app.push_view(ViewMode::TaskRoomWorkspace);
     handle_key_event(&mut app, KeyInput::Handoff);
     handle_key_event(&mut app, KeyInput::Char('b'));
 

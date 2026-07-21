@@ -78,6 +78,12 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
                 app.submit_structured_answer(index)
             } else if app.view_mode == ViewMode::CommandPalette {
                 app.execute_selected_command()
+            } else if matches!(
+                app.view_mode,
+                ViewMode::Dashboard | ViewMode::TaskRoomWorkspace
+            ) && app.focus == FocusPane::TaskRooms
+            {
+                app.open_native_runtime_effect()
             } else if app.focus == FocusPane::TeamBuddies {
                 match app.selected_actor {
                     Some(SelectedActor::FocusedBuddy(_)) => {
@@ -85,9 +91,6 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
                     }
                     _ => app.push_view(ViewMode::TeamMemberWorkspace),
                 }
-                WorkbenchEffect::None
-            } else if app.focus == FocusPane::TaskRooms {
-                app.push_view(ViewMode::TaskRoomWorkspace);
                 WorkbenchEffect::None
             } else {
                 app.push_view(ViewMode::Detail(app.current_detail_view()));
@@ -99,19 +102,7 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
                 WorkbenchEffect::None
             } else if app.view_mode == ViewMode::CommandPalette {
                 app.execute_selected_command()
-            } else if app.focus == FocusPane::TeamBuddies {
-                match app.selected_actor {
-                    Some(SelectedActor::FocusedBuddy(_)) => {
-                        app.push_view(ViewMode::FocusedBuddyWorkspace)
-                    }
-                    _ => app.push_view(ViewMode::TeamMemberWorkspace),
-                }
-                WorkbenchEffect::None
-            } else if app.focus == FocusPane::TaskRooms {
-                app.push_view(ViewMode::TaskRoomWorkspace);
-                WorkbenchEffect::None
             } else {
-                app.push_view(ViewMode::Detail(app.current_detail_view()));
                 WorkbenchEffect::None
             }
         }

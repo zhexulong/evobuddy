@@ -35,15 +35,27 @@ fn navigation_changes_selection_and_cycles_focus() {
 }
 
 #[test]
-fn enter_opens_detail_and_escape_returns_to_dashboard() {
+fn home_enter_opens_native_runtime_not_workspace() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
 
-    handle_key_event(&mut app, KeyInput::Enter);
-    assert_eq!(app.view_mode, ViewMode::TaskRoomWorkspace);
-
-    handle_key_event(&mut app, KeyInput::Escape);
-    assert_eq!(app.view_mode, ViewMode::Dashboard);
+    let effect = handle_key_event(&mut app, KeyInput::Enter);
+    assert!(
+        matches!(effect, WorkbenchEffect::OpenNativeRuntime { .. }),
+        "Home Enter must attach/open native runtime, got {effect:?}"
+    );
+    assert_eq!(app.view_mode, ViewMode::ActionProgress);
     assert!(app.durable_writes.is_empty());
+}
+
+#[test]
+fn home_right_does_not_open_workspace() {
+    let mut app = load_app("evobuddy-workbench-state-v1.json");
+    assert_eq!(app.focus, FocusPane::TaskRooms);
+
+    let effect = handle_key_event(&mut app, KeyInput::Right);
+    assert_eq!(effect, WorkbenchEffect::None);
+    assert_eq!(app.view_mode, ViewMode::Dashboard);
+    assert_eq!(app.selected_task_room, 0);
 }
 
 #[test]
@@ -61,16 +73,15 @@ fn enter_on_focused_buddy_opens_focused_delegate_workspace() {
 }
 
 #[test]
-fn enter_on_task_rooms_opens_task_room_workspace() {
+fn enter_on_task_rooms_opens_native_runtime() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
 
     assert_eq!(app.focus, FocusPane::TaskRooms);
-    handle_key_event(&mut app, KeyInput::Enter);
+    let effect = handle_key_event(&mut app, KeyInput::Enter);
 
-    assert_eq!(app.view_mode, ViewMode::TaskRoomWorkspace);
     assert_eq!(app.selected_task_room, 0);
-    handle_key_event(&mut app, KeyInput::Escape);
-    assert_eq!(app.view_mode, ViewMode::Dashboard);
+    assert!(matches!(effect, WorkbenchEffect::OpenNativeRuntime { .. }));
+    assert_eq!(app.view_mode, ViewMode::ActionProgress);
     assert!(app.durable_writes.is_empty());
 }
 
@@ -198,7 +209,7 @@ fn new_room_form_opens_from_dashboard_and_submits_typed_effect() {
 fn handoff_form_opens_from_taskroom_workspace_and_submits_typed_effect() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
 
-    handle_key_event(&mut app, KeyInput::Enter);
+    app.push_view(ViewMode::TaskRoomWorkspace);
     assert_eq!(app.view_mode, ViewMode::TaskRoomWorkspace);
 
     handle_key_event(&mut app, KeyInput::Handoff);
@@ -290,8 +301,9 @@ fn taskroom_first_home_exposes_contextual_actions_from_selected_room() {
     handle_key_event(&mut app, KeyInput::Down);
     assert_eq!(app.selected_task_room, 1);
 
-    handle_key_event(&mut app, KeyInput::Enter);
-    assert_eq!(app.view_mode, ViewMode::TaskRoomWorkspace);
+    let effect = handle_key_event(&mut app, KeyInput::Enter);
+    assert!(matches!(effect, WorkbenchEffect::OpenNativeRuntime { .. }));
+    assert_eq!(app.view_mode, ViewMode::ActionProgress);
     assert!(app.durable_writes.is_empty());
 }
 

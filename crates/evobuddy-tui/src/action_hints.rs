@@ -1,4 +1,5 @@
 use crate::app::WorkbenchApp;
+use crate::model::ActionAvailability;
 use crate::views::ViewMode;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -42,6 +43,17 @@ pub fn action_hints(app: &WorkbenchApp) -> Vec<ActionHint> {
     }
 }
 
+pub fn short_primary_action_label(action: &ActionAvailability) -> String {
+    match action.id.as_str() {
+        "open-native-runtime" | "open-session" => "Attach".to_string(),
+        "resume-conversation" | "heuristic-resume" => "Resume".to_string(),
+        "continue-with-taskroom-context" => "Continue".to_string(),
+        "start-new-session" => "Start new".to_string(),
+        _ if action.label.eq_ignore_ascii_case("open native runtime") => "Attach".to_string(),
+        _ => action.label.clone(),
+    }
+}
+
 fn dashboard_hints(app: &WorkbenchApp) -> Vec<ActionHint> {
     vec![
         open_hint(app),
@@ -82,18 +94,18 @@ fn open_hint(app: &WorkbenchApp) -> ActionHint {
     match app.selected_task_room() {
         Some(room) => {
             if let Some(action) = room.available_actions.iter().find(|a| a.enabled) {
-                hint("Enter", action.label.clone(), true, None)
+                hint("Enter", short_primary_action_label(action), true, None)
             } else if let Some(action) = room.available_actions.first() {
                 ActionHint {
                     key: "Enter",
-                    label: action.label.clone(),
+                    label: short_primary_action_label(action),
                     enabled: false,
                     disabled_reason: action.disabled_reason.clone(),
                 }
             } else {
                 ActionHint {
                     key: "Enter",
-                    label: "Open".to_string(),
+                    label: "Attach".to_string(),
                     enabled: false,
                     disabled_reason: Some("no runtime action available".to_string()),
                 }
@@ -101,7 +113,7 @@ fn open_hint(app: &WorkbenchApp) -> ActionHint {
         }
         None => ActionHint {
             key: "Enter",
-            label: "Open".to_string(),
+            label: "Attach".to_string(),
             enabled: false,
             disabled_reason: Some("no TaskRoom selected".to_string()),
         },

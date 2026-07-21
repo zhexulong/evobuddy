@@ -45,7 +45,7 @@ fn dashboard_snapshot_120x40_shows_agent_command_center() {
         "New room",
         "Search",
         "Help",
-        "Open native runtime",
+        "Attach",
     ] {
         assert!(
             snapshot.contains(landmark),
@@ -89,16 +89,28 @@ fn dashboard_snapshot_prioritizes_selected_taskroom_attention_and_actions() {
     for landmark in [
         "OpenCode review loop",
         "Returned",
+        "Now ·",
+        "Session:",
+        "Who:",
         "Objective",
         "Complete the retained OpenCode",
         "Acceptance",
-        "Open native runtime",
+        "Attach",
+        "attachable",
     ] {
         assert!(
             snapshot.contains(landmark),
             "missing landmark `{landmark}`:\n{snapshot}"
         );
     }
+    assert!(
+        !snapshot.contains("Primary action"),
+        "Home peek must not use old Primary action chrome:\n{snapshot}"
+    );
+    assert!(
+        !snapshot.contains("Open native runtime"),
+        "Home must short-label open-native-runtime as Attach:\n{snapshot}"
+    );
 }
 
 #[test]
@@ -145,9 +157,9 @@ fn home_is_taskroom_inbox_not_debug_dashboard() {
     assert!(!frame.contains("Read-only boundary"));
     assert!(
         frame.contains("Detach:")
-            || frame.contains("Enter Open")
-            || frame.contains("Enter  Open")
-            || frame.contains("Open native runtime")
+            || frame.contains("Enter Attach")
+            || frame.contains("Enter  Attach")
+            || frame.contains("Attach")
             || frame.contains("New room")
     );
 }

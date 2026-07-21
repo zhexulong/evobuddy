@@ -265,7 +265,7 @@ fn form_right_does_not_submit_only_enter_does() {
 #[test]
 fn handoff_pop_clears_field_errors() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
-    handle_key_event(&mut app, KeyInput::Enter); // TaskRoomWorkspace
+    app.push_view(ViewMode::TaskRoomWorkspace);
     handle_key_event(&mut app, KeyInput::Handoff);
     assert_eq!(app.view_mode, ViewMode::HandoffForm);
     app.handoff_form_field_errors[0] = Some("required".to_string());

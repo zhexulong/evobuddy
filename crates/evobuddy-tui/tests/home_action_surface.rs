@@ -91,6 +91,35 @@ fn home_snapshot_omits_promoted_handoff_and_evidence_actions() {
 }
 
 #[test]
+fn home_enter_hint_is_short_attach_not_open_native_runtime() {
+    use evobuddy_tui::action_hints::{action_hints, short_primary_action_label};
+    use evobuddy_tui::model::ActionAvailability;
+
+    let mapped = short_primary_action_label(&ActionAvailability {
+        id: "open-native-runtime".to_string(),
+        label: "Open native runtime".to_string(),
+        enabled: true,
+        disabled_reason: None,
+    });
+    assert_eq!(mapped, "Attach");
+
+    let app = load_app();
+    let enter = action_hints(&app)
+        .into_iter()
+        .find(|h| h.key == "Enter")
+        .expect("Enter hint");
+    assert_eq!(enter.label, "Attach");
+    assert!(enter.enabled);
+
+    let frame = render_dashboard_snapshot(&app, 120, 40).unwrap();
+    assert!(frame.contains("Attach"), "{frame}");
+    assert!(
+        !frame.contains("Open native runtime"),
+        "bar/peek must short-label open-native-runtime:\n{frame}"
+    );
+}
+
+#[test]
 fn empty_home_teaches_n_without_handoff() {
     let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../test/fixtures/evobuddy-workbench-state-v1.json");

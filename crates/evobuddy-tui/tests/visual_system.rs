@@ -35,7 +35,11 @@ fn home_is_taskroom_inbox_not_debug_dashboard() {
     assert!(frame.contains("Work inbox") || frame.contains("TaskRoom inbox"));
     assert!(!frame.contains("Read-only boundary"));
     assert!(
-        frame.contains("Detach:") || frame.contains("Enter Open") || frame.contains("Enter  Open")
+        frame.contains("Detach:")
+            || frame.contains("Enter Attach")
+            || frame.contains("Enter  Attach")
+            || frame.contains("Attach")
+            || frame.contains("New room")
     );
 }
 

@@ -504,7 +504,10 @@ fn open_native_progress_status_is_not_mock_queued() {
         "must not use mock queue wording, got {status}"
     );
     assert!(
-        status.contains("opening") || status.contains("native"),
+        status.contains("attaching")
+            || status.contains("opening")
+            || status.contains("native")
+            || status.contains("attach"),
         "got {status}"
     );
 }

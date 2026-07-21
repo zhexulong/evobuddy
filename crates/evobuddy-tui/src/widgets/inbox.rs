@@ -4,6 +4,7 @@ use ratatui::text::{Line, Span};
 use ratatui::widgets::{List, ListItem, Paragraph};
 use ratatui::Frame;
 
+use crate::action_hints::short_primary_action_label;
 use crate::app::WorkbenchApp;
 use crate::model::{TaskRoom, TaskRoomStatus};
 use crate::theme::{muted_style, pane_block, selected_style, status_glyph, task_room_status_style};
@@ -70,7 +71,25 @@ pub fn render_selected_task_room_detail(
         return;
     };
 
-    let mut lines = vec![
+    let attention = room
+        .attention
+        .as_ref()
+        .map(|a| a.state.as_str())
+        .filter(|s| !s.is_empty())
+        .unwrap_or_else(|| attention_phrase(&room.status));
+    let who = if room.participants.is_empty() {
+        "—".to_string()
+    } else {
+        room.participants
+            .iter()
+            .map(|p| p.display_name.as_str())
+            .collect::<Vec<_>>()
+            .join(" · ")
+    };
+    let session_line = room_session_line(app, room);
+    let enter_line = primary_enter_line(room);
+
+    let lines = vec![
         Line::from(Span::styled(
             format!(
                 "{} {}  {}",
@@ -80,49 +99,93 @@ pub fn render_selected_task_room_detail(
             ),
             selected_style(),
         )),
+        Line::from(Span::styled(
+            format!("Now · {attention}"),
+            Style::default().add_modifier(Modifier::BOLD),
+        )),
+        Line::from(format!("Session: {session_line}")),
+        Line::from(format!("Who: {}", truncate(&who, 72))),
         Line::from(format!("Objective: {}", truncate(&room.objective, 72))),
         Line::from(format!(
             "Acceptance: {}",
-            truncate(&room.acceptance_criteria, 72)
+            truncate(&room.acceptance_criteria, 56)
         )),
         Line::from(Span::styled(
-            "Participants",
+            "Enter",
             Style::default().add_modifier(Modifier::BOLD),
         )),
+        Line::from(enter_line),
     ];
-    if room.participants.is_empty() {
-        lines.push(Line::from(Span::styled("  (none)", muted_style())));
-    } else {
-        for participant in &room.participants {
-            lines.push(Line::from(format!(
-                "  {} · {}",
-                participant.display_name, participant.kind
-            )));
-        }
-    }
-    lines.push(Line::from(Span::styled(
-        "Primary action",
-        Style::default().add_modifier(Modifier::BOLD),
-    )));
-    if let Some(action) = room.available_actions.iter().find(|a| a.enabled) {
-        lines.push(Line::from(format!("  Enter  {}", action.label)));
-    } else if let Some(action) = room.available_actions.first() {
-        let reason = action.disabled_reason.as_deref().unwrap_or("unavailable");
-        lines.push(Line::from(format!(
-            "  {} (disabled: {})",
-            action.label, reason
-        )));
-    } else {
-        lines.push(Line::from(Span::styled(
-            "  No actions yet — create/open when runtime ready",
-            muted_style(),
-        )));
-    }
 
     frame.render_widget(
         Paragraph::new(lines).block(pane_block("Selected TaskRoom", focused)),
         area,
     );
+}
+
+fn attention_phrase(status: &TaskRoomStatus) -> &'static str {
+    match status {
+        TaskRoomStatus::NeedsInput => "needs you",
+        TaskRoomStatus::NeedsReview => "needs review",
+        TaskRoomStatus::Working => "working",
+        TaskRoomStatus::Returned => "returned",
+        TaskRoomStatus::Completed => "done",
+        TaskRoomStatus::Blocked => "blocked",
+        TaskRoomStatus::Queued => "queued",
+        TaskRoomStatus::Failed => "failed",
+        TaskRoomStatus::Archived => "archived",
+        TaskRoomStatus::Unknown => "—",
+    }
+}
+
+fn room_session_line(app: &WorkbenchApp, room: &TaskRoom) -> String {
+    let session = app
+        .state
+        .native_sessions
+        .iter()
+        .find(|s| s.room_id == room.id);
+    match session {
+        Some(s) => {
+            let life = match s.lifecycle {
+                crate::model::NativeSessionLifecycle::Attachable => "attachable",
+                crate::model::NativeSessionLifecycle::Attached => "attached",
+                crate::model::NativeSessionLifecycle::Detached => "detached",
+                crate::model::NativeSessionLifecycle::Creating => "creating",
+                crate::model::NativeSessionLifecycle::Stale => "stale",
+                crate::model::NativeSessionLifecycle::Failed => "failed",
+                crate::model::NativeSessionLifecycle::Terminated => "ended",
+                crate::model::NativeSessionLifecycle::Unknown => "unknown",
+            };
+            let runtime = if s.runtime.is_empty() {
+                room.runtime.as_str()
+            } else {
+                s.runtime.as_str()
+            };
+            format!("{life} · {runtime} · {}", s.terminal_session_ref)
+        }
+        None => {
+            if room.runtime.is_empty() {
+                "no native session yet".to_string()
+            } else {
+                format!("{} · no session yet", room.runtime)
+            }
+        }
+    }
+}
+
+fn primary_enter_line(room: &TaskRoom) -> String {
+    if let Some(action) = room.available_actions.iter().find(|a| a.enabled) {
+        format!("  →  {}", short_primary_action_label(action))
+    } else if let Some(action) = room.available_actions.first() {
+        let reason = action.disabled_reason.as_deref().unwrap_or("unavailable");
+        format!(
+            "  {} (disabled: {})",
+            short_primary_action_label(action),
+            reason
+        )
+    } else {
+        "  No actions yet — attach when runtime ready".to_string()
+    }
 }
 
 pub fn attention_counts(app: &WorkbenchApp) -> (usize, usize, usize) {

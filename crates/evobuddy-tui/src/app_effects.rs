@@ -81,10 +81,7 @@ impl WorkbenchApp {
     }
     pub fn execute_command(&mut self, command: DeterministicCommand) -> WorkbenchEffect {
         match command {
-            DeterministicCommand::OpenSelectedTaskRoom => {
-                self.push_view(ViewMode::TaskRoomWorkspace);
-                WorkbenchEffect::ExecuteCommand(DeterministicCommand::OpenSelectedTaskRoom)
-            }
+            DeterministicCommand::OpenSelectedTaskRoom => self.open_native_runtime_effect(),
             DeterministicCommand::ShowHandoffs => {
                 self.push_view(ViewMode::Detail(DetailView::TaskRoom));
                 WorkbenchEffect::ExecuteCommand(DeterministicCommand::ShowHandoffs)
@@ -127,7 +124,7 @@ impl WorkbenchApp {
             .first()
             .map(|participant| participant.id.clone())
             .unwrap_or_default();
-        self.action_status = Some(format!("{} queued", label.to_lowercase()));
+        self.action_status = Some(format!("attaching… ({})", label.to_lowercase()));
         self.push_view(ViewMode::ActionProgress);
         WorkbenchEffect::OpenNativeRuntime {
             room_id,
@@ -150,7 +147,7 @@ fn command_registry() -> Vec<CommandEntry> {
             command: DeterministicCommand::OpenSelectedTaskRoom,
         },
         CommandEntry {
-            label: "open selected task room",
+            label: "attach selected task room",
             command: DeterministicCommand::OpenSelectedTaskRoom,
         },
         CommandEntry {

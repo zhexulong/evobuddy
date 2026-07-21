@@ -24,7 +24,10 @@ pub fn render_task_composer(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rec
         "Durable TaskRoom store"
     } else if status.contains("Created handoff") {
         "Durable handoff record"
-    } else if status.contains("opening native") || status.contains("returned from") {
+    } else if status.contains("opening native")
+        || status.contains("attaching")
+        || status.contains("returned from")
+    {
         "Native runtime / tmux session"
     } else if status.contains("refresh") || status.contains("evidence") {
         "Evidence refresh"

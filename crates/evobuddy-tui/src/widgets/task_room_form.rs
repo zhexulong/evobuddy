@@ -39,14 +39,25 @@ pub fn render_task_room_form(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Re
     let mut lines: Vec<Line> = Vec::new();
     if body.is_empty() {
         lines.push(Line::from(Span::styled(
-            "Type what the team should do…█",
+            "Type what the team should do, then Enter…█",
             muted_style(),
         )));
     } else {
-        lines.push(Line::from(Span::styled(
-            format!("{body}█"),
-            selected_style(),
-        )));
+        let width = rows[1].width.saturating_sub(4).max(16) as usize;
+        let mut rest = body;
+        while !rest.is_empty() {
+            let take = rest
+                .char_indices()
+                .nth(width)
+                .map(|(i, _)| i)
+                .unwrap_or(rest.len());
+            let (chunk, next) = rest.split_at(take);
+            lines.push(Line::from(Span::styled(chunk.to_string(), selected_style())));
+            rest = next;
+        }
+        if let Some(last) = lines.last_mut() {
+            last.spans.push(Span::styled("█", selected_style()));
+        }
     }
     if let Some(err) = error {
         lines.push(Line::from(""));

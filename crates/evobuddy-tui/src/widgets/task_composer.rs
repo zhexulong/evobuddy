@@ -39,11 +39,14 @@ pub fn render_task_composer(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rec
 
     frame.render_widget(
         Paragraph::new(vec![
-            Line::from(Span::styled("Action Progress", selected_style())),
-            Line::from(format!("Destination: {destination}")),
-            Line::from("Result updates from durable store and native session evidence"),
+            Line::from(Span::styled("Working…", selected_style())),
+            Line::from(format!("Where: {destination}")),
+            Line::from(Span::styled(
+                "If this fails, Esc returns — status explains why",
+                muted_style(),
+            )),
         ])
-        .block(surface_block("Action Progress", true)),
+        .block(surface_block("Working", true)),
         rows[0],
     );
     frame.render_widget(
@@ -51,7 +54,10 @@ pub fn render_task_composer(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rec
         rows[1],
     );
     frame.render_widget(
-        Paragraph::new(Line::from(Span::styled("Esc back", muted_style()))),
+        Paragraph::new(Line::from(Span::styled(
+            "Esc back · Ctrl+C quit",
+            muted_style(),
+        ))),
         rows[2],
     );
 }

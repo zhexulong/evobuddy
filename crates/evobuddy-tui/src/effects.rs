@@ -80,7 +80,13 @@ pub fn execute_effect(
 }
 
 fn fail(app: &mut WorkbenchApp, message: String) -> Result<EffectOutcome> {
+    if app.view_mode == ViewMode::ActionProgress {
+        app.pop_view();
+    }
     app.action_status = Some(format!("failed: {message}"));
+    if app.view_mode == ViewMode::TaskRoomForm {
+        app.task_room_form_field_errors[0] = Some(message.clone());
+    }
     Ok(EffectOutcome::Failed { message })
 }
 

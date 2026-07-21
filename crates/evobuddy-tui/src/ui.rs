@@ -1,5 +1,5 @@
 use anyhow::{Context, Result};
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use ratatui::backend::CrosstermBackend;
 use ratatui::backend::TestBackend;
 use ratatui::Terminal;
@@ -119,6 +119,13 @@ fn is_quit_chord(key: KeyEvent) -> bool {
     false
 }
 
+fn is_enter_key(code: KeyCode) -> bool {
+    matches!(
+        code,
+        KeyCode::Enter | KeyCode::Char('\n') | KeyCode::Char('\r')
+    )
+}
+
 fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
     if is_quit_chord(key) {
         return Some(KeyInput::Quit);
@@ -128,7 +135,7 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
         KeyCode::Down => Some(KeyInput::Down),
         KeyCode::Left => Some(KeyInput::Left),
         KeyCode::Right => Some(KeyInput::Right),
-        KeyCode::Enter => Some(KeyInput::Enter),
+        code if is_enter_key(code) => Some(KeyInput::Enter),
         KeyCode::Esc => Some(KeyInput::Escape),
         KeyCode::Backspace => Some(KeyInput::Backspace),
         KeyCode::Delete => Some(KeyInput::Delete),
@@ -181,7 +188,7 @@ pub fn map_key_event_for_app(app: &WorkbenchApp, key: KeyEvent) -> Option<KeyInp
             KeyCode::Down => Some(KeyInput::Down),
             KeyCode::Left => Some(KeyInput::Left),
             KeyCode::Right => Some(KeyInput::Right),
-            KeyCode::Enter => Some(KeyInput::Enter),
+            code if is_enter_key(code) => Some(KeyInput::Enter),
             KeyCode::Esc => Some(KeyInput::Escape),
             KeyCode::Backspace => Some(KeyInput::Backspace),
             KeyCode::Delete => Some(KeyInput::Delete),
@@ -241,6 +248,9 @@ pub fn run_interactive_app(app: &mut WorkbenchApp) -> Result<()> {
             maybe_dump_frame(app, terminal.size()?.width, terminal.size()?.height)?;
             if event::poll(Duration::from_millis(100)).context("failed to poll terminal events")? {
                 if let Event::Key(key) = event::read().context("failed to read terminal event")? {
+                    if key.kind != KeyEventKind::Press {
+                        continue;
+                    }
                     if let Some(mapped) = map_key_event_for_app(app, key) {
                         if mapped == KeyInput::Quit {
                             break;
@@ -256,16 +266,41 @@ pub fn run_interactive_app(app: &mut WorkbenchApp) -> Result<()> {
                                 .map(|room| (room.id.clone(), answer.clone())),
                             _ => None,
                         };
-                        let outcome = execute_effect(app, effect, &mut deps)?;
-                        if let EffectOutcome::OpenedNativeRuntime = outcome {
-                            if let Some((room_id, instance_id)) = pending_open {
-                                execute_open_native_runtime(
-                                    app,
-                                    &mut terminal,
-                                    &mut control,
-                                    &room_id,
-                                    &instance_id,
-                                )?;
+                        match execute_effect(app, effect, &mut deps) {
+                            Ok(EffectOutcome::OpenedNativeRuntime) => {
+                                if let Some((room_id, instance_id)) = pending_open {
+                                    if let Err(error) = execute_open_native_runtime(
+                                        app,
+                                        &mut terminal,
+                                        &mut control,
+                                        &room_id,
+                                        &instance_id,
+                                    ) {
+                                        app.action_status =
+                                            Some(format!("attach failed: {error:#}"));
+                                    }
+                                }
+                            }
+                            Ok(EffectOutcome::Failed { message }) => {
+                                if app.view_mode == ViewMode::ActionProgress {
+                                    app.pop_view();
+                                }
+                                if app.view_mode == ViewMode::TaskRoomForm {
+                                    app.task_room_form_field_errors[0] = Some(message);
+                                } else {
+                                    app.action_status = Some(format!("failed: {message}"));
+                                }
+                            }
+                            Ok(_) => {}
+                            Err(error) => {
+                                if app.view_mode == ViewMode::ActionProgress {
+                                    app.pop_view();
+                                }
+                                app.action_status = Some(format!("failed: {error:#}"));
+                                if app.view_mode == ViewMode::TaskRoomForm {
+                                    app.task_room_form_field_errors[0] =
+                                        Some(format!("{error:#}"));
+                                }
                             }
                         }
                     }

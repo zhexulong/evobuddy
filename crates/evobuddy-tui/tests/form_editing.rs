@@ -247,6 +247,21 @@ fn map_key_event_on_task_room_form_types_shortcut_letters() {
 }
 
 #[test]
+fn enter_and_cr_lf_chars_map_to_enter_on_compose() {
+    let mut app = load_app("evobuddy-workbench-state-v1.json");
+    handle_key_event(&mut app, KeyInput::NewRoom);
+
+    for code in [
+        KeyCode::Enter,
+        KeyCode::Char('\n'),
+        KeyCode::Char('\r'),
+    ] {
+        let mapped = map_key_event_for_app(&app, KeyEvent::new(code, KeyModifiers::NONE));
+        assert_eq!(mapped, Some(KeyInput::Enter), "code={code:?}");
+    }
+}
+
+#[test]
 fn ctrl_c_maps_to_quit_even_on_new_work_form() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     handle_key_event(&mut app, KeyInput::NewRoom);

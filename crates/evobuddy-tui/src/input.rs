@@ -164,10 +164,18 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
             WorkbenchEffect::None
         }
         KeyInput::Trace => {
-            app.push_view(ViewMode::TraceDrawer);
+            if app.view_mode != ViewMode::Dashboard {
+                app.push_view(ViewMode::TraceDrawer);
+            }
             WorkbenchEffect::None
         }
-        KeyInput::Evidence => app.refresh_evidence_effect(),
+        KeyInput::Evidence => {
+            if app.view_mode == ViewMode::TaskRoomWorkspace {
+                app.refresh_evidence_effect()
+            } else {
+                WorkbenchEffect::None
+            }
+        }
         KeyInput::Updates => {
             app.focus = FocusPane::Updates;
             app.push_view(ViewMode::Detail(DetailView::Updates));

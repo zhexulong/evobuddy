@@ -44,7 +44,7 @@ fn dashboard_snapshot_120x40_shows_agent_command_center() {
         "Acceptance",
         "New room",
         "Search",
-        "Commands",
+        "Help",
         "Open native runtime",
     ] {
         assert!(
@@ -163,7 +163,14 @@ fn action_bar_shows_contextual_dashboard_hints() {
     let app = load_app("evobuddy-workbench-state-v1.json");
     let snapshot = render_dashboard_snapshot(&app, 120, 40).expect("render snapshot");
     assert!(
-        snapshot.contains("New room") && snapshot.contains("Search") && snapshot.contains("Help"),
-        "missing action bar landmarks:\n{snapshot}"
+        snapshot.contains("New room") && snapshot.contains("Help"),
+        "missing contextual action bar landmarks:
+{snapshot}"
     );
+    assert!(!snapshot.to_lowercase().contains("handoff"), "Home must not promote handoff:
+{snapshot}");
+    assert!(!snapshot.contains("Evidence"), "Home must not promote Evidence:
+{snapshot}");
+    assert!(!snapshot.contains("Commands"), "Home bar must not show Commands landmark:
+{snapshot}");
 }

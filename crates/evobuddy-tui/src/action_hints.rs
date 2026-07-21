@@ -43,17 +43,12 @@ pub fn action_hints(app: &WorkbenchApp) -> Vec<ActionHint> {
 }
 
 fn dashboard_hints(app: &WorkbenchApp) -> Vec<ActionHint> {
-    let mut hints = vec![
+    vec![
         open_hint(app),
         hint("n", "New room", true, None),
         hint("/", "Search", true, None),
-        hint(":", "Commands", true, None),
         hint("?", "Help", true, None),
-    ];
-    if app.selected_task_room().is_some() {
-        hints.insert(1, hint("h", "Handoff", true, None));
-    }
-    hints
+    ]
 }
 
 fn task_room_workspace_hints(app: &WorkbenchApp) -> Vec<ActionHint> {

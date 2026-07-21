@@ -100,8 +100,21 @@ pub fn field_style(active: bool, error: bool) -> Style {
 
 pub fn selected_style() -> Style {
     let t = theme();
-    Style::default().fg(t.accent).add_modifier(Modifier::BOLD)
+    Style::default()
+        .fg(t.text_inverse)
+        .bg(t.accent)
+        .add_modifier(Modifier::BOLD)
 }
+
+pub fn status_glyph(status: &TaskRoomStatus) -> &'static str {
+    match status {
+        TaskRoomStatus::NeedsInput | TaskRoomStatus::NeedsReview | TaskRoomStatus::Blocked => "●",
+        TaskRoomStatus::Working | TaskRoomStatus::Queued => "◉",
+        TaskRoomStatus::Returned | TaskRoomStatus::Completed => "○",
+        _ => "·",
+    }
+}
+
 
 pub fn section_style() -> Style {
     let t = theme();

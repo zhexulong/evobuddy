@@ -6,7 +6,7 @@ use ratatui::Frame;
 
 use crate::app::WorkbenchApp;
 use crate::model::{TaskRoom, TaskRoomStatus};
-use crate::theme::{muted_style, pane_block, selected_style, task_room_status_style};
+use crate::theme::{muted_style, pane_block, selected_style, status_glyph, task_room_status_style};
 
 pub fn render_work_inbox(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect, focused: bool) {
     let rooms = visible_rooms(app);
@@ -28,12 +28,13 @@ pub fn render_work_inbox(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect, 
         .enumerate()
         .map(|(index, room)| {
             let marker = if index == selected { "❯ " } else { "  " };
+            let glyph = status_glyph(&room.status);
             let status = format_status(&room.status);
             let runtime = primary_runtime(room);
             let title = truncate(&room.title, area_title_width(area));
-            let line = format!("{marker}{status:<12} {title}  {runtime}");
+            let line = format!("{marker}{glyph} {status:<10} {title}  {runtime}");
             let style = if index == selected {
-                selected_style().add_modifier(Modifier::BOLD)
+                selected_style()
             } else {
                 task_room_status_style(&room.status)
             };

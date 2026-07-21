@@ -37,7 +37,7 @@ fn render_header(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
 fn render_attention_strip(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
     let (needs, working, returned) = attention_counts(app);
     let line = if app.search_query.trim().is_empty() {
-        format!("Attention strip: Needs input {needs} · Working {working} · Returned {returned}")
+        format!("Needs input {needs} · Working {working} · Returned {returned}")
     } else {
         format!(
             "Search: {} · {} results",
@@ -112,7 +112,7 @@ fn render_narrow(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
 
 fn render_secondary(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
     let mut lines = vec![Line::from(Span::styled(
-        "Runtime readiness / recent returns",
+        "Runtimes",
         selected_style(),
     ))];
     for setup in app.state.runtime_setup.iter().take(3) {
@@ -143,7 +143,7 @@ fn render_secondary(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
         lines.push(Line::from(format!("  Returned · {}", room.title)));
     }
     frame.render_widget(
-        Paragraph::new(lines).block(pane_block("Secondary", false)),
+        Paragraph::new(lines).block(pane_block("Context", false)),
         area,
     );
 }

@@ -37,7 +37,7 @@ fn dashboard_snapshot_120x40_shows_agent_command_center() {
     let app = load_app("evobuddy-workbench-state-v1.json");
     let snapshot = render_dashboard_snapshot(&app, 120, 40).expect("render snapshot");
     for landmark in [
-        "Attention",
+        "Needs input",
         "Work inbox",
         "Selected TaskRoom",
         "Objective",

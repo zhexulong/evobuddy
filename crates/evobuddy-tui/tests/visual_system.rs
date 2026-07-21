@@ -4,6 +4,7 @@ use std::path::PathBuf;
 use anyhow::Result;
 use evobuddy_tui::app::WorkbenchApp;
 use evobuddy_tui::model::{parse_workbench_state, ActorStatus, RuntimeSetupStatus, TaskRoomStatus};
+use evobuddy_tui::action_hints::action_hints;
 use evobuddy_tui::theme::{
     action_bar_block, field_style, pane_block, pane_border_style, runtime_status_style,
     selected_style, status_style, task_room_status_style, theme, ThemeTokens,
@@ -102,14 +103,20 @@ fn theme_tokens_expose_complete_palette() {
 fn selected_style_uses_accent_and_bold_not_only_yellow() {
     let t = theme();
     let style = selected_style();
-    assert_eq!(
-        style.fg,
-        Some(t.accent),
-        "selected row must use accent token, not ad-hoc yellow"
-    );
     assert!(
         style.add_modifier.contains(Modifier::BOLD),
         "selected row must be bold"
+    );
+    // Full-row emphasis: accent as background (or reversed), not bare yellow text alone.
+    assert_eq!(
+        style.bg,
+        Some(t.accent),
+        "selected row must use accent as background fill"
+    );
+    assert_ne!(
+        style.fg,
+        Some(Color::Yellow),
+        "selected row must not be ad-hoc yellow-only"
     );
 }
 
@@ -269,4 +276,41 @@ fn theme_module_source_defines_token_api_surface() {
             "theme.rs must define token surface: {needle}"
         );
     }
+}
+
+
+#[test]
+fn selected_style_uses_background_or_reversed_emphasis() {
+    let style = selected_style();
+    let has_bg = style.bg.is_some();
+    let reversed = style.add_modifier.contains(Modifier::REVERSED);
+    assert!(
+        has_bg || reversed,
+        "selected_style must use bg fill or REVERSED for full-row emphasis, got {style:?}"
+    );
+}
+
+#[test]
+fn home_bans_debug_chrome_copy() {
+    let frame = render_snapshot(&app_with_rooms(), 120, 40).unwrap();
+    for banned in [
+        "Read-only boundary",
+        "Attention strip:",
+        "Secondary",
+        "Runtime readiness / recent returns",
+    ] {
+        assert!(!frame.contains(banned), "banned `{banned}` in:\n{frame}");
+    }
+}
+
+#[test]
+fn home_action_bar_has_at_most_four_promoted_actions() {
+    let app = app_with_rooms();
+    let hints = action_hints(&app);
+    assert!(
+        hints.len() <= 4,
+        "Home bar too crowded: {} hints {:?}",
+        hints.len(),
+        hints.iter().map(|h| h.key).collect::<Vec<_>>()
+    );
 }

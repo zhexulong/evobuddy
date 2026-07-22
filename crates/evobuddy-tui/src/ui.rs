@@ -41,23 +41,7 @@ pub fn render_current_snapshot(app: &WorkbenchApp, width: u16, height: u16) -> R
     let backend = TestBackend::new(width, height);
     let mut terminal = Terminal::new(backend).context("failed to create headless terminal")?;
     terminal
-        .draw(|frame| match app.view_mode.clone() {
-            ViewMode::Dashboard | ViewMode::Search => render_dashboard(frame, app),
-            ViewMode::TeamMemberWorkspace => render_team_member_workspace(frame, app, frame.area()),
-            ViewMode::FocusedBuddyWorkspace => {
-                render_focused_buddy_workspace(frame, app, frame.area())
-            }
-            ViewMode::TaskRoomWorkspace => render_task_room_workspace(frame, app, frame.area()),
-            ViewMode::TaskRoomForm => render_task_room_form(frame, app, frame.area()),
-            ViewMode::HandoffForm => render_handoff_form(frame, app, frame.area()),
-            ViewMode::StructuredQuestion => render_structured_question(frame, app, frame.area()),
-            ViewMode::ConfirmAction => render_confirm_action(frame, app, frame.area()),
-            ViewMode::CommandPalette => render_command_palette(frame, app, frame.area()),
-            ViewMode::TraceDrawer => render_trace_drawer(frame, app, frame.area()),
-            ViewMode::ActionProgress => render_task_composer(frame, app, frame.area()),
-            ViewMode::Help => render_help(frame, frame.area()),
-            ViewMode::Detail(detail) => render_detail(frame, app, frame.area(), detail),
-        })
+        .draw(|frame| render_frame(frame, app))
         .context("failed to render dashboard")?;
     let buffer = terminal.backend().buffer();
     let snapshot = (0..height)
@@ -89,6 +73,31 @@ pub fn render_frame(frame: &mut ratatui::Frame<'_>, app: &WorkbenchApp) {
         ViewMode::Help => render_help(frame, frame.area()),
         ViewMode::Detail(detail) => render_detail(frame, app, frame.area(), detail),
     }
+}
+
+pub fn room_surface_cells_use_theme_background(
+    app: &WorkbenchApp,
+    width: u16,
+    height: u16,
+) -> Result<bool> {
+    use ratatui::style::Color;
+    let backend = TestBackend::new(width, height);
+    let mut terminal = Terminal::new(backend).context("failed to create headless terminal")?;
+    terminal
+        .draw(|frame| render_frame(frame, app))
+        .context("failed to render room surface")?;
+    let t = crate::theme::theme();
+    let allowed = [t.bg, t.surface, t.surface_alt, t.action_bar_bg];
+    let buffer = terminal.backend().buffer();
+    for y in 0..height {
+        for x in 0..width {
+            let bg = buffer[(x, y)].bg;
+            if matches!(bg, Color::Reset) || !allowed.contains(&bg) {
+                return Ok(false);
+            }
+        }
+    }
+    Ok(true)
 }
 
 fn is_text_entry_view(app: &WorkbenchApp) -> bool {

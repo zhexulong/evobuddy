@@ -207,6 +207,19 @@ fn task_room_detail_shows_thread_and_composer() {
 }
 
 #[test]
+fn task_room_surface_cells_use_explicit_theme_background() {
+    use evobuddy_tui::ui::room_surface_cells_use_theme_background;
+
+    let mut app = load_app("evobuddy-workbench-state-v1.json");
+    app.push_view(ViewMode::Detail(DetailView::TaskRoom));
+
+    assert!(
+        room_surface_cells_use_theme_background(&app, 100, 32).expect("render room cells"),
+        "room surface must paint every cell with theme bg/surface (no terminal default Reset)"
+    );
+}
+
+#[test]
 fn handoff_form_snapshot_names_destination_fields_and_effect() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     app.push_view(ViewMode::TaskRoomWorkspace);

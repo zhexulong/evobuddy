@@ -1,7 +1,7 @@
 use ratatui::layout::{Constraint, Direction, Layout};
 use ratatui::style::{Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, Borders, Padding, Paragraph, Wrap};
+use ratatui::widgets::{Block, Borders, Clear, Padding, Paragraph, Wrap};
 use ratatui::Frame;
 
 use crate::app::WorkbenchApp;
@@ -14,6 +14,13 @@ pub fn render_detail(
     area: ratatui::layout::Rect,
     detail: DetailView,
 ) {
+    let t = theme();
+    frame.render_widget(Clear, area);
+    frame.render_widget(
+        Block::default().style(Style::default().bg(t.bg).fg(t.text)),
+        area,
+    );
+
     if detail == DetailView::TaskRoom {
         render_task_room_surface(frame, app, area);
         return;
@@ -50,6 +57,7 @@ pub fn render_detail(
                 .title(title)
                 .borders(Borders::ALL)
                 .border_style(pane_border_style(true))
+                .style(Style::default().bg(t.surface).fg(t.text))
                 .padding(Padding::horizontal(1)),
         ),
         area,
@@ -80,22 +88,29 @@ fn render_task_room_surface(
             Line::from(vec![
                 Span::styled(
                     room.title.clone(),
-                    Style::default().fg(t.text).add_modifier(Modifier::BOLD),
+                    Style::default()
+                        .fg(t.text)
+                        .bg(t.surface)
+                        .add_modifier(Modifier::BOLD),
                 ),
-                Span::raw("  "),
+                Span::styled("  ", Style::default().bg(t.surface)),
                 Span::styled(
                     format!("{status} · {seats} seats"),
-                    Style::default().fg(t.text_muted),
+                    Style::default().fg(t.text_muted).bg(t.surface),
                 ),
             ])
         }
-        None => Line::from(Span::styled("No room selected", muted_style())),
+        None => Line::from(Span::styled(
+            "No room selected",
+            muted_style().bg(t.surface),
+        )),
     };
     frame.render_widget(
         Paragraph::new(header).block(
             Block::default()
                 .borders(Borders::BOTTOM)
-                .border_style(Style::default().fg(t.border))
+                .border_style(Style::default().fg(t.border).bg(t.surface))
+                .style(Style::default().bg(t.surface).fg(t.text))
                 .padding(Padding::horizontal(1)),
         ),
         rows[0],
@@ -125,22 +140,25 @@ fn render_task_room_surface(
                 })
                 .collect();
             Line::from(vec![
-                Span::styled("  members  ", Style::default().fg(t.text_muted)),
-                Span::styled(parts.join("  ·  "), Style::default().fg(t.text)),
+                Span::styled(
+                    "  members  ",
+                    Style::default().fg(t.text_muted).bg(t.surface),
+                ),
+                Span::styled(parts.join("  ·  "), Style::default().fg(t.text).bg(t.surface)),
             ])
         }
         Some(_) => Line::from(Span::styled(
             "  members  (none yet)",
-            Style::default().fg(t.text_muted),
+            Style::default().fg(t.text_muted).bg(t.surface),
         )),
-        None => Line::from(""),
+        None => Line::from(Span::styled("", Style::default().bg(t.surface))),
     };
     frame.render_widget(
         Paragraph::new(roster_line).block(
             Block::default()
                 .borders(Borders::BOTTOM)
-                .border_style(Style::default().fg(t.border))
-                .style(Style::default().bg(t.surface)),
+                .border_style(Style::default().fg(t.border).bg(t.surface))
+                .style(Style::default().bg(t.surface).fg(t.text)),
         ),
         rows[1],
     );
@@ -148,10 +166,10 @@ fn render_task_room_surface(
     let mut thread_lines: Vec<Line> = Vec::new();
     if let Some(room) = room {
         if room.timeline.is_empty() {
-            thread_lines.push(Line::from(""));
+            thread_lines.push(Line::from(Span::styled("", Style::default().bg(t.bg))));
             thread_lines.push(Line::from(Span::styled(
                 "  Start typing below. First message becomes the work.",
-                muted_style(),
+                muted_style().bg(t.bg),
             )));
         } else {
             for entry in room
@@ -171,38 +189,46 @@ fn render_task_room_surface(
                 let (prefix, style) = match kind {
                     "user-request" | "msg" | "message" => (
                         "you",
-                        Style::default().fg(t.text).add_modifier(Modifier::BOLD),
+                        Style::default()
+                            .fg(t.text)
+                            .bg(t.bg)
+                            .add_modifier(Modifier::BOLD),
                     ),
-                    "handoff" => ("handoff", Style::default().fg(t.warning)),
-                    "wake" => ("wake", Style::default().fg(t.info)),
-                    other => (other, Style::default().fg(t.text_muted)),
+                    "handoff" => ("handoff", Style::default().fg(t.warning).bg(t.bg)),
+                    "wake" => ("wake", Style::default().fg(t.info).bg(t.bg)),
+                    other => (other, Style::default().fg(t.text_muted).bg(t.bg)),
                 };
                 thread_lines.push(Line::from(vec![
-                    Span::styled(format!("  {prefix:<8}"), Style::default().fg(t.text_muted)),
+                    Span::styled(
+                        format!("  {prefix:<8}"),
+                        Style::default().fg(t.text_muted).bg(t.bg),
+                    ),
                     Span::styled(entry.summary.clone(), style),
                 ]));
-                thread_lines.push(Line::from(""));
+                thread_lines.push(Line::from(Span::styled("", Style::default().bg(t.bg))));
             }
         }
     }
     frame.render_widget(
         Paragraph::new(thread_lines)
             .wrap(Wrap { trim: false })
+            .style(Style::default().bg(t.bg).fg(t.text))
             .block(
                 Block::default()
                     .borders(Borders::NONE)
-                    .style(Style::default().bg(t.bg)),
+                    .style(Style::default().bg(t.bg).fg(t.text)),
             ),
         rows[2],
     );
 
     let focused = Style::default()
         .fg(t.border_focus)
+        .bg(t.surface)
         .add_modifier(Modifier::BOLD);
     let draft_style = if app.room_composer.is_empty() {
-        muted_style()
+        muted_style().bg(t.surface)
     } else {
-        Style::default().fg(t.text)
+        Style::default().fg(t.text).bg(t.surface)
     };
     let draft = if app.room_composer.is_empty() {
         "Message…".to_string()
@@ -217,11 +243,11 @@ fn render_task_room_surface(
         .block(
             Block::default()
                 .borders(Borders::TOP)
-                .border_style(Style::default().fg(t.border_focus))
-                .style(Style::default().bg(t.surface))
+                .border_style(Style::default().fg(t.border_focus).bg(t.surface))
+                .style(Style::default().bg(t.surface).fg(t.text))
                 .title(Span::styled(
                     " enter send · esc back · ctrl+a attach ",
-                    muted_style(),
+                    muted_style().bg(t.surface),
                 )),
         ),
         rows[3],

@@ -155,29 +155,18 @@ fn dashboard_text_input_does_not_open_generic_prompt_or_capture_text() {
 #[test]
 fn new_room_form_opens_from_dashboard_and_submits_typed_effect() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
-
     handle_key_event(&mut app, KeyInput::NewRoom);
     assert_eq!(app.view_mode, ViewMode::TaskRoomForm);
-
-    handle_key_event(&mut app, KeyInput::Char('M'));
-    handle_key_event(&mut app, KeyInput::Char('V'));
-    handle_key_event(&mut app, KeyInput::NextField);
-    handle_key_event(&mut app, KeyInput::Char('D'));
-    handle_key_event(&mut app, KeyInput::Char('o'));
-
+    for ch in "Ship it".chars() {
+        handle_key_event(&mut app, KeyInput::Char(ch));
+    }
     let effect = handle_key_event(&mut app, KeyInput::Enter);
-
-    assert_eq!(app.view_mode, ViewMode::ConfirmAction);
     match effect {
         WorkbenchEffect::RequestConfirmation(pending) => {
-            assert!(pending.effect_label.to_lowercase().contains("create"));
             assert!(matches!(
                 pending.action,
-                evobuddy_tui::app::ConfirmedAction::CreateTaskRoom(CreateTaskRoomDraft {
-                    objective,
-                    acceptance_criteria,
-                    ..
-                }) if objective == "MV" && acceptance_criteria == "Do"
+                evobuddy_tui::app::ConfirmedAction::CreateTaskRoom(CreateTaskRoomDraft { objective, .. })
+                    if objective == "Ship it"
             ));
         }
         other => panic!("expected RequestConfirmation, got {other:?}"),

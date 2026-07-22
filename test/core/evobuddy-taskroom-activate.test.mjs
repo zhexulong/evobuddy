@@ -10,8 +10,10 @@ import { listWakes } from '../../src/core/evobuddy-taskroom-wake-store.mjs';
 import { readTaskRoomTimeline } from '../../src/core/evobuddy-taskroom-timeline.mjs';
 import {
   activatePrimaryOnRoomWork,
+  postAgentSeatReply,
   sendRoomWorkMessage,
 } from '../../src/core/evobuddy-taskroom-activate.mjs';
+import { exportEvobuddyWorkbenchState } from '../../src/core/evobuddy-workbench-state-contract.mjs';
 
 test('activatePrimaryOnRoomWork wakes primary and posts agent-progress when spawn succeeds', async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-act-'));
@@ -115,4 +117,28 @@ test('sendRoomWorkMessage routes to primary and activates', async () => {
   assert.ok(wakes.some((w) => w.participantId === primary.participantId));
   // not self-only dead end as sole routing: primary is always a target
   assert.deepEqual(message.toParticipantIds, [primary.participantId]);
+});
+
+test('agent-question raises NeedsReview and export attention', async () => {
+  const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-needs-'));
+  await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  const room = await createPiFirstTaskRoom(projectRoot, {
+    objective: 'needs you path',
+    template: 'solo',
+    roomId: 'taskroom:needs-1',
+  });
+  const primary = room.participants[0];
+  const { room: after } = await postAgentSeatReply(projectRoot, {
+    roomId: room.roomId,
+    participantId: primary.participantId,
+    kind: 'agent-question',
+    body: 'Which approach should I take for auth?',
+  });
+  assert.equal(after.raftStatus, 'NeedsReview');
+  const state = await exportEvobuddyWorkbenchState({ projectRoot });
+  const projected = state.taskRooms.find((r) => r.id === room.roomId);
+  assert.ok(projected);
+  assert.equal(projected.status, 'NeedsReview');
+  assert.ok(projected.attention);
+  assert.equal(projected.attention.state, 'NeedsReview');
 });

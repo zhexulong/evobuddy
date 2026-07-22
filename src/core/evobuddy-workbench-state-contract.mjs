@@ -533,12 +533,20 @@ async function projectDurableTaskRooms(projectRoot, generatedAt) {
       wakes = [];
     }
     const hasHandoffWake = wakes.some((w) => w.reason === 'handoff-ready' || w.reason === 'review-needed');
+    let hasAgentQuestion = false;
+    try {
+      const { readTaskRoomJsonl } = await import('./evobuddy-taskroom-store.mjs');
+      const jsonl = await readTaskRoomJsonl(projectRoot, room.roomId, 'messages');
+      hasAgentQuestion = jsonl.some((m) => m.kind === 'agent-question')
+        || list(room.messages).some((m) => m.kind === 'agent-question');
+    } catch {
+      hasAgentQuestion = list(room.messages).some((m) => m.kind === 'agent-question');
+    }
     const raft = cleanString(room.raftStatus) ?? cleanString(room.task?.status);
     let status = 'Queued';
-    if (hasHandoffWake) status = 'NeedsReview';
+    if (hasHandoffWake || hasAgentQuestion || raft === 'NeedsReview') status = 'NeedsReview';
     else if (raft === 'Completed' || raft === 'Returned') status = raft === 'Returned' ? 'Returned' : 'Completed';
     else if (raft === 'Working') status = 'Working';
-    else if (raft === 'NeedsReview') status = 'NeedsReview';
     else if (raft === 'Queued') status = 'Queued';
     const firstRuntime = room.participants?.find((p) => p.runtime)?.runtime;
     const runtime = normalizeRuntime(firstRuntime) ?? 'pi';

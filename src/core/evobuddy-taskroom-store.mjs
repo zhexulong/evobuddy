@@ -1,35 +1,25 @@
 import { randomUUID } from 'node:crypto';
-import { basename, dirname, join, resolve, sep } from 'node:path';
-import { mkdir, open, opendir, readFile, rename, unlink } from 'node:fs/promises';
+import { open, mkdir, readFile, rename, unlink, appendFile, readdir } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
 
-import { validateTaskRoom } from './evobuddy-taskroom-record.mjs';
+import {
+  createTaskRoom,
+  createTaskRoomMessage,
+  createTaskRoomParticipant,
+  validateTaskRoom,
+} from './evobuddy-taskroom-record.mjs';
+import {
+  createAgentInstance,
+  createHandoffRecord,
+  destroyAgentInstance,
+} from './evobuddy-taskroom-fork-handoff.mjs';
 import { ensureEvobuddyProjectState, resolveEvobuddyProjectState } from './evobuddy-project-state.mjs';
 
-const INDEX_SCHEMA = 'evobuddy.taskroom-index.v1';
-const SAFE_ROOM_ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+const JSONL_FILES = Object.freeze(['instances', 'messages', 'forks', 'handoffs', 'wakes']);
 
 function requireString(value, name) {
   if (typeof value !== 'string' || value.trim().length === 0) throw new Error(`required non-empty string: ${name}`);
   return value.trim();
-}
-
-function requireObject(value, name) {
-  if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error(`required object: ${name}`);
-  return value;
-}
-
-function assertSafeRoomId(roomId) {
-  const id = requireString(roomId, 'roomId');
-  if (
-    id.includes('..')
-    || id.includes('/')
-    || id.includes('\\')
-    || id.includes('\0')
-    || !SAFE_ROOM_ID.test(id)
-  ) {
-    throw new Error(`invalid roomId (path traversal rejected): ${roomId}`);
-  }
-  return id;
 }
 
 async function fsyncDirectory(path) {
@@ -52,7 +42,6 @@ async function atomicWriteJson(targetPath, value) {
   } finally {
     await handle.close();
   }
-
   try {
     await rename(tempPath, targetPath);
     await fsyncDirectory(directory);
@@ -62,159 +51,84 @@ async function atomicWriteJson(targetPath, value) {
   }
 }
 
-async function readJson(path, onMissing) {
-  try {
-    return JSON.parse(await readFile(path, 'utf8'));
-  } catch (error) {
-    if (error?.code === 'ENOENT' && onMissing) return onMissing();
-    throw error;
-  }
-}
-
-function emptyIndex() {
-  return { schema: INDEX_SCHEMA, version: 1, roomIds: [] };
-}
-
-async function readIndex(state) {
-  const index = await readJson(state.taskroomsIndexPath, emptyIndex);
-  if (index.schema !== INDEX_SCHEMA || index.version !== 1 || !Array.isArray(index.roomIds)) {
-    throw new Error('invalid taskroom index');
-  }
-  return index;
-}
-
-async function writeIndex(state, roomIds) {
-  await atomicWriteJson(state.taskroomsIndexPath, {
-    schema: INDEX_SCHEMA,
-    version: 1,
-    roomIds: [...new Set(roomIds)].sort((left, right) => left.localeCompare(right)),
-  });
+async function readJson(path) {
+  return JSON.parse(await readFile(path, 'utf8'));
 }
 
 function roomDir(state, roomId) {
-  const safeId = assertSafeRoomId(roomId);
-  const dir = state.taskroomPath(safeId);
-  const root = resolve(state.taskroomsPath) + sep;
-  const resolved = resolve(dir);
-  if (resolved !== resolve(state.taskroomsPath) && !resolved.startsWith(root)) {
-    throw new Error(`invalid roomId (path traversal rejected): ${roomId}`);
-  }
-  if (basename(resolved) !== safeId) {
-    throw new Error(`invalid roomId (path traversal rejected): ${roomId}`);
-  }
-  return resolved;
+  return state.taskroomPath(requireString(roomId, 'roomId'));
 }
 
 function roomJsonPath(state, roomId) {
-  return join(roomDir(state, roomId), 'room.json');
+  return state.taskroomRoomJsonPath(requireString(roomId, 'roomId'));
 }
 
-function handoffsDir(state, roomId) {
-  return join(roomDir(state, roomId), 'handoffs');
+function jsonlPath(state, roomId, kind) {
+  if (!JSONL_FILES.includes(kind)) throw new Error(`invalid jsonl kind: ${kind}`);
+  return join(roomDir(state, roomId), `${kind}.jsonl`);
 }
 
-async function ensureRoomDirs(state, roomId) {
+async function ensureRoomLayout(state, roomId) {
   const dir = roomDir(state, roomId);
   await mkdir(dir, { recursive: true, mode: 0o700 });
-  await mkdir(handoffsDir(state, roomId), { recursive: true, mode: 0o700 });
+  await mkdir(join(dir, 'artifacts'), { recursive: true, mode: 0o700 });
+  for (const kind of JSONL_FILES) {
+    const path = jsonlPath(state, roomId, kind);
+    try {
+      await open(path, 'wx', 0o600).then((handle) => handle.close());
+    } catch (error) {
+      if (error?.code !== 'EEXIST') throw error;
+    }
+  }
   return dir;
 }
 
+async function writeRoom(state, room) {
+  const validated = validateTaskRoom(room);
+  await atomicWriteJson(roomJsonPath(state, validated.roomId), validated);
+  return validated;
+}
+
+async function appendJsonl(state, roomId, kind, record) {
+  const path = jsonlPath(state, roomId, kind);
+  await appendFile(path, `${JSON.stringify(record)}\n`, 'utf8');
+  return record;
+}
+
 async function loadRoomOrThrow(state, roomId) {
-  const safeId = assertSafeRoomId(roomId);
   try {
-    const stored = await readJson(roomJsonPath(state, safeId));
+    const stored = await readJson(roomJsonPath(state, roomId));
     return validateTaskRoom(stored);
   } catch (error) {
-    if (error?.code === 'ENOENT') throw new Error(`taskroom not found: ${safeId}`);
+    if (error?.code === 'ENOENT') throw new Error(`taskroom not found: ${roomId}`);
     throw error;
   }
 }
 
-async function scanRoomIds(state) {
-  const roomIds = [];
-  let directory;
+export async function createDurableTaskRoom(projectRoot, input) {
+  const state = await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  const roomId = requireString(input.roomId, 'roomId');
+  const target = roomJsonPath(state, roomId);
   try {
-    directory = await opendir(state.taskroomsPath);
+    await readFile(target, 'utf8');
+    throw new Error(`taskroom already exists: ${roomId}`);
   } catch (error) {
-    if (error?.code === 'ENOENT') return roomIds;
-    throw error;
+    if (error?.message?.includes('already exists')) throw error;
+    if (error?.code !== 'ENOENT') throw error;
   }
-  for await (const entry of directory) {
-    if (!entry.isDirectory()) continue;
-    if (entry.name === 'index.json') continue;
-    try {
-      assertSafeRoomId(entry.name);
-      await readJson(join(state.taskroomsPath, entry.name, 'room.json'));
-      roomIds.push(entry.name);
-    } catch {
-      // skip incomplete or invalid directories
-    }
-  }
-  roomIds.sort((left, right) => left.localeCompare(right));
-  return roomIds;
-}
 
-async function readExistingRooms(state) {
-  const index = await readIndex(state);
-  const roomsById = new Map();
-  for (const roomId of index.roomIds) {
-    try {
-      assertSafeRoomId(roomId);
-      roomsById.set(roomId, await loadRoomOrThrow(state, roomId));
-    } catch {
-      // drop stale index entries
-    }
-  }
-  const scannedIds = await scanRoomIds(state);
-  let recovered = false;
-  for (const roomId of scannedIds) {
-    if (roomsById.has(roomId)) continue;
-    try {
-      roomsById.set(roomId, await loadRoomOrThrow(state, roomId));
-      recovered = true;
-    } catch {
-      // skip incomplete directories
-    }
-  }
-  const rooms = [...roomsById.values()].sort((left, right) => left.roomId.localeCompare(right.roomId));
-  const recoveredIds = rooms.map((room) => room.roomId);
-  const sortedIndexIds = [...index.roomIds].sort((left, right) => left.localeCompare(right));
-  if (
-    recovered
-    || recoveredIds.length !== sortedIndexIds.length
-    || recoveredIds.some((id, idx) => id !== sortedIndexIds[idx])
-  ) {
-    await writeIndex(state, recoveredIds);
-  }
-  return rooms;
-}
-
-export async function ensureTaskRoomLayout(projectRoot) {
-  const state = await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-  await mkdir(state.taskroomsPath, { recursive: true, mode: 0o700 });
-  if (!(await readJson(state.taskroomsIndexPath, () => null))) {
-    await writeIndex(state, []);
-  }
-  return {
-    taskroomsPath: state.taskroomsPath,
-    taskroomsIndexPath: state.taskroomsIndexPath,
-  };
-}
-
-export async function writeTaskRoom(projectRoot, room) {
-  requireObject(room, 'room');
-  const state = await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-  await ensureTaskRoomLayout(projectRoot);
-  const validated = validateTaskRoom(room);
-  assertSafeRoomId(validated.roomId);
-  await ensureRoomDirs(state, validated.roomId);
-  await atomicWriteJson(roomJsonPath(state, validated.roomId), validated);
-  const index = await readIndex(state);
-  if (!index.roomIds.includes(validated.roomId)) {
-    await writeIndex(state, [...index.roomIds, validated.roomId]);
-  }
-  return validated;
+  await ensureRoomLayout(state, roomId);
+  const room = createTaskRoom({
+    roomId,
+    title: input.title,
+    objective: input.objective,
+    status: input.status ?? 'active',
+    createdAt: input.createdAt,
+    participants: input.participants ?? [],
+    messages: input.messages ?? [],
+    artifacts: input.artifacts ?? [],
+  });
+  return writeRoom(state, room);
 }
 
 export async function readTaskRoom(projectRoot, roomId) {
@@ -223,28 +137,106 @@ export async function readTaskRoom(projectRoot, roomId) {
 }
 
 export async function listTaskRooms(projectRoot) {
-  await ensureTaskRoomLayout(projectRoot);
-  const state = resolveEvobuddyProjectState({ projectRoot });
-  return readExistingRooms(state);
+  const state = await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  let entries = [];
+  try {
+    entries = await readdir(state.taskroomsPath, { withFileTypes: true });
+  } catch (error) {
+    if (error?.code === 'ENOENT') return [];
+    throw error;
+  }
+  const rooms = [];
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    try {
+      rooms.push(await loadRoomOrThrow(state, entry.name));
+    } catch {
+      // skip incomplete directories
+    }
+  }
+  rooms.sort((left, right) => left.roomId.localeCompare(right.roomId));
+  return rooms;
 }
 
-export async function updateTaskRoom(projectRoot, roomId, mutator) {
-  if (typeof mutator !== 'function') throw new Error('required function: mutator');
+export async function addTaskRoomParticipant(projectRoot, roomId, participantInput) {
   const state = await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-  await ensureTaskRoomLayout(projectRoot);
-  const current = await loadRoomOrThrow(state, roomId);
-  const nextInput = mutator({ ...current });
-  requireObject(nextInput, 'mutator result');
-  const updated = validateTaskRoom({
-    ...nextInput,
-    roomId: current.roomId,
+  const room = await loadRoomOrThrow(state, roomId);
+  const participant = createTaskRoomParticipant(participantInput);
+  if (room.participants.some((item) => item.participantId === participant.participantId)) {
+    throw new Error(`participant already exists: ${participant.participantId}`);
+  }
+  return writeRoom(state, {
+    ...room,
+    participants: [...room.participants, participant],
     digest: undefined,
   });
-  await ensureRoomDirs(state, updated.roomId);
-  await atomicWriteJson(roomJsonPath(state, updated.roomId), updated);
-  const index = await readIndex(state);
-  if (!index.roomIds.includes(updated.roomId)) {
-    await writeIndex(state, [...index.roomIds, updated.roomId]);
+}
+
+export async function appendTaskRoomMessage(projectRoot, roomId, messageInput) {
+  const state = await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  await loadRoomOrThrow(state, roomId);
+  const message = createTaskRoomMessage({ ...messageInput, roomId });
+  return appendJsonl(state, roomId, 'messages', message);
+}
+
+export async function createTaskRoomHandoffInStore(projectRoot, roomId, handoffInput) {
+  const state = await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  await loadRoomOrThrow(state, roomId);
+  const handoff = createHandoffRecord({ ...handoffInput, roomId });
+  return appendJsonl(state, roomId, 'handoffs', handoff);
+}
+
+export async function stopTaskRoomSession(projectRoot, input) {
+  const state = await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  const roomId = requireString(input.roomId, 'roomId');
+  await loadRoomOrThrow(state, roomId);
+  const reason = requireString(input.reason ?? 'user-stop', 'reason');
+  if (reason === 'detach') throw new Error('detach is not stop; use session stop with an explicit stop reason');
+
+  const existing = await readTaskRoomJsonl(projectRoot, roomId, 'instances');
+  const prior = existing.find((item) => item.instanceId === input.instanceId);
+  const base = prior ?? createAgentInstance({
+    instanceId: requireString(input.instanceId, 'instanceId'),
+    roomId,
+    actorName: requireString(input.actorName ?? input.instanceId, 'actorName'),
+    actorKind: input.actorKind ?? 'team-agent',
+    role: input.role ?? 'other',
+    runtime: input.runtime ?? null,
+    lifecycle: 'active',
+    createdAt: requireString(input.createdAt ?? new Date().toISOString(), 'createdAt'),
+  });
+  const stopped = destroyAgentInstance({
+    ...base,
+    destroyedAt: input.destroyedAt ?? new Date().toISOString(),
+  }, reason);
+  return appendJsonl(state, roomId, 'instances', stopped);
+}
+
+export async function archiveTaskRoom(projectRoot, roomId, options = {}) {
+  const state = await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  const room = await loadRoomOrThrow(state, roomId);
+  return writeRoom(state, {
+    ...room,
+    status: 'archived',
+    archivedAt: requireString(options.archivedAt ?? new Date().toISOString(), 'archivedAt'),
+    digest: undefined,
+  });
+}
+
+export async function readTaskRoomJsonl(projectRoot, roomId, kind) {
+  const state = resolveEvobuddyProjectState({ projectRoot });
+  await loadRoomOrThrow(state, roomId);
+  const path = jsonlPath(state, roomId, kind);
+  let raw = '';
+  try {
+    raw = await readFile(path, 'utf8');
+  } catch (error) {
+    if (error?.code === 'ENOENT') return [];
+    throw error;
   }
-  return updated;
+  return raw
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
 }

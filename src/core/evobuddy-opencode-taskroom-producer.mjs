@@ -157,16 +157,7 @@ function selectFreshestTaskroomCohort(sessions) {
         parentCreatedAt: sessionCreatedAtEpoch(parent),
       };
     })
-    // Prefer a complete TeamAgent cohort over a newer incomplete root parent.
-    // Fresh parent sessions without builder/reviewer/evolution-agent children must not win discovery.
-    .sort((left, right) => {
-      const leftComplete = left.missingAgents.length === 0 ? 1 : 0;
-      const rightComplete = right.missingAgents.length === 0 ? 1 : 0;
-      if (rightComplete !== leftComplete) return rightComplete - leftComplete;
-      return right.parentCreatedAt - left.parentCreatedAt
-        || sessionUpdatedAtEpoch(right.parent) - sessionUpdatedAtEpoch(left.parent)
-        || String(right.parent.sessionId).localeCompare(String(left.parent.sessionId));
-    })[0];
+    .sort((left, right) => right.parentCreatedAt - left.parentCreatedAt || sessionUpdatedAtEpoch(right.parent) - sessionUpdatedAtEpoch(left.parent) || String(right.parent.sessionId).localeCompare(String(left.parent.sessionId)))[0];
 }
 
 function assistantMessages(session) {

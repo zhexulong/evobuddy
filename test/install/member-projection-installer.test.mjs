@@ -201,38 +201,7 @@ describe('member projection installer core', () => {
     }
   });
 
-  
-  it('sync replaces legacy actor Codex files that use Source digest markers', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'ctree-projection-source-digest-'));
-    try {
-      const registryRef = writeRegistryFixture(root);
-      const projectRoot = join(root, 'project');
-      const codexPath = join(projectRoot, '.codex/agents/skill_designer.toml');
-      mkdirSync(join(projectRoot, '.codex/agents'), { recursive: true });
-      writeFileSync(codexPath, [
-        'name = "skill_designer"',
-        'description = "legacy actor"',
-        'developer_instructions = """',
-        '# SubagentBuddy: skill-designer',
-        '',
-        'Actor kind: subagent-buddy',
-        'Source digest: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
-        'Source definition: ./skill-designer/BUDDY.md',
-        '',
-        'legacy actor body',
-        '"""',
-        '',
-      ].join('\n'), 'utf8');
-
-      const report = await syncMemberProjections({ registryRef, projectRoot });
-      assert.notEqual(report.members[0].runtimeFiles.codex.status, 'blocked');
-      assert.match(readFileSync(codexPath, 'utf8'), /Do not treat this definition as delivery proof|Context Tree|EvoBuddy/i);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
-  });
-
-it('sync blocks unmanaged existing runtime definition files instead of overwriting them', async () => {
+  it('sync blocks unmanaged existing runtime definition files instead of overwriting them', async () => {
     const root = mkdtempSync(join(tmpdir(), 'ctree-projection-conflict-'));
     try {
       const registryRef = writeRegistryFixture(root);

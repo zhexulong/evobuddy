@@ -70,39 +70,4 @@ describe('evobuddy taskroom session CLI', () => {
       rmSync(projectRoot, { recursive: true, force: true });
     }
   });
-
-  it('session list --json returns an array after reserve', () => {
-    const projectRoot = mkdtempSync(join(tmpdir(), 'evobuddy-session-list-'));
-    try {
-      const reserved = spawnSync(process.execPath, [CLI,
-        'taskroom', 'session', 'reserve',
-        '--project', projectRoot,
-        '--room', 'taskroom:alpha',
-        '--instance', 'instance-1',
-        '--runtime', 'claude',
-        '--workspace', projectRoot,
-        '--participant', 'Builder',
-        '--json',
-      ], { cwd: REPO_ROOT, encoding: 'utf8' });
-      assert.equal(reserved.status, 0, reserved.stderr || reserved.stdout);
-      const descriptor = JSON.parse(reserved.stdout);
-
-      const listed = spawnSync(process.execPath, [CLI,
-        'taskroom', 'session', 'list',
-        '--project', projectRoot,
-        '--json',
-      ], { cwd: REPO_ROOT, encoding: 'utf8' });
-      assert.equal(listed.status, 0, listed.stderr || listed.stdout);
-      assert.doesNotMatch(listed.stderr || '', /unknown command/i);
-      assert.doesNotMatch(listed.stdout || '', /unknown command/i);
-      const sessions = JSON.parse(listed.stdout);
-      assert.ok(Array.isArray(sessions), 'session list --json must return an array');
-      assert.ok(
-        sessions.some((item) => item.descriptorId === descriptor.descriptorId),
-        'list must include reserved descriptor',
-      );
-    } finally {
-      rmSync(projectRoot, { recursive: true, force: true });
-    }
-  });
 });

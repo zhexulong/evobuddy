@@ -116,22 +116,16 @@ where
             return Ok(RuntimeSessionResult::NeedsChoice { plan });
         }
 
-        if let Ok(listed) = self.backend.list() {
-            for existing in listed {
-                if existing.agent_instance_id != request.agent_instance_id {
-                    continue;
-                }
-                if !matches!(
-                    existing.lifecycle.as_str(),
-                    "attachable" | "detached" | "attached"
-                ) {
-                    continue;
-                }
+        if let Ok(existing) = self.backend.inspect(&plan.descriptor_id) {
+            if matches!(
+                existing.lifecycle.as_str(),
+                "attachable" | "detached" | "attached"
+            ) {
                 if let Ok(facts) = self
                     .substrate
                     .inspect(&SubstrateSessionRef(existing.terminal_session_ref.clone()))
                 {
-                    if facts.exists && facts.child_process_alive {
+                    if facts.exists {
                         return Ok(RuntimeSessionResult::Ready {
                             action: RuntimeSessionAction::Attach {
                                 session_ref: facts.session_ref.clone(),
@@ -154,26 +148,9 @@ where
         let facts = self
             .substrate
             .create_session(&create_request)
-            .with_context(|| {
-                format!(
-                    "create tmux session failed (program={} args={:?} cwd={} session={})",
-                    create_request.program.display(),
-                    create_request.args,
-                    create_request.cwd.display(),
-                    create_request.session_ref.0
-                )
-            })?;
+            .context("create failed")?;
         if !facts.exists || !facts.child_process_alive {
-            let _ = self.substrate.terminate(&facts.session_ref);
-            bail!(
-                "created substrate session is not live (exists={} child_alive={} session={} program={} args={:?}). \
-OpenCode may have exited immediately — check PATH/binary and prefer a fresh session for new rooms.",
-                facts.exists,
-                facts.child_process_alive,
-                facts.session_ref.0,
-                create_request.program.display(),
-                create_request.args
-            );
+            bail!("created substrate session is not live");
         }
 
         let committed = self
@@ -239,7 +216,7 @@ pub fn build_open_request(
         agent_instance_id: agent_instance_id.to_string(),
         runtime: runtime.to_string(),
         workspace: workspace.to_path_buf(),
-        mode: Some("fresh-session".to_string()),
+        mode: None,
         participant: participant.map(str::to_string),
         provider_conversation_ref: None,
         context_packet_ref: None,

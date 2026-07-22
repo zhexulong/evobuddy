@@ -1,20 +1,69 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 
 import { deriveContinuationAction } from './evobuddy-runtime-capability.mjs';
 import { resolveEvobuddyProjectState } from './evobuddy-project-state.mjs';
-import { createRuntimeLaunchPlan, writeRuntimeLaunchPlan } from './evobuddy-runtime-launch-plan.mjs';
+import {
+  createRuntimeLaunchPlan,
+  writeRuntimeLaunchPlan,
+} from './evobuddy-runtime-launch-plan.mjs';
+import {
+  sanitizeSessionDisplayName,
+  sanitizeTerminalSessionSlug,
+  validateWorkspacePath,
+} from './evobuddy-native-session-descriptor.mjs';
 import { opencodeNativeSessionAdapter } from '../adapters/opencode-native-session.mjs';
 import { claudeNativeSessionAdapter } from '../adapters/claude-native-session.mjs';
 import { codexNativeSessionAdapter } from '../adapters/codex-native-session.mjs';
 import { geminiNativeSessionAdapter } from '../adapters/gemini-native-session.mjs';
-import { piNativeSessionAdapter } from '../adapters/pi-native-session.mjs';
 
 const DEFAULT_ADAPTERS = Object.freeze({
   opencode: opencodeNativeSessionAdapter,
   claude: claudeNativeSessionAdapter,
   codex: codexNativeSessionAdapter,
   gemini: geminiNativeSessionAdapter,
-  pi: piNativeSessionAdapter,
+});
+
+const DESTRUCTIVE_ACTIONS = Object.freeze({
+  detach: {
+    action: 'detach',
+    requiresConfirmation: false,
+    effects: {
+      process: 'retained',
+      providerConversation: 'retained',
+      worktree: 'retained',
+      evidence: 'retained',
+    },
+  },
+  'stop-process': {
+    action: 'stop-process',
+    requiresConfirmation: true,
+    effects: {
+      process: 'stopped',
+      providerConversation: 'retained',
+      worktree: 'retained',
+      evidence: 'retained',
+    },
+  },
+  'terminate-session': {
+    action: 'terminate-session',
+    requiresConfirmation: true,
+    effects: {
+      process: 'stopped',
+      providerConversation: 'retained',
+      worktree: 'retained',
+      evidence: 'retained',
+    },
+  },
+  archive: {
+    action: 'archive',
+    requiresConfirmation: true,
+    effects: {
+      process: 'stopped-if-running',
+      providerConversation: 'archived-reference',
+      worktree: 'retained',
+      evidence: 'retained',
+    },
+  },
 });
 
 function requireString(value, name) {
@@ -31,6 +80,19 @@ function resolveAdapter(runtime, adapters) {
   const adapter = adapters[runtime];
   if (!adapter) throw new Error(`unsupported runtime adapter: ${runtime}`);
   return adapter;
+}
+
+function sanitizeDisplayLabel(value) {
+  const text = requireString(value, 'displayLabel');
+  if (/[\u0000-\u001f\u007f]/.test(text)) throw new Error('control bytes are forbidden in display label');
+  return text
+    .replace(/[;&|`$<>\\/]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function shortId(value) {
+  return createHash('sha256').update(String(value)).digest('hex').slice(0, 8);
 }
 
 function requestedContinuation(requestedMode, capability, sessionFacts, candidates) {
@@ -92,17 +154,33 @@ function buildCommandArgv(adapter, continuation, input, candidates) {
   });
 }
 
-export function buildManagedTerminalSessionRef({ runtime, roomId, agentInstanceId }) {
-  const sanitize = (value) => String(value ?? '')
-    .replace(/[^A-Za-z0-9._-]+/g, '_')
-    .replace(/_+/g, '_')
-    .replace(/^_+|_+$/g, '')
-    .slice(0, 80) || 'x';
-  return `eb_${sanitize(runtime)}_${sanitize(roomId)}_${sanitize(agentInstanceId)}`.slice(0, 200);
+export function buildManagedTerminalSessionRef({ runtime, roomId, agentInstanceId, descriptorId = null }) {
+  const runtimeSlug = sanitizeTerminalSessionSlug(runtime);
+  const roomSlug = sanitizeTerminalSessionSlug(roomId);
+  const idSeed = descriptorId ?? `${runtime}:${roomId}:${agentInstanceId}`;
+  return `evb-${runtimeSlug}-${roomSlug}-${shortId(idSeed)}`;
 }
 
 export function getRuntimeSessionAdapter(runtime, adapters = DEFAULT_ADAPTERS) {
   return resolveAdapter(runtime, adapters);
+}
+
+export function describeDestructiveLifecycleAction(action, _context = {}) {
+  const description = DESTRUCTIVE_ACTIONS[action];
+  if (!description) throw new Error(`unknown destructive lifecycle action: ${action}`);
+  return {
+    action: description.action,
+    requiresConfirmation: description.requiresConfirmation,
+    effects: { ...description.effects },
+  };
+}
+
+export function confirmDestructiveLifecycleAction(action, { confirmed = false } = {}) {
+  const description = describeDestructiveLifecycleAction(action);
+  if (description.requiresConfirmation && confirmed !== true) {
+    throw new Error(`confirmation required for ${action}`);
+  }
+  return { action: description.action, confirmed: true };
 }
 
 export async function createRuntimeSessionOpenPlan(input, deps = {}) {
@@ -111,11 +189,15 @@ export async function createRuntimeSessionOpenPlan(input, deps = {}) {
   const roomId = requireString(input.roomId, 'roomId');
   const agentInstanceId = requireString(input.agentInstanceId, 'agentInstanceId');
   const runtime = requireString(input.runtime, 'runtime');
-  const workspace = requireString(input.workspace, 'workspace');
-  const participant = requireString(input.participant ?? input.agentInstanceId, 'participant');
+  const workspace = validateWorkspacePath(input.workspace, { projectRoot, mustExist: true });
+  const participant = sanitizeDisplayLabel(input.participant ?? input.agentInstanceId);
   const contextPacketRef = optionalString(input.contextPacketRef ?? roomId, 'contextPacketRef');
   const providerConversationRef = optionalString(input.providerConversationRef, 'providerConversationRef');
-  const terminalSessionRef = requireString(input.terminalSessionRef ?? buildManagedTerminalSessionRef({ runtime, roomId, agentInstanceId }), 'terminalSessionRef');
+  const terminalSessionRef = requireString(
+    input.terminalSessionRef
+      ?? buildManagedTerminalSessionRef({ runtime, roomId, agentInstanceId, descriptorId }),
+    'terminalSessionRef',
+  );
   const safetyMode = requireString(input.safetyMode ?? 'workspace-write', 'safetyMode');
   const adapters = deps.adapters ?? DEFAULT_ADAPTERS;
   const adapter = resolveAdapter(runtime, adapters);
@@ -127,6 +209,7 @@ export async function createRuntimeSessionOpenPlan(input, deps = {}) {
     contextPacketRef,
   }, candidates);
   const argv = buildCommandArgv(adapter, continuation, { workspace, providerConversationRef, contextPacketRef, safetyMode }, candidates);
+  if (!Array.isArray(argv) || argv.length === 0) throw new Error('adapter produced empty argv');
   const program = argv[0];
   const args = argv.slice(1);
   const planId = input.planId ?? `launch-plan-${randomUUID()}`;
@@ -153,7 +236,7 @@ export async function createRuntimeSessionOpenPlan(input, deps = {}) {
     descriptorId,
     continuation: {
       kind: continuation.kind,
-      heuristicCandidateSource: capability.heuristicResume.source,
+      heuristicCandidateSource: capability.heuristicResume?.source ?? null,
       candidateCount: candidates.length,
       candidates,
       requiresStructuredChoice: continuation.kind === 'heuristic-resume' && candidates.length > 1,
@@ -185,10 +268,13 @@ export async function createRuntimeSessionOpenPlan(input, deps = {}) {
         runtime,
         workspace,
         safetyMode,
-        detachShortcut: 'F10 or Ctrl+\\\\',
+        detachShortcut: 'Ctrl+B d',
       },
     },
     runtimeCapabilityRef,
     launchCommandRef,
   };
 }
+
+// keep export used by security tests that may call the strict sanitizer
+export { sanitizeSessionDisplayName };

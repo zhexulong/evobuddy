@@ -1,11 +1,16 @@
-pub mod action_hints;
 pub mod app;
+mod app_types;
+mod app_forms;
+mod app_effects;
+mod app_selection;
+mod app_status;
 pub mod backend;
-pub mod effects;
 pub mod input;
 pub mod launcher;
 pub mod model;
+pub mod native_attach;
 pub mod router;
+pub mod runtime_actions;
 pub mod session;
 pub mod substrate;
 pub mod terminal_mode;

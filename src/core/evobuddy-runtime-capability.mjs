@@ -5,7 +5,7 @@ export const CONTINUATION_KINDS = Object.freeze([
   'fresh-session', 'unsupported',
 ]);
 
-const RUNTIMES = new Set(['opencode', 'claude', 'codex', 'gemini', 'pi']);
+const RUNTIMES = new Set(['opencode', 'claude', 'codex', 'gemini']);
 const CONTINUATIONS = new Set(CONTINUATION_KINDS);
 const ALLOWED_TOP_LEVEL_KEYS = new Set([
   'schema',

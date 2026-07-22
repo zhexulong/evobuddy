@@ -15,6 +15,7 @@ pub mod session;
 pub mod substrate;
 pub mod terminal_mode;
 pub mod theme;
+pub mod action_hints;
 pub mod ui;
 pub mod views;
 pub mod widgets;

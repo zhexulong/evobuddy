@@ -1,9 +1,12 @@
+pub mod action_bar;
 pub mod command_palette;
 pub mod confirm_action;
 pub mod dashboard;
 pub mod detail;
+pub mod form_kit;
 pub mod handoff_form;
 pub mod help;
+pub mod inbox;
 pub mod peek;
 pub mod status_bar;
 pub mod structured_question;

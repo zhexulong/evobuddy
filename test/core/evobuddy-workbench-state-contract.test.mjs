@@ -67,7 +67,7 @@ describe('exportEvobuddyWorkbenchState', () => {
     assert.equal(state.taskRooms.length, 2);
     assert.equal(Array.isArray(state.nativeSessions), true);
     assert.equal(Array.isArray(state.runtimeCapabilities), true);
-    assert.equal(state.runtimeCapabilities.length, 3);
+    assert.equal(state.runtimeCapabilities.length, 4);
     assert.equal(findById(state.actors.teamAgents, 'reviewer').status, 'Returned');
     assert.equal(findById(state.actors.focusedBuddies, 'explore').status, 'Available');
     assert.deepEqual(findById(state.actors.focusedBuddies, 'librarian').runtimeSurfaces, ['opencode', 'claude', 'codex']);

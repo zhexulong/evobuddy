@@ -27,6 +27,7 @@ function parseArgs(argv) {
     out: null,
     includeOpencode: false,
     opencodeBin: process.env.EVOBUDDY_OPENCODE_BIN ?? 'opencode',
+    opencodeTreePid: process.env.EVOBUDDY_S3_OPENCODE_TREE_PID ? Number.parseInt(process.env.EVOBUDDY_S3_OPENCODE_TREE_PID, 10) : null,
   };
 
   for (let index = 0; index < argv.length; index += 1) {
@@ -37,6 +38,7 @@ function parseArgs(argv) {
     else if (arg === '--out') args.out = resolve(requireValue(argv, ++index, arg));
     else if (arg === '--include-opencode') args.includeOpencode = true;
     else if (arg === '--opencode-bin') args.opencodeBin = requireValue(argv, ++index, arg);
+    else if (arg === '--opencode-tree-pid') args.opencodeTreePid = Number.parseInt(requireValue(argv, ++index, arg), 10);
     else throw new Error(`unknown argument: ${arg}`);
   }
 
@@ -278,10 +280,46 @@ async function sampleOpencodeWorkers({ count, holdMs, project, includeOpencode, 
   }
 }
 
+
+async function sampleExternalOpencodeTree(pid) {
+  if (!Number.isInteger(pid) || pid <= 0) {
+    return {
+      status: 'skipped',
+      skipReason: 'invalid EVOBUDDY_S3_OPENCODE_TREE_PID / --opencode-tree-pid',
+      requested: 1,
+      samples: [],
+      summary: summarize([]),
+      treeSummary: summarize([]),
+    };
+  }
+  const tree = sampleProcessTreeRssKb(pid);
+  const samples = [{
+    index: 0,
+    pid,
+    alive: tree.parentRssKb != null,
+    argv: ['external-opencode-tree'],
+    rssKb: tree.parentRssKb,
+    treeRssKb: tree.treeRssKb,
+    processCount: tree.processCount,
+    parentRssKb: tree.parentRssKb,
+  }];
+  return {
+    status: tree.treeRssKb != null ? 'sampled' : 'skipped',
+    skipReason: tree.treeRssKb != null ? null : `cannot read process tree for pid ${pid}`,
+    requested: 1,
+    samples,
+    summary: summarize(samples),
+    treeSummary: summarize([{ rssKb: tree.treeRssKb }]),
+    samplingNote: 'External full-tree PID sample via EVOBUDDY_S3_OPENCODE_TREE_PID / --opencode-tree-pid',
+  };
+}
+
 export async function runSampleSeatRss(argv = process.argv.slice(2)) {
   const args = parseArgs(argv);
   const pi = await samplePiWorkers(args);
-  const opencode = await sampleOpencodeWorkers(args);
+  const opencode = args.opencodeTreePid
+    ? await sampleExternalOpencodeTree(args.opencodeTreePid)
+    : await sampleOpencodeWorkers(args);
   const piSumKb = (pi.samples ?? []).reduce((acc, sample) => acc + (sample.rssKb ?? 0), 0);
   const opencodeTreeMaxKb = opencode.treeSummary?.maxRssKb ?? null;
   const density = {

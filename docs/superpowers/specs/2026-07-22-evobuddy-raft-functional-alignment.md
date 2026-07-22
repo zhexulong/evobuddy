@@ -309,6 +309,9 @@ npm run evobuddy:eval-raft-functional-alignment
 **R3 PASS** iff R3.1–R3.4 and R0 held.  
 **Note:** This deliberately **revises** older S1 “must Enter attach” as the *only* success story. Attach remains supported and tested as **optional**.
 
+**Honesty vs reply loop:** R3 `backgroundRun.status === 'planned'` (or plan-only RF rows) is **necessary but not sufficient** for “someone replies in the room.” Thread activation + agent timeline posts are the **O-ladder** — see  
+`docs/superpowers/specs/2026-07-23-evobuddy-raft-first-agent-and-reply-loop-alignment.md` (**O-FINAL**).
+
 ### R4 — Activity-first — **PASS**
 
 | # | Requirement | Proof |

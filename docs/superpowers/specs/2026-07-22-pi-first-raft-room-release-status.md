@@ -74,3 +74,6 @@ Synced status (2026-07-22 L1 closeout on `fix/visual-raft-home` / PR #10):
 
 **Further:** Raft **functional** alignment (channel intake, no forced agent TUI, Activity thread) is a **separate** ladder — see  
 `docs/superpowers/specs/2026-07-22-evobuddy-raft-functional-alignment.md` (**R-FINAL**). L1 wire-through FINAL ≠ R-FINAL.
+
+**Further:** **First agent + reply loop** (empty project → one Cindy-like agent; message/task activates seat; agent progress on timeline without Attach) is a **separate** ladder — see  
+`docs/superpowers/specs/2026-07-23-evobuddy-raft-first-agent-and-reply-loop-alignment.md` (**O-FINAL**). R-FINAL L1 plan-only ≠ O3/O4 thread reply. Eval: `npm run evobuddy:eval-first-agent-reply-loop`.

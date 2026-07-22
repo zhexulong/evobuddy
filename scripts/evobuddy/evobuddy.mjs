@@ -230,7 +230,9 @@ function taskroomSessionHelp() {
   evobuddy crew agent invite --project <path> --room <id> (--agent-id <id> | --name <name>) [--role other] [--json]
   evobuddy crew list --project <path> [--json]
   evobuddy taskroom create --project <path> --room <id> [--title <text>] [--objective <text>] [--runtime pi] [--template solo|pair] [--created-at <iso>] [--json]
-  evobuddy taskroom message send --project <path> --room <id> --body <text> [--from <participant-id>] [--json]
+  evobuddy taskroom message send --project <path> --room <id> --body <text> [--from <participant-id>] [--as-task] [--json]
+    # Work-shaped send activates primary seat (wake/spawn/enqueue); does not require Attach.
+    # First agent is bootstrapped on empty crew when rooms are created (solo default).
   evobuddy taskroom participant add --project <path> --room <id> --participant-id <id> --actor-name <name> --actor-kind <kind> --role <role> [--runtime <name>] [--json]
   evobuddy taskroom handoff create --project <path> --room <id> --handoff-id <id> --from-instance <id> --to-instance <id> --handoff-kind <kind> [--body <text>] [--created-at <iso>] [--json]
   evobuddy taskroom review complete --project <path> --room <id> [--outcome done|changes-requested] [--json]

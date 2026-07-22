@@ -97,6 +97,7 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
         KeyCode::Right => Some(KeyInput::Right),
         KeyCode::Enter => Some(KeyInput::Enter),
         KeyCode::Esc => Some(KeyInput::Escape),
+        KeyCode::Backspace | KeyCode::Delete => Some(KeyInput::Backspace),
         KeyCode::Tab if key.modifiers.contains(KeyModifiers::CONTROL) => Some(KeyInput::NextField),
         KeyCode::Tab => Some(if key.modifiers.contains(KeyModifiers::SHIFT) {
             KeyInput::ShiftTab

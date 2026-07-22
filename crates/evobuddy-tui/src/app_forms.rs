@@ -55,6 +55,24 @@ impl WorkbenchApp {
             _ => {}
         }
     }
+    pub fn backspace_active_input(&mut self) {
+        match self.view_mode {
+            ViewMode::TaskRoomForm => {
+                self.task_room_form.objective.pop();
+            }
+            ViewMode::HandoffForm => {
+                self.handoff_form.body.pop();
+            }
+            ViewMode::StructuredQuestion => {
+                if let Some(question) = &mut self.structured_question {
+                    if question.allows_free_text {
+                        question.free_text.pop();
+                    }
+                }
+            }
+            _ => {}
+        }
+    }
     pub fn submit_task_room_form(&mut self) -> WorkbenchEffect {
         let draft = self.task_room_form.clone();
         if self.view_mode == ViewMode::TaskRoomForm {

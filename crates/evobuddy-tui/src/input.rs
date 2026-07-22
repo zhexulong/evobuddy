@@ -27,6 +27,7 @@ pub enum KeyInput {
     Quit,
     StructuredAnswer(u8),
     Char(char),
+    Backspace,
 }
 
 
@@ -200,6 +201,20 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
                 ViewMode::TaskRoomForm | ViewMode::HandoffForm | ViewMode::StructuredQuestion
             ) {
                 app.append_to_active_input(ch);
+            }
+            WorkbenchEffect::None
+        }
+        KeyInput::Backspace => {
+            if app.view_mode == ViewMode::CommandPalette {
+                app.command_query.pop();
+                app.selected_command = 0;
+            } else if app.view_mode == ViewMode::Search {
+                app.search_query.pop();
+            } else if matches!(
+                app.view_mode,
+                ViewMode::TaskRoomForm | ViewMode::HandoffForm | ViewMode::StructuredQuestion
+            ) {
+                app.backspace_active_input();
             }
             WorkbenchEffect::None
         }

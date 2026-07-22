@@ -181,6 +181,31 @@ fn new_room_form_opens_from_dashboard_and_submits_typed_effect() {
 }
 
 #[test]
+fn compose_backspace_deletes_typed_chars_in_new_room_and_handoff() {
+    let mut app = load_app("evobuddy-workbench-state-v1.json");
+    handle_key_event(&mut app, KeyInput::NewRoom);
+    for ch in "abc".chars() {
+        handle_key_event(&mut app, KeyInput::Char(ch));
+    }
+    assert_eq!(app.task_room_form.objective, "abc");
+    handle_key_event(&mut app, KeyInput::Backspace);
+    assert_eq!(app.task_room_form.objective, "ab");
+    handle_key_event(&mut app, KeyInput::Backspace);
+    handle_key_event(&mut app, KeyInput::Backspace);
+    assert!(app.task_room_form.objective.is_empty());
+
+    handle_key_event(&mut app, KeyInput::Escape);
+    app.push_view(ViewMode::TaskRoomWorkspace);
+    handle_key_event(&mut app, KeyInput::Handoff);
+    for ch in "xy".chars() {
+        handle_key_event(&mut app, KeyInput::Char(ch));
+    }
+    assert_eq!(app.handoff_form.body, "xy");
+    handle_key_event(&mut app, KeyInput::Backspace);
+    assert_eq!(app.handoff_form.body, "x");
+}
+
+#[test]
 fn handoff_form_opens_from_taskroom_workspace_and_submits_typed_effect() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
 

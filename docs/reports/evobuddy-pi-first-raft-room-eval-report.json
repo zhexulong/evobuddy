@@ -1,0 +1,315 @@
+{
+  "schema": "evobuddy-pi-first-raft-room-eval-report.v1",
+  "generatedAt": "2026-07-22T05:29:40.895Z",
+  "gate": "pass",
+  "releaseStatement": {
+    "gate": "pass",
+    "summary": "Pi-first Raft room capability gate is green (P0/P1 + S1/S2/S4/S5).",
+    "densityClaim": "S3 density product claim is NOT certified on this run (skip/fail). Idle OpenCode CLI trees under-represent full agent trees.",
+    "s3Status": "skip",
+    "s3Reason": "OpenCode idle tree RSS too small to represent full agent tree; host note retained",
+    "fullTreeHint": "Supply EVOBUDDY_S3_OPENCODE_TREE_PID or --opencode-tree-pid to sample a long-lived OpenCode agent process tree.",
+    "dualOrchestrator": "EvoBuddy owns team state; pi-team-agents is docs-only forbidden wording, not a required install path."
+  },
+  "environment": {
+    "pi": {
+      "present": true,
+      "path": "/home/prosumer/.nvm/versions/node/v24.11.1/bin/pi"
+    },
+    "tmux": {
+      "present": true,
+      "path": "/usr/bin/tmux"
+    },
+    "opencode": {
+      "present": true,
+      "path": "/home/prosumer/.opencode/bin/opencode"
+    }
+  },
+  "counts": {
+    "pass": 38,
+    "skip": 2
+  },
+  "requiredFailed": [],
+  "matrixCoverage": {
+    "eval-pi-adapter-probe": "pass",
+    "eval-pi-launch-argv": "pass",
+    "eval-default-runtime-pi": "pass",
+    "eval-no-default-opencode": "pass",
+    "eval-pi-rpc-lifecycle": "pass",
+    "eval-doctor-pi": "pass",
+    "eval-multi-seat-metadata": "pass",
+    "eval-claim-exclusive": "pass",
+    "eval-status-machine": "pass",
+    "eval-handoff-durable": "pass",
+    "eval-wake-content-free": "pass",
+    "eval-wake-written": "pass",
+    "eval-pull-after-wake": "pass",
+    "eval-status-on-handoff": "pass",
+    "eval-spawn-reviewer-on-wake": "pass",
+    "eval-stop-seat-keeps-room": "pass",
+    "eval-no-dual-orchestrator": "pass",
+    "eval-pi-rpc-lifecycle-live": "pass",
+    "eval-pi-rpc-x2-density": "pass",
+    "eval-pi-tmux-attach-detach": "pass",
+    "S1": "pass",
+    "S5": "pass",
+    "S2": "pass",
+    "S3": "skip",
+    "eval-doctor-memory-note": "pass",
+    "eval-evidence-wake-attach": "pass",
+    "eval-timeline-read": "pass",
+    "eval-compose-create": "pass",
+    "eval-enter-attach-home": "pass",
+    "eval-home-attention-labels": "pass",
+    "eval-leave-keys-copy": "pass",
+    "eval-choose-seat": "pass",
+    "eval-now-peek-multi-seat": "pass",
+    "eval-no-working-splash-on-attach": "pass",
+    "eval-status-ready-not-working": "pass",
+    "eval-status-working-requires-session": "pass",
+    "eval-no-fake-working": "pass",
+    "eval-memory-contrast": "skip",
+    "S4": "pass",
+    "eval-reclaim-creating": "pass"
+  },
+  "results": [
+    {
+      "id": "eval-pi-adapter-probe",
+      "status": "pass",
+      "method": "unit"
+    },
+    {
+      "id": "eval-pi-launch-argv",
+      "status": "pass",
+      "method": "unit"
+    },
+    {
+      "id": "eval-default-runtime-pi",
+      "status": "pass",
+      "method": "integration"
+    },
+    {
+      "id": "eval-no-default-opencode",
+      "status": "pass",
+      "method": "integration+negative"
+    },
+    {
+      "id": "eval-pi-rpc-lifecycle",
+      "status": "pass",
+      "method": "unit-fake-spawn",
+      "note": "Live RSS thresholds are observational via sample-seat-rss.mjs"
+    },
+    {
+      "id": "eval-doctor-pi",
+      "status": "pass",
+      "method": "cli"
+    },
+    {
+      "id": "eval-multi-seat-metadata",
+      "status": "pass",
+      "method": "integration"
+    },
+    {
+      "id": "eval-claim-exclusive",
+      "status": "pass",
+      "method": "integration"
+    },
+    {
+      "id": "eval-status-machine",
+      "status": "pass",
+      "method": "unit"
+    },
+    {
+      "id": "eval-handoff-durable",
+      "status": "pass",
+      "method": "integration"
+    },
+    {
+      "id": "eval-wake-content-free",
+      "status": "pass",
+      "method": "unit"
+    },
+    {
+      "id": "eval-wake-written",
+      "status": "pass",
+      "method": "integration"
+    },
+    {
+      "id": "eval-pull-after-wake",
+      "status": "pass",
+      "method": "integration"
+    },
+    {
+      "id": "eval-status-on-handoff",
+      "status": "pass",
+      "method": "integration"
+    },
+    {
+      "id": "eval-spawn-reviewer-on-wake",
+      "status": "pass",
+      "method": "unit+integration"
+    },
+    {
+      "id": "eval-stop-seat-keeps-room",
+      "status": "pass",
+      "method": "integration"
+    },
+    {
+      "id": "eval-no-dual-orchestrator",
+      "status": "pass",
+      "method": "negative-grep",
+      "hitCount": 0,
+      "note": "docs may mention pi-team-agents only as forbidden/out-of-scope",
+      "sampleHits": []
+    },
+    {
+      "id": "eval-pi-rpc-lifecycle-live",
+      "status": "pass",
+      "method": "live",
+      "maxRssMb": 160.6484375,
+      "avgRssKb": 164504
+    },
+    {
+      "id": "eval-pi-rpc-x2-density",
+      "status": "pass",
+      "method": "live",
+      "sumRssMb": 325.04296875,
+      "sampleCount": 2
+    },
+    {
+      "id": "eval-pi-tmux-attach-detach",
+      "status": "pass",
+      "method": "live-tmux"
+    },
+    {
+      "id": "S1",
+      "status": "pass",
+      "method": "integration-pi-first-plan-open",
+      "multiSeat": true,
+      "runtimePi": true,
+      "program": "pi",
+      "noOpencode": true,
+      "continuation": "fresh-session"
+    },
+    {
+      "id": "S5",
+      "status": "pass",
+      "method": "negative-default-no-opencode",
+      "multiSeat": true,
+      "runtimePi": true,
+      "program": "pi",
+      "noOpencode": true,
+      "continuation": "fresh-session"
+    },
+    {
+      "id": "S2",
+      "status": "pass",
+      "method": "integration"
+    },
+    {
+      "id": "S3",
+      "status": "skip",
+      "method": "live-tree-rss",
+      "reason": "OpenCode idle tree RSS too small to represent full agent tree; host note retained",
+      "ratio": 1.057,
+      "piSumRssKb": 333660,
+      "opencodeTreeMaxRssKb": 315796,
+      "opencodeParentMaxRssKb": 315796
+    },
+    {
+      "id": "eval-doctor-memory-note",
+      "status": "pass",
+      "method": "unit"
+    },
+    {
+      "id": "eval-evidence-wake-attach",
+      "status": "pass",
+      "method": "integration-activity-jsonl"
+    },
+    {
+      "id": "eval-timeline-read",
+      "status": "pass",
+      "method": "integration"
+    },
+    {
+      "id": "eval-compose-create",
+      "status": "pass",
+      "method": "cargo-regression",
+      "suite": "input_flow/workbench_effects form compose"
+    },
+    {
+      "id": "eval-enter-attach-home",
+      "status": "pass",
+      "method": "cargo-regression",
+      "suite": "input_flow/session attach surfaces",
+      "note": "Home Enter / attach flow; exact D2 semantics covered by TUI regression pack"
+    },
+    {
+      "id": "eval-home-attention-labels",
+      "status": "pass",
+      "method": "cargo-regression",
+      "suite": "dashboard_snapshots Needs you / Working"
+    },
+    {
+      "id": "eval-leave-keys-copy",
+      "status": "pass",
+      "method": "cargo-regression",
+      "suite": "tmux_substrate pre_attach_notice detach hints"
+    },
+    {
+      "id": "eval-choose-seat",
+      "status": "pass",
+      "method": "cargo-regression",
+      "suite": "present_seat_choice / multi-seat TUI (when tests present)",
+      "note": "TUI regression pack green"
+    },
+    {
+      "id": "eval-now-peek-multi-seat",
+      "status": "pass",
+      "method": "cargo-regression",
+      "suite": "inbox/dashboard multi-participant Who line"
+    },
+    {
+      "id": "eval-no-working-splash-on-attach",
+      "status": "pass",
+      "method": "cargo-regression",
+      "suite": "open_native_runtime does not push Working splash incorrectly"
+    },
+    {
+      "id": "eval-status-ready-not-working",
+      "status": "pass",
+      "method": "unit+integration",
+      "note": "status machine + multi-seat create; Queued/Ready without live session"
+    },
+    {
+      "id": "eval-status-working-requires-session",
+      "status": "pass",
+      "method": "unit",
+      "note": "Working transitions require explicit status machine path; native session projection covered in store reclaim suite"
+    },
+    {
+      "id": "eval-no-fake-working",
+      "status": "pass",
+      "method": "unit+regression",
+      "note": "Ready≠Working invariant in status table + TUI honesty tests"
+    },
+    {
+      "id": "eval-memory-contrast",
+      "status": "skip",
+      "method": "alias-S3",
+      "reason": "OpenCode idle tree RSS too small to represent full agent tree; host note retained",
+      "ratio": 1.057,
+      "note": "Full OpenCode agent-tree sample required for green certification; optional EVOBUDDY_S3_OPENCODE_TREE_PID"
+    },
+    {
+      "id": "S4",
+      "status": "pass",
+      "method": "integration-reclaim"
+    },
+    {
+      "id": "eval-reclaim-creating",
+      "status": "pass",
+      "method": "integration"
+    }
+  ]
+}

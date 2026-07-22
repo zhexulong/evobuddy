@@ -30,7 +30,9 @@ export async function createPiFirstTaskRoom(projectRoot, draft = {}) {
       displayName: draft.actor ?? 'builder',
       runtime,
     });
-  } catch {
+  } catch (error) {
+    // Only tolerate missing project layout races; rethrow unexpected errors.
+    if (error?.code !== 'ENOENT') throw error;
     primaryCrew = null;
   }
 

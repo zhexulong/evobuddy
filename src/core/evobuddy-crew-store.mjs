@@ -74,6 +74,11 @@ export async function ensureBootstrapCrewAgent(projectRoot, draft = {}) {
   });
 }
 
+/** Raft-style first agent bootstrap (FA1). Alias of ensureBootstrapCrewAgent. */
+export async function ensureFirstCrewAgent(projectRoot, draft = {}) {
+  return ensureBootstrapCrewAgent(projectRoot, draft);
+}
+
 export async function getCrewAgent(projectRoot, agentId) {
   const agents = await listCrewAgents(projectRoot);
   return agents.find((a) => a.agentId === agentId) ?? null;

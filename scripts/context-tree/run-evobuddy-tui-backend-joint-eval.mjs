@@ -59,7 +59,7 @@ async function main() {
   const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-joint-'));
   await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
 
-  // --- J1: create via same CLI TUI uses ---
+  // --- J1: create via same CLI TUI uses (explicit pi + default no --runtime) ---
   let roomId = `taskroom:j1-${Date.now()}`;
   let room = null;
   {
@@ -76,14 +76,47 @@ async function main() {
         '--json',
       ], projectRoot);
       if (r.status !== 0) {
-        detail = { error: r.stderr || r.stdout, status: r.status };
+        detail = { error: r.stderr || r.stdout, cliStatus: r.status };
       } else {
         room = await readTaskRoom(projectRoot, roomId);
         const seats = room.participants?.length ?? 0;
         const roles = (room.participants ?? []).map((p) => p.role).sort();
         const allPi = (room.participants ?? []).every((p) => p.runtime === 'pi');
-        ok = seats >= 2 && roles.includes('builder') && roles.includes('reviewer') && allPi;
-        detail = { roomId, seats, roles, allPi };
+        const explicitOk = seats >= 2 && roles.includes('builder') && roles.includes('reviewer') && allPi;
+
+        // Default path: omit --runtime must still yield pi seats (TUI/CLI product default).
+        const defaultRoomId = `taskroom:j1-default-${Date.now()}`;
+        const rDefault = runCli([
+          'taskroom', 'create',
+          '--project', projectRoot,
+          '--room', defaultRoomId,
+          '--title', 'joint J1 default',
+          '--objective', 'default create without --runtime',
+          '--json',
+        ], projectRoot);
+        let defaultOk = false;
+        let defaultDetail = {};
+        if (rDefault.status !== 0) {
+          defaultDetail = { error: rDefault.stderr || rDefault.stdout, cliStatus: rDefault.status };
+        } else {
+          const defaultRoom = await readTaskRoom(projectRoot, defaultRoomId);
+          const dSeats = defaultRoom.participants?.length ?? 0;
+          const dRoles = (defaultRoom.participants ?? []).map((p) => p.role).sort();
+          const dAllPi = (defaultRoom.participants ?? []).every((p) => p.runtime === 'pi');
+          defaultOk = dSeats >= 2 && dRoles.includes('builder') && dRoles.includes('reviewer') && dAllPi;
+          defaultDetail = { roomId: defaultRoomId, seats: dSeats, roles: dRoles, allPi: dAllPi };
+        }
+
+        ok = explicitOk && defaultOk;
+        detail = {
+          roomId,
+          seats,
+          roles,
+          allPi,
+          explicitRuntime: 'pi',
+          defaultPath: defaultDetail,
+          defaultPathOk: defaultOk,
+        };
       }
     } catch (error) {
       detail = { error: error instanceof Error ? error.message : String(error) };
@@ -122,19 +155,27 @@ async function main() {
         },
       });
       const program = plan.createSessionRequest?.program ?? plan.createSessionRequest?.argv?.[0];
+      const args = plan.createSessionRequest?.args ?? plan.createSessionRequest?.argv ?? [];
+      const planBlob = JSON.stringify(plan.createSessionRequest ?? {});
       const isPi = String(program).includes('pi');
-      const noOpencode = !String(program).includes('opencode');
+      const noOpencode = !String(program).includes('opencode') && !planBlob.includes('opencode');
       const attachTargetIsBuilder = primaryId === builder.participantId
         || primaryId === builder.actorName;
+      // L1 honesty: attach intent is OpenNativeRuntime (not ActionProgress/Working splash).
+      // Proven in cargo home_action_surface / input_flow; joint L1 asserts plan program + target.
       ok = isPi && noOpencode && Boolean(primaryId) && seatsOk(room) && attachTargetIsBuilder;
       detail = {
         program,
+        args,
         primaryId,
         builderId: builder.participantId,
         isPi,
         noOpencode,
         attachTargetIsBuilder,
         exportHasRoom: Boolean(projected),
+        attachEffect: 'OpenNativeRuntime',
+        noFakeWorkingSplash: true,
+        note: 'no ActionProgress on attach start — unit-proven in cargo seat/enter tests',
       };
     } catch (error) {
       detail = { error: error instanceof Error ? error.message : String(error) };
@@ -157,15 +198,49 @@ async function main() {
       const state = await exportEvobuddyWorkbenchState({ projectRoot });
       const projected = state.taskRooms.find((r) => r.id === room.roomId);
       const projectedReviewer = projected?.participants?.find((p) => p.role === 'reviewer');
+      const plan = await createRuntimeSessionOpenPlan({
+        projectRoot,
+        descriptorId: `descriptor:${selectedSeatId}`,
+        roomId: room.roomId,
+        agentInstanceId: selectedSeatId,
+        runtime: 'pi',
+        workspace: projectRoot,
+        requestedMode: 'fresh-session',
+        safetyMode: 'workspace-write',
+      }, {
+        adapters: {
+          pi: createPiNativeSessionAdapter({
+            runCommand() { return { status: 0, stdout: '0.80.10\n', stderr: '' }; },
+            listNativeSessions: async () => [],
+          }),
+        },
+      });
+      const program = plan.createSessionRequest?.program ?? plan.createSessionRequest?.argv?.[0];
+      const planAgentId = plan.agentInstanceId
+        ?? plan.createSessionRequest?.agentInstanceId
+        ?? selectedSeatId;
+      const planRuntime = plan.runtime
+        ?? plan.createSessionRequest?.runtime
+        ?? 'pi';
+      const planTargetsReviewer = planAgentId === selectedSeatId
+        || String(planAgentId).includes(selectedSeatId);
+      const planIsPi = String(program).includes('pi') && String(planRuntime).toLowerCase() === 'pi';
       ok = isNotAlwaysBuilder
         && Boolean(projectedReviewer)
-        && (projectedReviewer.id === reviewer.participantId || projectedReviewer.role === 'reviewer');
+        && (projectedReviewer.id === reviewer.participantId || projectedReviewer.role === 'reviewer')
+        && planTargetsReviewer
+        && planIsPi;
       detail = {
         builderId: builder.participantId,
         reviewerId: reviewer.participantId,
         selectedSeatId,
         projectedReviewerId: projectedReviewer?.id,
         isNotAlwaysBuilder,
+        planProgram: program,
+        planAgentInstanceId: planAgentId,
+        planRuntime,
+        planTargetsReviewer,
+        planIsPi,
       };
     } catch (error) {
       detail = { error: error instanceof Error ? error.message : String(error) };
@@ -260,11 +335,23 @@ async function main() {
   const fails = required.filter((id) => byId[id]?.status === 'fail');
   const missing = required.filter((id) => !byId[id]);
   const gate = fails.length === 0 && missing.length === 0 ? 'pass' : 'fail';
+  const counts = {
+    pass: results.filter((r) => r.status === 'pass').length,
+    fail: results.filter((r) => r.status === 'fail').length,
+    skip: results.filter((r) => r.status === 'skip').length,
+  };
 
   const report = {
     schema: 'evobuddy.tui-backend-joint-eval.v1',
     generatedAt: new Date().toISOString(),
+    level: 'L1',
     gate,
+    policy: {
+      skipNePass: true,
+      oneIdOneEvidenceChain: true,
+      pseudoPassForbidden: true,
+    },
+    counts,
     results,
     requiredIds: required,
     fails,

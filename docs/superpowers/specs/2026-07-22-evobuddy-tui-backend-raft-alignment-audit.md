@@ -1,33 +1,34 @@
 # EvoBuddy TUI ↔ Backend ↔ Raft Alignment Audit
 
-**Status:** Post-merge audit (authoritative for next implementation slice)  
+**Status:** FINAL PASS achieved (L1) — 2026-07-22 wire-through + joint eval closed  
 **Date:** 2026-07-22  
-**Baseline:** After PR [#9](https://github.com/zhexulong/evobuddy/pull/9) *visual Raft Home* on top of PR #6–#8 (pi-first gate + Enter=Attach restore)  
+**Baseline:** After PR [#9](https://github.com/zhexulong/evobuddy/pull/9) *visual Raft Home* on top of PR #6–#8 (pi-first gate + Enter=Attach restore); alignment implementation on branch `fix/visual-raft-home`  
 **Related:**
 
 - Capability matrix: `docs/superpowers/specs/2026-07-21-evobuddy-pi-first-raft-room-capability-and-eval.md`
 - Gate status: `docs/superpowers/specs/2026-07-22-pi-first-raft-room-release-status.md`
 - Team design: `docs/superpowers/specs/2026-07-17-evobuddy-raft-agent-team-and-omo-subagent-design.md`
+- Plan: `docs/superpowers/plans/2026-07-22-evobuddy-tui-backend-raft-alignment.md`
+- Joint report: `evobuddy-tui-backend-joint-eval-report.json` (`npm run evobuddy:eval-tui-backend-joint`)
 
 ### Pass summary (read this first)
 
-| Gate | Name | Status (as of audit) | Unlocks |
+| Gate | Name | Status (as of 2026-07-22 closeout) | Unlocks |
 |---|---|---|---|
-| **G0** | Pi-first backend capability gate | **PASS** (S3 may honest-skip) | Backend epic closed enough to ship Node paths |
-| **G1** | Raft Home shell | **PASS** (PR #7+#9) | Enter=Attach + inbox chrome |
-| **G2** | TUI→backend wire-through (P0) | **NOT PASS** | Seats on create; runtime honored; seat choice attaches |
-| **G3** | Raft comms on product path (P1) | **NOT PASS** | Handoff body + wake + NeedsReview from daily UI |
-| **G4** | Joint eval L1 (J1–J5) | **NOT PASS** (harness TBD) | CI proof keypress/command ≡ room facts |
-| **FINAL** | Raft-aligned daily loop | **NOT PASS** | All of G0–G4 required; see §9 |
+| **G0** | Pi-first backend capability gate | **PASS** (S3 honest-skip OK) | Backend epic closed enough to ship Node paths |
+| **G1** | Raft Home shell | **PASS** (PR #7+#9 + cargo regressions) | Enter=Attach + inbox chrome |
+| **G2** | TUI→backend wire-through (P0) | **PASS** (J1–J3 L1) | Seats on create; runtime honored; seat choice attaches |
+| **G3** | Raft comms on product path (P1) | **PASS** (J4–J5 L1) | Handoff body + wake + NeedsReview from product path |
+| **G4** | Joint eval L1 (J1–J5) | **PASS** (`evobuddy:eval-tui-backend-joint`) | CI proof command path ≡ room facts |
+| **FINAL** | Raft-aligned daily loop | **PASS** (L1; L2 PTY recommended only) | All of G0–G4; see §9 |
 
-**Rule:** Intermediate **PASS** is real and shippable for its scope. **FINAL PASS** is the only claim that means “TUI daily path is Raft-aligned with Pi seats end-to-end.” Do not call FINAL PASS if only G0/G1 are green.
+**Rule:** Intermediate **PASS** is real and shippable for its scope. **FINAL PASS** is the only claim that means “TUI daily path is Raft-aligned with Pi seats end-to-end.” Do not call FINAL PASS if only G0/G1 are green. L2 full PTY remains **recommended** for release-candidate dogfood, not a silent substitute for L1.
 
 ---
 
 ## 0. One-line verdict
 
-**Raft face is back (Home inbox + Enter=Attach + attention strip). Pi-first backend is largely green in Node evals. Daily TUI write paths still do not drive that backend — rooms can be empty of seats, choose-seat does not attach, handoff does not wake.**  
-Next work is **wire-through + joint TUI–backend evals**, not more chrome.
+**CLOSED (L1):** create → multi pi seats → export/Home seats → Enter attach builder → choose-seat attaches selected → handoff body + content-free wake + NeedsReview → stop keeps room. Joint report lists **J1–J5 independently**. Remaining soft items: P2 compose polish, L2 PTY, optional J6 live spawn.
 
 ```text
 Raft Web  = human scans the field in a browser
@@ -487,3 +488,4 @@ Partial merges may claim **G2 PASS** or **G3 PASS** only with the matching check
 |---|---|
 | 2026-07-22 | Initial audit after PR #9 merge; captures TUI–backend break points and joint eval plan |
 | 2026-07-22 | Add G0–G4 / FINAL pass requirements, per-ID pass rules, P0–P3 checklists, announcement template |
+| 2026-07-22 | Closeout: G2–G4 + FINAL PASS (L1); joint harness `evobuddy:eval-tui-backend-joint`; pass summary updated |

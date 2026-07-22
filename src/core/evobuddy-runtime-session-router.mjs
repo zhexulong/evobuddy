@@ -15,12 +15,14 @@ import { opencodeNativeSessionAdapter } from '../adapters/opencode-native-sessio
 import { claudeNativeSessionAdapter } from '../adapters/claude-native-session.mjs';
 import { codexNativeSessionAdapter } from '../adapters/codex-native-session.mjs';
 import { geminiNativeSessionAdapter } from '../adapters/gemini-native-session.mjs';
+import { piNativeSessionAdapter } from '../adapters/pi-native-session.mjs';
 
 const DEFAULT_ADAPTERS = Object.freeze({
   opencode: opencodeNativeSessionAdapter,
   claude: claudeNativeSessionAdapter,
   codex: codexNativeSessionAdapter,
   gemini: geminiNativeSessionAdapter,
+  pi: piNativeSessionAdapter,
 });
 
 const DESTRUCTIVE_ACTIONS = Object.freeze({
@@ -268,7 +270,7 @@ export async function createRuntimeSessionOpenPlan(input, deps = {}) {
         runtime,
         workspace,
         safetyMode,
-        detachShortcut: 'Ctrl+B d',
+        detachShortcut: 'F10 or Ctrl+\\',
       },
     },
     runtimeCapabilityRef,

@@ -35,7 +35,7 @@ const ALLOWED_KEYS = new Set([
   'consumedAt',
 ]);
 const FORBIDDEN_KEYS = new Set(['env', 'environment', 'secret', 'token', 'authToken']);
-const RUNTIMES = new Set(['opencode', 'claude', 'codex', 'gemini']);
+const RUNTIMES = new Set(['opencode', 'claude', 'codex', 'gemini', 'pi']);
 const CONTROL_BYTE_PATTERN = /[\u0000-\u001f\u007f]/;
 const OWNER_ONLY_FILE_MODE = 0o600;
 const OWNER_ONLY_DIR_MODE = 0o700;

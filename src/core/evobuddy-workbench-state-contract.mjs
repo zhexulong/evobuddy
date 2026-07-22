@@ -91,7 +91,7 @@ function normalizeTaskRoomStatus(value) {
 
 function normalizeRuntime(value) {
   const normalized = cleanString(value)?.toLowerCase();
-  return ['opencode', 'claude', 'codex', 'gemini'].includes(normalized) ? normalized : null;
+  return ['pi', 'opencode', 'claude', 'codex', 'gemini'].includes(normalized) ? normalized : null;
 }
 
 function buildAcceptanceCriteria(report, proof) {
@@ -326,6 +326,17 @@ function buildRuntimeSetup(plan2, taskRooms, blockedReasons) {
   const observed = new Set(taskRooms.map((room) => room.runtime).filter(Boolean));
   const readiness = plan2?.readiness ?? {};
   return [
+    {
+      runtime: 'Pi',
+      teamAgent: (taskRooms ?? []).some((room) => String(room.runtime ?? '').toLowerCase() === 'pi')
+        ? 'TeamAgent TaskRoom observed'
+        : 'TeamAgent TaskRoom not yet observed',
+      focusedBuddy: 'FocusedBuddy optional',
+      status: (taskRooms ?? []).some((room) => String(room.runtime ?? '').toLowerCase() === 'pi')
+        ? 'Ready'
+        : 'Partial',
+    },
+
     {
       runtime: 'OpenCode',
       teamAgent: observed.has('opencode') ? 'TeamAgent TaskRoom observed' : 'TeamAgent TaskRoom not yet observed',

@@ -141,7 +141,7 @@ fn command_palette_snapshot_shows_contextual_commands() {
     for landmark in [
         "Command Palette",
         "open selected agent",
-        "open selected task room",
+        "attach selected task room",
         "show handoffs",
         "filter blocked",
         "show runtime setup",

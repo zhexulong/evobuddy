@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
@@ -597,6 +597,60 @@ async function setupProject(argv) {
   return { stdout: args.json ? `${JSON.stringify(report)}\n` : `EvoBuddy setup complete: ${state.stateRoot}\nOpenCode instructions: ${instructionInstall.instructionPath}\n` };
 }
 
+
+function firstNonEmptyLine(text) {
+  return String(text ?? '').split(/\r?\n/).map((line) => line.trim()).find(Boolean) ?? null;
+}
+
+function resolveCommandPath(command) {
+  const lookup = process.platform === 'win32'
+    ? spawnSync('where', [command], { encoding: 'utf8' })
+    : spawnSync('which', [command], { encoding: 'utf8' });
+  if (lookup.error || lookup.status !== 0) return null;
+  return firstNonEmptyLine(lookup.stdout);
+}
+
+function probeCommandVersion(commandPath, args) {
+  const result = spawnSync(commandPath, args, { encoding: 'utf8' });
+  if (result.error || result.status !== 0) return null;
+  return firstNonEmptyLine(`${result.stdout ?? ''}\n${result.stderr ?? ''}`);
+}
+
+function probeCliRuntime(command, versionArgs, { includePath = false } = {}) {
+  const commandPath = resolveCommandPath(command);
+  const present = Boolean(commandPath);
+  const version = present ? probeCommandVersion(commandPath, versionArgs) : null;
+  const base = { present, version };
+  return includePath ? { ...base, path: commandPath } : base;
+}
+
+function probeDoctorRuntimes() {
+  return {
+    pi: probeCliRuntime('pi', ['--version'], { includePath: true }),
+    tmux: probeCliRuntime('tmux', ['-V']),
+  };
+}
+
+function sampleSelfRssKb() {
+  if (process.platform !== 'linux') return null;
+  try {
+    const status = readFileSync(`/proc/${process.pid}/status`, 'utf8');
+    const match = status.match(/^VmRSS:\s+(\d+)\s+kB$/m);
+    return match ? Number.parseInt(match[1], 10) : null;
+  } catch {
+    return null;
+  }
+}
+
+function doctorMemoryBudgetNote() {
+  return {
+    note: 'Soft memory budget (spec A3/S3): idle pi rpc p95 < 250MB; 2× pi sum < 500MB; multi-seat pi sum ≤ 40% of one OpenCode process tree when sampled.',
+    sampleCommand: 'node scripts/context-tree/sample-seat-rss.mjs --count 2 --hold-ms 3000 --include-opencode',
+    selfRssKb: sampleSelfRssKb(),
+  };
+}
+
+
 async function doctor(argv) {
   const json = argv.includes('--json');
   const args = parseFlags(argv);
@@ -607,6 +661,8 @@ async function doctor(argv) {
     packageBin: PACKAGE_JSON.bin?.evobuddy,
     dispatcherThin: true,
     liveRuntimeRequired: false,
+    runtimes: probeDoctorRuntimes(),
+    memory: doctorMemoryBudgetNote(),
     commands,
   };
   if (args.project) {

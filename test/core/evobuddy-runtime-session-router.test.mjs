@@ -63,7 +63,7 @@ describe('evobuddy runtime session router', () => {
       assert.equal(plan.createSessionRequest.program, 'claude');
       assert.deepEqual(plan.createSessionRequest.args, ['--resume', 'claude-session-1']);
       assert.equal(plan.createSessionRequest.cwd, projectRoot);
-      assert.equal(plan.createSessionRequest.display.detachShortcut, 'Ctrl+B d');
+      assert.equal(plan.createSessionRequest.display.detachShortcut, 'F10 or Ctrl+\\');
 
       const launcherPlan = loadRuntimeLaunchPlan(projectRoot, plan.createSessionRequest.launcherPlanRef.replace(/^launch-plan:/, ''));
       assert.equal(launcherPlan.descriptorId, 'session-1');

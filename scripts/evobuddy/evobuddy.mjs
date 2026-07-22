@@ -13,7 +13,6 @@ import { createRuntimeSessionOpenPlan, getRuntimeSessionAdapter, buildManagedTer
 import {
   addTaskRoomParticipant,
   archiveTaskRoom,
-  createTaskRoomHandoffInStore,
   stopTaskRoomSession,
 } from '../../src/core/evobuddy-taskroom-store.mjs';
 import { createPiFirstTaskRoom, handoffWithWake } from '../../src/core/evobuddy-taskroom-pi-defaults.mjs';

@@ -6,10 +6,12 @@ import { join } from 'node:path';
 import { ensureEvobuddyProjectState } from '../../src/core/evobuddy-project-state.mjs';
 import {
   addCrewAgent,
+  addCrewAgentToRoom,
   ensureBootstrapCrewAgent,
   listCrewAgents,
 } from '../../src/core/evobuddy-crew-store.mjs';
 import { createPiFirstTaskRoom } from '../../src/core/evobuddy-taskroom-pi-defaults.mjs';
+import { readTaskRoom } from '../../src/core/evobuddy-taskroom-store.mjs';
 
 test('crew agent add and list without room', async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-crew-'));
@@ -54,4 +56,28 @@ test('ensureBootstrap is idempotent', async () => {
   const b = await ensureBootstrapCrewAgent(projectRoot, {});
   assert.equal(a.agentId, b.agentId);
   assert.equal((await listCrewAgents(projectRoot)).length, 1);
+});
+
+test('addCrewAgentToRoom appends membership without recreating room', async () => {
+  const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-crew-invite-'));
+  await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  const room = await createPiFirstTaskRoom(projectRoot, {
+    objective: 'invite path',
+    template: 'solo',
+    roomId: 'taskroom:invite-1',
+  });
+  assert.equal(room.participants.length, 1);
+  const agent = await addCrewAgent(projectRoot, {
+    displayName: 'later-reviewer',
+    runtime: 'pi',
+  });
+  const { room: updated } = await addCrewAgentToRoom(projectRoot, room.roomId, {
+    agentId: agent.agentId,
+    role: 'reviewer',
+  });
+  assert.equal(updated.participants.length, 2);
+  assert.ok(updated.participants.some((p) => p.crewAgentId === agent.agentId));
+  const reloaded = await readTaskRoom(projectRoot, room.roomId);
+  assert.equal(reloaded.roomId, room.roomId);
+  assert.equal(reloaded.participants.length, 2);
 });

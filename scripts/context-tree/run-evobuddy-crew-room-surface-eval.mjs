@@ -172,16 +172,44 @@ async function main() {
     }));
   }
 
-  // CE8 add crew agent (membership growth path — crew list grows)
+  // CE8 add existing crew agent into an existing room (no room recreate)
   {
     let ok = false;
     let detail = {};
     try {
-      const before = (await listCrewAgents(projectRoot)).length;
-      await addCrewAgent(projectRoot, { displayName: `extra-${Date.now()}`, runtime: 'pi' });
-      const after = (await listCrewAgents(projectRoot)).length;
-      ok = after === before + 1;
-      detail = { before, after };
+      const room = await createPiFirstTaskRoom(projectRoot, {
+        objective: 'ce8 invite',
+        template: 'solo',
+        roomId: 'taskroom:ce8',
+      });
+      const seatsBefore = room.participants.length;
+      const agent = await addCrewAgent(projectRoot, {
+        displayName: `invitee-${Date.now()}`,
+        runtime: 'pi',
+        description: 'joined later',
+      });
+      const r = runCli([
+        'crew', 'agent', 'invite',
+        '--project', projectRoot,
+        '--room', room.roomId,
+        '--agent-id', agent.agentId,
+        '--role', 'reviewer',
+        '--json',
+      ]);
+      if (r.status !== 0) throw new Error(r.stderr || r.stdout || `status ${r.status}`);
+      const reloaded = await readTaskRoom(projectRoot, room.roomId);
+      const seatsAfter = reloaded.participants.length;
+      const linked = reloaded.participants.some(
+        (p) => p.participantId === agent.agentId || p.crewAgentId === agent.agentId,
+      );
+      ok = seatsAfter === seatsBefore + 1 && linked && reloaded.roomId === room.roomId;
+      detail = {
+        seatsBefore,
+        seatsAfter,
+        linked,
+        sameRoom: reloaded.roomId === room.roomId,
+        invitee: agent.agentId,
+      };
     } catch (error) {
       detail = { error: error instanceof Error ? error.message : String(error) };
     }

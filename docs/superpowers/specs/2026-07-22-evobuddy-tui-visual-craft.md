@@ -1,6 +1,6 @@
 # EvoBuddy TUI Visual Craft & Interaction Spec
 
-**Status:** Draft design authority for next visual/UX pass (doc-first)  
+**Status:** P0 craft **PASS**; remaining items polish (Home demote / dual-pane / V8–V9)  
 **Date:** 2026-07-22  
 **Scope:** How the **Rust TUI** should look, feel, and handle keys — **not** Raft Web pixels, **not** backend gates  
 
@@ -271,11 +271,15 @@ Stable IDs for plans/evals (craft, not R-FINAL RF*).
 
 | ID | State (2026-07-22) |
 |---|---|
-| V0 / V1 (craft keys) | **Landed** — text-entry mode + Ctrl quit |
-| V2 room stream | **Landed** — header + roster + stream + `›` composer |
-| Grok V1–V4 theme/keys | **Landed** — see `evobuddy-tui-grok-visual-alignment.md` V-FINAL |
-| V4 Home demote panes | **Partial** — Activity-first; secondary panes still present |
-| V5–V9 | **Open / polish** |
+| V0 / V1 (craft keys) | **PASS** — text-entry mode + Ctrl quit |
+| V2 room stream | **PASS** — header + roster + stream + `›` composer |
+| Grok V1–V4 theme/keys | **PASS** — see `evobuddy-tui-grok-visual-alignment.md` V-FINAL |
+| V4 Home demote panes | **PARTIAL** — Activity-first; TeamBuddies/RuntimeSetup still Tab-reachable |
+| V5 selection polish | **PARTIAL** — surface_alt selection; long-line left-bar only partial |
+| V6 copy audit | **PASS** — daily path product language |
+| V7 dual-pane Home | **OPEN** |
+| V8 visual regression harness | **PARTIAL** — cargo snapshots; no dedicated visual eval npm script |
+| V9 theme spacing pass | **PARTIAL** — tokens live; density compact mode open |
 
 ---
 
@@ -326,3 +330,4 @@ A craft pass is **shippable** when:
 | Date | Note |
 |---|---|
 | 2026-07-22 | Initial craft spec: diagnosis of “ugly”, OpenCode/Grok direction, TEXT vs NAV keys, target Home/Room layouts, V0–V9 backlog, acceptance without conflating R-FINAL |
+| 2026-07-22 | Status honesty: P0 craft PASS; Home demote / dual-pane / compact still OPEN |

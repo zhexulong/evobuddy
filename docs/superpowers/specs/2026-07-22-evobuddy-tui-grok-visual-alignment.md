@@ -235,46 +235,46 @@ Map GrokNight → our `ThemeTokens` (extend struct as needed):
 
 Existing focused cargo tests green before restyle.
 
-### V1 — Palette — **NOT PASS**
+### V1 — Palette — **PASS**
 
-| # | Requirement |
-|---|---|
-| V1.1 | Theme defined as RGB (GrokNight table) |
-| V1.2 | Runtime quantize path for 256/16 (or documented truecolor-only + graceful ANSI map) |
-| V1.3 | `NO_COLOR` still readable (mono ok) |
+| # | Requirement | Status |
+|---|---|---|
+| V1.1 | Theme defined as RGB (GrokNight table) | **PASS** (`theme.rs` `groknight`) |
+| V1.2 | Runtime quantize path for 256/16 (or documented truecolor-only + graceful ANSI map) | **PASS** (`ColorCapability` + `theme_for`) |
+| V1.3 | `NO_COLOR` still readable (mono ok) | **PASS** |
 
-### V2 — Hierarchy — **NOT PASS**
+### V2 — Hierarchy — **PASS**
 
-| # | Requirement |
-|---|---|
-| V2.1 | Distinct bg / surface / highlight |
-| V2.2 | Muted meta text ≠ primary |
-| V2.3 | Semantic status colors on strip |
-| V2.4 | Snapshots updated and intentional (not accidental goldens) |
+| # | Requirement | Status |
+|---|---|---|
+| V2.1 | Distinct bg / surface / highlight | **PASS** |
+| V2.2 | Muted meta text ≠ primary | **PASS** |
+| V2.3 | Semantic status colors on strip | **PASS** |
+| V2.4 | Snapshots updated and intentional (not accidental goldens) | **PASS** (cargo green; intentional restyle) |
 
-### V3 — Action bar — **PARTIAL**
+### V3 — Action bar — **PASS**
 
-| # | Requirement |
-|---|---|
-| V3.1 | Themed bar (not crude invert only) |
-| V3.2 | ≤6 hints; primary actions first |
-| V3.3 | Disabled state visible |
+| # | Requirement | Status |
+|---|---|---|
+| V3.1 | Themed bar (not crude invert only) | **PASS** (`action_bar_bg` = surface_alt) |
+| V3.2 | ≤6 hints; primary actions first | **PASS** |
+| V3.3 | Disabled state visible | **PASS** (existing action_hints) |
 
-### V4 — Keys — **NOT PASS**
+### V4 — Keys — **PASS**
 
-| # | Requirement |
-|---|---|
-| V4.1 | List vs Compose key routing |
-| V4.2 | Ctrl+P → palette |
-| V4.3 | Help lists actual bindings |
-| V4.4 | VE4 + VE5 pass |
+| # | Requirement | Status |
+|---|---|---|
+| V4.1 | List vs Compose key routing | **PASS** (`is_text_entry_view`) |
+| V4.2 | Ctrl+P → palette | **PASS** |
+| V4.3 | Help lists actual bindings | **PASS** |
+| V4.4 | VE4 + VE5 pass | **PASS** (input_flow unit tests) |
 
 ### V5 — Quit/destructive — **PARTIAL**
 
-| # | Requirement |
-|---|---|
-| V5.1 | Documented quit chords |
-| V5.2 | Optional double-tap `q` / Ctrl+Q policy aligned with Grok spirit |
+| # | Requirement | Status |
+|---|---|---|
+| V5.1 | Documented quit chords | **PASS** |
+| V5.2 | Optional double-tap `q` / Ctrl+Q policy aligned with Grok spirit | **OPEN** (recommended VR2) |
 
 ---
 
@@ -358,3 +358,5 @@ V-FINAL PASS — EvoBuddy TUI Grok craft
 | Date | Note |
 |---|---|
 | 2026-07-22 | Initial Grok visual/keyboard alignment from ref/grok-build user-guide + GrokNight source; V0–V5 / V-FINAL ladder; extract ref/grok-build-docs |
+| 2026-07-22 | V-FINAL PASS (L1 craft): GrokNight tokens+quantize, hierarchy, bar, list/compose keys, Ctrl+P |
+| 2026-07-22 | Intermediate V1–V5 section tables synced to PASS/PARTIAL; double-tap quit remains OPEN |

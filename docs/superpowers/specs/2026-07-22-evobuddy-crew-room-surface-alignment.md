@@ -33,7 +33,7 @@
 |---|---|---|---|
 | **C0** | L1 seats/wake + R0 held | **PASS** (joint + pi-first) | Safe base |
 | **C1** | Project **crew roster** (gradual agents) | **PASS** (`crew` store + CE1) | Agents exist outside one TaskRoom |
-| **C2** | Add member flows (agent / human / invite-to-room) | **PASS** (CE8 crew add; room-add CLI partial) | Grow team |
+| **C2** | Add member flows (agent / human / invite-to-room) | **PASS** (CE8 `crew agent invite` into room) | Grow team |
 | **C3** | Room enter = **members + thread + composer** | **PASS** (CE4–CE7) | No forced Attach on Enter |
 | **C4** | TaskRoom templates vs crew (solo default) | **PASS** (solo default + `--template pair`) | Pair opt-in |
 | **C5** | Subagent **out of scope** (runtime-owned) | **PASS** (policy CE10) | No EvoBuddy subagent product work |
@@ -318,30 +318,30 @@ Joint L1 + pi-first gate still green after changes.
 | C1.2 | Add agent with name + runtime default pi | CE1 |
 | C1.3 | List crew via CLI or workbench export | Unit/integration |
 
-### C2 — Add member — **NOT PASS**
+### C2 — Add member — **PASS** (CLI; TUI wizard optional)
 
 | # | Requirement | Proof |
 |---|---|---|
-| C2.1 | Add crew agent into existing room | CE8 |
-| C2.2 | UI or CLI path documented | Help / runbook |
+| C2.1 | Add crew agent into existing room | CE8 (`crew agent invite`) |
+| C2.2 | UI or CLI path documented | `evobuddy.mjs` help; this § |
 
-### C3 — Room enter surface — **NOT PASS**
+### C3 — Room enter surface — **PASS**
 
 | # | Requirement | Proof |
 |---|---|---|
 | C3.1 | Enter does not auto Attach | CE4 |
-| C3.2 | Roster visible with members | CE5 |
+| C3.2 | Roster visible with members | CE5 + room surface widget |
 | C3.3 | Composer can send | CE6 |
 | C3.4 | Attach remains available explicitly | CE7 |
-| C3.5 | Snapshots: room surface chrome (not only Workspace) | cargo |
+| C3.5 | Snapshots: room surface chrome (not only Workspace) | cargo workspace_snapshots |
 
-### C4 — Templates — **NOT PASS**
+### C4 — Templates — **PASS**
 
 | # | Requirement | Proof |
 |---|---|---|
 | C4.1 | Default create = solo (or documented equal default) | CE2 |
-| C4.2 | Pair template opt-in | CE3 |
-| C4.3 | Prefer crew link over anonymous seats | Store fields |
+| C4.2 | Pair template opt-in | CE3 (`--template pair`) |
+| C4.3 | Prefer crew link over anonymous seats | `crewAgentId` on participants |
 
 ### C5 — Subagent out of scope — **PASS** (policy)
 
@@ -427,6 +427,8 @@ C-FINAL PASS — Crew + room surface
 ## 12. Document history
 
 | Date | Note |
+| 2026-07-22 | C-FINAL PASS (L1): project crew store, solo/pair templates, enter=room surface, CE1–CE10 harness |
+| 2026-07-22 | CE8 strict: invite existing crew agent into room; CLI `crew agent invite`; intermediate C2–C4 tables synced PASS |
 |---|---|
 | 2026-07-22 | Initial crew growth + room surface spec; Raft gradual team vs Claude Agent Teams; C0–C5 / C-FINAL; Enter≠Attach |
 | 2026-07-22 | **Subagents out of scope:** runtime-owned only; EvoBuddy does not manage SubagentBuddy / Agent Teams product paths |

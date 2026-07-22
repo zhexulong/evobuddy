@@ -22,7 +22,11 @@ import {
   createPiFirstTaskRoom,
   handoffWithWake,
 } from '../../src/core/evobuddy-taskroom-pi-defaults.mjs';
-import { addCrewAgent, listCrewAgents } from '../../src/core/evobuddy-crew-store.mjs';
+import {
+  addCrewAgent,
+  addCrewAgentToRoom,
+  listCrewAgents,
+} from '../../src/core/evobuddy-crew-store.mjs';
 import { installOpenCodeMemberInstructions } from '../../src/install/opencode-member-instructions.mjs';
 import { generateRecentUpdateSummary, readRecentUpdateSummary } from '../../src/core/evobuddy-update-summary.mjs';
 
@@ -195,6 +199,7 @@ function parseFlags(argv) {
     else if (arg === '--from') parsed.from = requireValue(argv, i += 1, arg);
     else if (arg === '--template') parsed.template = requireValue(argv, i += 1, arg);
     else if (arg === '--name') parsed.name = requireValue(argv, i += 1, arg);
+    else if (arg === '--agent-id') parsed.agentId = requireValue(argv, i += 1, arg);
     else if (arg === '--description') parsed.description = requireValue(argv, i += 1, arg);
     else if (arg === '--outcome') parsed.outcome = requireValue(argv, i += 1, arg);
     else if (arg === '--note') parsed.note = requireValue(argv, i += 1, arg);
@@ -220,7 +225,10 @@ function parseFlags(argv) {
 
 function taskroomSessionHelp() {
   return `Usage:
-  evobuddy taskroom create --project <path> --room <id> [--title <text>] [--objective <text>] [--runtime pi] [--created-at <iso>] [--json]
+  evobuddy crew agent add --project <path> --name <name> [--runtime pi] [--description <text>] [--json]
+  evobuddy crew agent invite --project <path> --room <id> (--agent-id <id> | --name <name>) [--role other] [--json]
+  evobuddy crew list --project <path> [--json]
+  evobuddy taskroom create --project <path> --room <id> [--title <text>] [--objective <text>] [--runtime pi] [--template solo|pair] [--created-at <iso>] [--json]
   evobuddy taskroom message send --project <path> --room <id> --body <text> [--from <participant-id>] [--json]
   evobuddy taskroom participant add --project <path> --room <id> --participant-id <id> --actor-name <name> --actor-kind <kind> --role <role> [--runtime <name>] [--json]
   evobuddy taskroom handoff create --project <path> --room <id> --handoff-id <id> --from-instance <id> --to-instance <id> --handoff-kind <kind> [--body <text>] [--created-at <iso>] [--json]
@@ -256,6 +264,23 @@ async function crewList(argv) {
     stdout: args.json
       ? `${JSON.stringify({ agents }, null, 2)}\n`
       : `${agents.map((a) => `${a.displayName}\t${a.runtime}\t${a.agentId}`).join('\n')}${agents.length ? '\n' : ''}`,
+  };
+}
+
+async function crewAgentInvite(argv) {
+  const args = parseFlags(argv);
+  if (!args.project) throw new Error('missing value for --project');
+  if (!args.room) throw new Error('missing value for --room');
+  if (!args.agentId && !args.name) throw new Error('missing --agent-id or --name of crew agent');
+  const result = await addCrewAgentToRoom(resolve(args.project), args.room, {
+    agentId: args.agentId,
+    name: args.name,
+    role: args.role ?? 'other',
+  });
+  return {
+    stdout: args.json
+      ? `${JSON.stringify(result)}\n`
+      : `${result.participant.participantId}\n`,
   };
 }
 
@@ -900,6 +925,7 @@ async function dispatch(argv) {
   if (command === 'doctor') return doctor(argv.slice(1));
   if (command === 'workbench') return workbench(argv.slice(1));
   if (command === 'crew' && subcommand === 'agent' && action === 'add') return crewAgentAdd(rest);
+  if (command === 'crew' && subcommand === 'agent' && action === 'invite') return crewAgentInvite(rest);
   if (command === 'crew' && subcommand === 'list') return crewList([action, ...rest].filter((value) => value !== undefined));
   if (command === 'taskroom' && subcommand === 'create') return taskroomCreate([action, ...rest].filter((value) => value !== undefined));
   if (command === 'taskroom' && subcommand === 'message' && action === 'send') return taskroomMessageSend(rest);

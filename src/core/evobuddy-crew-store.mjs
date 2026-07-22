@@ -83,3 +83,44 @@ export function crewRosterPath(projectRoot) {
   const state = resolveEvobuddyProjectState({ projectRoot });
   return crewPath(state);
 }
+
+/**
+ * Add an existing project crew agent into a TaskRoom (RM4).
+ * Does not recreate the room; only appends membership.
+ */
+export async function addCrewAgentToRoom(projectRoot, roomId, draft = {}) {
+  const { addTaskRoomParticipant, readTaskRoom } = await import('./evobuddy-taskroom-store.mjs');
+  requireString(roomId, 'roomId');
+  const agents = await listCrewAgents(projectRoot);
+  let agent = null;
+  if (draft.agentId) {
+    agent = agents.find((a) => a.agentId === draft.agentId) ?? null;
+  }
+  if (!agent && draft.name) {
+    const name = requireString(draft.name, 'name');
+    agent = agents.find((a) => a.displayName === name) ?? null;
+  }
+  if (!agent) {
+    throw new Error('crew agent not found (pass --agent-id or --name of existing crew agent)');
+  }
+  const room = await readTaskRoom(projectRoot, roomId);
+  if ((room.participants ?? []).some((p) => p.participantId === agent.agentId || p.crewAgentId === agent.agentId)) {
+    throw new Error(`crew agent already in room: ${agent.displayName}`);
+  }
+  const role = String(draft.role ?? 'other').toLowerCase();
+  const updated = await addTaskRoomParticipant(projectRoot, roomId, {
+    participantId: agent.agentId,
+    actorName: agent.displayName,
+    actorKind: agent.kind === 'human' ? 'user' : 'team-agent',
+    role: ['builder', 'reviewer', 'coordinator', 'evolution', 'researcher', 'user', 'other'].includes(role)
+      ? role
+      : 'other',
+    runtime: agent.runtime ?? 'pi',
+    crewAgentId: agent.agentId,
+  });
+  return {
+    room: updated,
+    agent,
+    participant: updated.participants.find((p) => p.participantId === agent.agentId),
+  };
+}

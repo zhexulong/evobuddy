@@ -13,10 +13,10 @@ import { createRuntimeSessionOpenPlan, getRuntimeSessionAdapter, buildManagedTer
 import {
   addTaskRoomParticipant,
   archiveTaskRoom,
-  createDurableTaskRoom,
   createTaskRoomHandoffInStore,
   stopTaskRoomSession,
 } from '../../src/core/evobuddy-taskroom-store.mjs';
+import { createPiFirstTaskRoom } from '../../src/core/evobuddy-taskroom-pi-defaults.mjs';
 import { installOpenCodeMemberInstructions } from '../../src/install/opencode-member-instructions.mjs';
 import { generateRecentUpdateSummary, readRecentUpdateSummary } from '../../src/core/evobuddy-update-summary.mjs';
 
@@ -207,7 +207,7 @@ function parseFlags(argv) {
 
 function taskroomSessionHelp() {
   return `Usage:
-  evobuddy taskroom create --project <path> --room <id> --title <text> --objective <text> [--created-at <iso>] [--json]
+  evobuddy taskroom create --project <path> --room <id> --title <text> --objective <text> [--runtime pi] [--created-at <iso>] [--json]
   evobuddy taskroom participant add --project <path> --room <id> --participant-id <id> --actor-name <name> --actor-kind <kind> --role <role> [--runtime <name>] [--json]
   evobuddy taskroom handoff create --project <path> --room <id> --handoff-id <id> --from-instance <id> --to-instance <id> --handoff-kind <kind> [--created-at <iso>] [--json]
   evobuddy taskroom session stop --project <path> --room <id> --instance <id> --reason <text> [--json]
@@ -226,14 +226,15 @@ async function taskroomCreate(argv) {
   const args = parseFlags(argv);
   if (!args.project) throw new Error('missing value for --project');
   if (!args.room) throw new Error('missing value for --room');
-  if (!args.title) throw new Error('missing value for --title');
-  if (!args.objective) throw new Error('missing value for --objective');
-  const room = await createDurableTaskRoom(resolve(args.project), {
+  if (!args.objective && !args.title) throw new Error('missing value for --objective or --title');
+  const objective = args.objective ?? args.title;
+  const runtime = String(args.runtime ?? 'pi').toLowerCase();
+  const room = await createPiFirstTaskRoom(resolve(args.project), {
     roomId: args.room,
     title: args.title,
-    objective: args.objective,
+    objective,
+    runtime,
     createdAt: args.createdAt ?? isoNow(),
-    participants: [],
   });
   return { stdout: args.json ? `${JSON.stringify(room)}\n` : `${room.roomId}\n` };
 }

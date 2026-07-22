@@ -14,6 +14,7 @@
 | `docs/superpowers/specs/2026-07-22-evobuddy-tui-backend-raft-alignment-audit.md` | TUI↔backend wire-through (**L1 FINAL** for seats/wake CLI path) |
 | `docs/superpowers/specs/2026-07-22-pi-first-raft-room-release-status.md` | G0 density honesty |
 | `docs/superpowers/specs/2026-07-17-evobuddy-raft-agent-team-and-omo-subagent-design.md` | Team / wake design |
+| `docs/superpowers/specs/2026-07-22-evobuddy-tui-visual-craft.md` | TUI **look/feel + key modes** (OpenCode/Grok direction); craft epic separate from R-FINAL |
 
 ### Relationship to prior “L1 FINAL”
 
@@ -437,3 +438,4 @@ Keep prior S1 attach test as **optional path / A4**, not sole definition of solo
 |---|---|
 | 2026-07-22 | Initial functional alignment spec from Raft official docs + gap vs L1 wire-through; R0–R5 and R-FINAL pass ladder; background-runtime correction; ref/raft-docs mirror noted |
 | 2026-07-22 | R-FINAL PASS (L1): composer intake, As Task metadata, background pi plan, Activity/timeline, review complete; `evobuddy:eval-raft-functional-alignment` |
+| 2026-07-22 | Link craft doc: functional R-FINAL ≠ visual done; see `2026-07-22-evobuddy-tui-visual-craft.md` |

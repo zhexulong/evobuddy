@@ -322,28 +322,55 @@ async function main() {
     results.push(entry('RF8', ok ? 'pass' : 'fail', detail));
   }
 
-  // RF9 — multi pi seats regression (J1 / default create)
+  // RF9 — default create still pi seats (solo primary; multi via pair)
   {
     let ok = false;
     let detail = {};
     try {
-      const roomId = `taskroom:rf9-${Date.now()}`;
-      const r = runCli([
+      const soloId = `taskroom:rf9-solo-${Date.now()}`;
+      const rSolo = runCli([
         'taskroom', 'create',
         '--project', projectRoot,
-        '--room', roomId,
-        '--title', 'rf9',
-        '--objective', 'default multi pi seats',
+        '--room', soloId,
+        '--title', 'rf9 solo',
+        '--objective', 'default solo pi primary',
         '--json',
       ]);
-      if (r.status !== 0) throw new Error(r.stderr || r.stdout || `status ${r.status}`);
-      const room = await readTaskRoom(projectRoot, roomId);
-      const roles = (room.participants ?? []).map((p) => p.role).sort();
-      // Product default is solo; multi-seat is --template pair (regression of pi seats).
-      ok = room.participants.length >= 1
-        && roles.includes('builder')
-        && room.participants.every((p) => p.runtime === 'pi');
-      detail = { seats: room.participants.length, roles, allPi: true, defaultTemplate: 'solo' };
+      if (rSolo.status !== 0) throw new Error(rSolo.stderr || rSolo.stdout || `status ${rSolo.status}`);
+      const solo = await readTaskRoom(projectRoot, soloId);
+      const soloRoles = (solo.participants ?? []).map((p) => p.role).sort();
+      const soloOk = solo.participants.length === 1
+        && soloRoles.includes('builder')
+        && solo.participants.every((p) => p.runtime === 'pi');
+
+      const pairId = `taskroom:rf9-pair-${Date.now()}`;
+      const rPair = runCli([
+        'taskroom', 'create',
+        '--project', projectRoot,
+        '--room', pairId,
+        '--title', 'rf9 pair',
+        '--objective', 'pair multi pi seats',
+        '--template', 'pair',
+        '--json',
+      ]);
+      if (rPair.status !== 0) throw new Error(rPair.stderr || rPair.stdout || `status ${rPair.status}`);
+      const pair = await readTaskRoom(projectRoot, pairId);
+      const pairRoles = (pair.participants ?? []).map((p) => p.role).sort();
+      const pairOk = pair.participants.length >= 2
+        && pairRoles.includes('builder')
+        && pairRoles.includes('reviewer')
+        && pair.participants.every((p) => p.runtime === 'pi');
+
+      ok = soloOk && pairOk;
+      detail = {
+        soloSeats: solo.participants.length,
+        soloRoles,
+        pairSeats: pair.participants.length,
+        pairRoles,
+        allPi: true,
+        defaultTemplate: 'solo',
+        multiSeatTemplate: 'pair',
+      };
     } catch (error) {
       detail = { error: error instanceof Error ? error.message : String(error) };
     }

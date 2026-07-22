@@ -49,24 +49,28 @@ There is no required install path that makes pi packages own team state. Spot-ch
 - SubagentBuddy as primary
 - Mobile / Raft web clone
 
-## Follow-on (post PR #9)
+## Follow-on ladder (authoritative with audit)
 
-TUI shell restore does **not** close daily TUI→backend wire-through. See:
+Canonical gate table lives in:
 
 **`docs/superpowers/specs/2026-07-22-evobuddy-tui-backend-raft-alignment-audit.md`**
 
-— gaps vs Raft, overdone chrome, TUI↔Pi break points (create seats, choose-seat attach, handoff/wake), joint eval IDs **J1–J5**, and **pass ladder**:
+Synced status (2026-07-22 L1 closeout on `fix/visual-raft-home` / PR #10):
 
 | Gate | Meaning | Now |
 |---|---|---|
 | **G0** | Pi-first backend eval gate (this doc) | **PASS** (S3 may skip) |
-| **G1** | Raft Home shell (Enter=Attach, inbox) | **PASS** |
-| **G2** | TUI→backend wire-through | NOT PASS |
-| **G3** | Product-path handoff/wake | NOT PASS |
-| **G4** | Joint L1 J1–J5 | NOT PASS |
-| **FINAL** | Raft-aligned daily loop (G0–G4 all pass) | NOT PASS |
+| **G1** | Raft Home shell (inbox + Enter opens **room surface**; Attach secondary) | **PASS** |
+| **G2** | TUI→backend wire-through | **PASS** (J1–J3 L1) |
+| **G3** | Product-path handoff/wake | **PASS** (J4–J5 L1) |
+| **G4** | Joint L1 J1–J5 | **PASS** (`npm run evobuddy:eval-tui-backend-joint`) |
+| **FINAL** | Raft-aligned daily loop (G0–G4 all pass) | **PASS (L1)** — L2 PTY recommended only |
 
-Do not announce wire-through FINAL until audit §9.3 F1–F8 hold. G0 pass alone is not that FINAL.
+**Product notes that supersede older PR #7 wording:**
+
+- Default create = **solo** pi primary; multi-seat = `--template pair` (not forced duo).
+- **Enter** opens room surface (roster + thread + composer). **Attach** is explicit (`a` / Actions / choose-seat).
+- Do not re-claim “Enter=Attach” as G1 identity.
 
 **Further:** Raft **functional** alignment (channel intake, no forced agent TUI, Activity thread) is a **separate** ladder — see  
 `docs/superpowers/specs/2026-07-22-evobuddy-raft-functional-alignment.md` (**R-FINAL**). L1 wire-through FINAL ≠ R-FINAL.

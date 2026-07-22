@@ -245,7 +245,7 @@ IDs are stable for plans/evals.
 | **RF6** | Activity Needs you after handoff | Home/attention shows review without opening Workspace | R4 |
 | **RF7** | Timeline/thread lists human intent + handoff + status | Read path non-empty ordered | R4, R5 |
 | **RF8** | Stop seat keeps room; re-run/attach possible | Same as J5 + no archive | R5 |
-| **RF9** | Default create still multi pi seats | Regression J1 | R0 hold |
+| **RF9** | Default create still **pi** seats (solo primary; multi via pair template) | Regression J1 default + pair | R0 hold |
 | **RF10** | Handoff wake content-free + NeedsReview | Regression J4 | R0 hold |
 
 ### 6.3 Prior evals (still required as R0)
@@ -274,7 +274,7 @@ npm run evobuddy:eval-raft-functional-alignment
 |---|---|---|
 | R0.1 | Joint J1–J5 pass | `evobuddy-tui-backend-joint-eval-report.json` |
 | R0.2 | Pi-first gate pass (S3 skip OK if honest) | pi-first report |
-| R0.3 | Multi-seat default pi create remains | RF9 / J1 |
+| R0.3 | Default create yields **≥1 pi** primary; multi-seat remains available via pair template | RF9 / J1 |
 
 ### R1 — Channel-shaped intake — **PASS**
 

@@ -19,7 +19,7 @@
 | Gate | Name | Status (as of 2026-07-22 closeout) | Unlocks |
 |---|---|---|---|
 | **G0** | Pi-first backend capability gate | **PASS** (S3 honest-skip OK) | Backend epic closed enough to ship Node paths |
-| **G1** | Raft Home shell | **PASS** (PR #7+#9 + cargo regressions) | Enter=Attach + inbox chrome |
+| **G1** | Raft Home shell | **PASS** (PR #7+#9+#10 + cargo regressions) | Inbox chrome; Enter=**room surface**; Attach secondary |
 | **G2** | TUI→backend wire-through (P0) | **PASS** (J1–J3 L1) | Seats on create; runtime honored; seat choice attaches |
 | **G3** | Raft comms on product path (P1) | **PASS** (J4–J5 L1) | Handoff body + wake + NeedsReview from product path |
 | **G4** | Joint eval L1 (J1–J5) | **PASS** (`evobuddy:eval-tui-backend-joint`) | CI proof command path ≡ room facts |
@@ -31,7 +31,7 @@
 
 ## 0. One-line verdict
 
-**CLOSED (L1):** create → multi pi seats → export/Home seats → Enter attach builder → choose-seat attaches selected → handoff body + content-free wake + NeedsReview → stop keeps room. Joint report lists **J1–J5 independently**. Remaining soft items: P2 compose polish, L2 PTY, optional J6 live spawn.
+**CLOSED (L1):** create (solo default / pair template) → pi seats → export/Home seats → **Enter opens room surface** → explicit Attach / choose-seat attaches selected → handoff body + content-free wake + NeedsReview → stop keeps room. Joint report lists **J1–J5 independently**. Remaining soft items: P2 compose polish, L2 PTY, optional J6 live spawn.
 
 ```text
 Raft Web  = human scans the field in a browser
@@ -76,7 +76,7 @@ Heavy single-session (optional) →  OpenCode / Codex / Claude
 |---|---|
 | Home = work inbox | `widgets/inbox.rs`, `widgets/dashboard.rs` |
 | Attention strip | Needs you · Working · Ready (+ returned counts) |
-| Enter → Attach on TaskRooms | `input.rs` → `open_native_runtime_effect()` (not Workspace hop) |
+| Enter → **room surface** on TaskRooms | `input.rs` → open detail/thread (Attach is explicit Actions/`a`) |
 | Right no longer opens Workspace on Home | Right no-op outside forms/palette |
 | Action bar / hints | `action_hints.rs`, `widgets/action_bar.rs` |
 | Status language Ready ≠ Working | Projection + inbox labels (Queued → Ready copy) |
@@ -220,8 +220,8 @@ Workspace h → HandoffForm (6 fields)
 
 | ID | Scenario | Dual-side assertions | Required for |
 |---|---|---|---|
-| **J1** | Create via TUI effect or same backend command TUI uses | Room exists; **≥2 seats**; runtime **pi**; status Ready/Queued | G2, G4, FINAL |
-| **J2** | Home Enter attach | Session/argv is **pi**; live session evidence; Home not sticky fake Working | G2, G4, FINAL |
+| **J1** | Create via TUI effect or same backend command TUI uses | **pair** path: ≥2 seats; **default** path: solo ≥1 builder; runtime **pi** | G2, G4, FINAL |
+| **J2** | Primary **Attach** targets builder pi (explicit attach plan; **not** Home Enter) | Session/argv is **pi**; attach target = builder; no fake Working splash | G2, G4, FINAL |
 | **J3** | `m` choose reviewer → confirm | Attach **participantId = reviewer** (not always builder) | G2, G4, FINAL |
 | **J4** | Handoff from product path | Body durable in room; wake **content-free**; status **NeedsReview**; Home attention moves | G3, G4, FINAL |
 | **J5** | Leave / stop seat | Room remains listed; Enter works again | G2 or G3, G4, FINAL |
@@ -283,10 +283,10 @@ npm run test:native-tui
 - [ ] `taskroom create` (CLI used by TUI) yields **≥2 participants** with roles builder + reviewer  
 - [ ] Default seat **runtime === `pi`** unless user explicitly chose heavy  
 - [ ] TUI create does not discard runtime/objective semantics (`let _ = draft` gone)  
-- [ ] Enter attach targets builder (or primary) **pi** instance when seats exist  
+- [ ] Explicit Attach (or choose-seat) targets builder/selected **pi** instance when seats exist  
 - [ ] `m` → select reviewer → attach uses **that** participant id  
 - [ ] No ActionProgress splash on mere seat choose / attach start  
-- [ ] Evidence: **J1, J2, J3** pass (L1); cargo Enter=Attach regressions still green  
+- [ ] Evidence: **J1, J2, J3** pass (L1); cargo Enter=room-surface + Attach-secondary regressions green  
 
 ### P1 — Raft comms + honest status → **G3 PASS**
 
@@ -366,10 +366,10 @@ npm run test:native-tui
 
 | # | Requirement | Proof |
 |---|---|---|
-| G2.1 | Default create → **≥2 seats** (builder + reviewer) | Store/list participants; **J1** |
+| G2.1 | Default create → **solo** pi primary; multi-seat via **pair** template | Store/list; **J1** (both paths) |
 | G2.2 | Default runtime **pi** | Participant/runtime fields; **J1** |
 | G2.3 | TUI create path == CLI path used in production | Same argv/module; no draft black hole |
-| G2.4 | Enter attaches pi primary/builder | **J2** |
+| G2.4 | Explicit Attach targets pi primary/builder (Enter opens room) | **J2** + cargo Enter≠Attach |
 | G2.5 | Choose seat attaches **selected** participant | **J3** |
 | G2.6 | No fake Working / ActionProgress on attach/choose alone | Unit + **J2** |
 | G2.7 | G0 + G1 still pass | Re-run gates |
@@ -412,7 +412,7 @@ npm run test:native-tui
 | # | Requirement |
 |---|---|
 | F1 | **G0 PASS** — `evobuddy:eval-pi-first-raft-room` gate pass (S3 skip OK if honest) |
-| F2 | **G1 PASS** — Raft Home shell + Enter=Attach regressions green |
+| F2 | **G1 PASS** — Raft Home shell + Enter=room-surface / Attach-secondary regressions green |
 | F3 | **G2 PASS** — wire-through checklist complete; **J1–J3** pass |
 | F4 | **G3 PASS** — handoff/wake/NeedsReview on product path; **J4–J5** pass |
 | F5 | **G4 PASS** — joint report green for **J1–J5** with independent evidence |
@@ -446,8 +446,8 @@ FINAL PASS — Raft-aligned daily loop
 - G2 wire-through: pass (J1–J3)
 - G3 product comms: pass (J4–J5)
 - G4 joint L1: pass (report: <path>)
-- Claims: TUI create→multi pi seats→attach/choose→handoff wake→re-attach
-- Non-claims: full OpenCode tree density; Raft web clone
+- Claims: TUI create (solo default / pair opt-in)→pi seats→Enter room surface→explicit attach/choose→handoff wake→re-attach
+- Non-claims: full OpenCode tree density; Raft web clone; Enter=Attach
 ```
 
 #### FINAL FAIL conditions (any one fails FINAL)
@@ -492,3 +492,4 @@ Partial merges may claim **G2 PASS** or **G3 PASS** only with the matching check
 | 2026-07-22 | Initial audit after PR #9 merge; captures TUI–backend break points and joint eval plan |
 | 2026-07-22 | Add G0–G4 / FINAL pass requirements, per-ID pass rules, P0–P3 checklists, announcement template |
 | 2026-07-22 | Closeout: G2–G4 + FINAL PASS (L1); joint harness `evobuddy:eval-tui-backend-joint`; pass summary updated |
+| 2026-07-22 | Status honesty sync: solo default + Enter=room surface; J2 = explicit Attach plan (not Enter); align release-status G2–G4 PASS |

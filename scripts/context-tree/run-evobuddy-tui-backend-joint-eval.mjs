@@ -125,7 +125,7 @@ async function main() {
     results.push(entry('J1', ok ? 'pass' : 'fail', detail));
   }
 
-  // --- J2: Enter attach targets builder pi ---
+  // --- J2: explicit Attach plan targets builder pi (Home Enter opens room surface) ---
   {
     let ok = false;
     let detail = {};
@@ -162,8 +162,8 @@ async function main() {
       const noOpencode = !String(program).includes('opencode') && !planBlob.includes('opencode');
       const attachTargetIsBuilder = primaryId === builder.participantId
         || primaryId === builder.actorName;
-      // L1 honesty: attach intent is OpenNativeRuntime (not ActionProgress/Working splash).
-      // Proven in cargo home_action_surface / input_flow; joint L1 asserts plan program + target.
+      // L1 honesty: explicit Attach plan is OpenNativeRuntime for builder pi.
+      // Home Enter opens room surface (cargo input_flow); Attach is secondary (a / Actions / choose-seat).
       ok = isPi && noOpencode && Boolean(primaryId) && seatsOk(room) && attachTargetIsBuilder;
       detail = {
         program,
@@ -175,8 +175,9 @@ async function main() {
         attachTargetIsBuilder,
         exportHasRoom: Boolean(projected),
         attachEffect: 'OpenNativeRuntime',
+        homeEnterOpensRoomSurface: true,
         noFakeWorkingSplash: true,
-        note: 'no ActionProgress on attach start — unit-proven in cargo seat/enter tests',
+        note: 'J2 = primary Attach plan for builder pi; Enter≠Attach proven in cargo home_enter tests',
       };
     } catch (error) {
       detail = { error: error instanceof Error ? error.message : String(error) };

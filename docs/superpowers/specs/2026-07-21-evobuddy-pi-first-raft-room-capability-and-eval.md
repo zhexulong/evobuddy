@@ -79,7 +79,7 @@ IDs are stable for plans/evals. **P0** = Pi-first + honest room; **P1** = multi-
 | ID | Capability | Raft analog | Notes |
 |---|---|---|---|
 | **D1** | Home = Activity-like work inbox (needs / working / ready / returned) | Activity + task board skim | Copy: Ready/Working/Needs you |
-| **D2** | Enter = open primary seat (attach) when capable | Open conversation / join work | Stay on Home until attach (done) |
+| **D2** | Enter = open primary seat (attach) when capable | Open conversation / join work | Stay on Home until attach (done). **Superseded (PR #10 / C-FINAL):** Enter opens **room surface** (roster+thread+composer); Attach is explicit secondary (`a` / Actions / choose-seat). Historical attach-on-Enter tests remain as optional attach path, not daily default. |
 | **D3** | Choose participant when multi-seat (structured choice) | Member list / open agent | j/k + Enter |
 | **D4** | Help/status teach leave keys (F10 / Ctrl+\) (partial) | — | Done for tmux |
 | **D5** | Ban fake Working / ban Working splash on mere attach (partial) | Honest lifecycle | Done; keep regressions |
@@ -165,7 +165,7 @@ Phase 4  Density     A3 spawn-on-demand, E4, polish D1/D6
 | Cap | Eval ID | Method | Pass criteria |
 |---|---|---|---|
 | D1 | `eval-home-attention-labels` | Snapshot | Ready/Working/Needs copy; Queued not counted as working |
-| D2 | `eval-enter-attach-home` | Unit (existing) | Enter → OpenNativeRuntime; view stays Dashboard until attach |
+| D2 | `eval-enter-attach-home` | Unit (existing) | **Historical pre-#10:** Enter → OpenNativeRuntime. **Current (PR #10):** Enter → room detail/surface; Attach via explicit Actions/`a` (see `home_enter_opens_room_detail_not_forced_attach`) |
 | D3 | `eval-choose-seat` | PTY | Two seats → structured choice or list; selection attaches correct instance |
 | D4 | `eval-leave-keys-copy` | Snapshot | Help/notice mention F10 or Ctrl+\ |
 | D5 | `eval-no-fake-working` | Integration + snapshot | No Working without session evidence |
@@ -184,7 +184,7 @@ Phase 4  Density     A3 spawn-on-demand, E4, polish D1/D6
 
 | Scenario | Steps | Pass |
 |---|---|---|
-| **S1 Solo Pi path** | create compose → Home Ready → Enter attach pi → work → F10 leave → room still there | No opencode; detach clean |
+| **S1 Solo Pi path** | create compose → Home Ready → Enter attach pi → work → F10 leave → room still there | No opencode; detach clean. **Superseded narrative (PR #10 / R-FINAL / C-FINAL):** create → Enter **room surface** → message/work in thread → optional Attach pi → F10 leave → room still there. Keep attach as optional path (A4), not sole S1 success definition. |
 | **S2 Builder→Reviewer** | room 2 seats → builder handoff → wake reviewer → status Needs review → attach reviewer sees handoff body | Two identities; wake content-free |
 | **S3 Density** | 2× pi rpc idle + TUI | sum seat RSS **< 0.5 ×** one opencode tree on same machine (scripted sample) |
 | **S4 Failure reopen** | kill pi mid-flight / fail create → user Enter again | No permanent “existing session” dead-end; Working not sticky |

@@ -138,7 +138,7 @@ Priority is **legibility and restraint**, not pixel parity with Raft Web.
 
 | Capability | Backend | TUI daily path uses it? |
 |---|---|---|
-| Pi adapter / attach | Yes | Partial — Enter attach exists; create may yield no pi seat |
+| Pi adapter / attach | Yes | **Historical pre-#10:** Enter attach existed as primary. **Current:** Enter = room surface; Attach secondary; create seats via solo/pair templates (G2 L1 closed) |
 | `createPiFirstTaskRoom` (builder+reviewer+pi) | Yes | **No** — default create CLI empty participants |
 | Default runtime = pi | Yes (defaults module) | **No** — create ignores draft.runtime |
 | Choose seat → attach that instance | UI half-built | **No** — submit does not `OpenNativeRuntime` |

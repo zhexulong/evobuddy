@@ -9,19 +9,7 @@ impl WorkbenchApp {
             acceptance_criteria: String::new(),
             workspace: self.state.project_root.clone(),
             actor: String::new(),
-            runtime: {
-                let preferred = ["pi", "opencode", "claude", "codex"];
-                preferred
-                    .into_iter()
-                    .find(|name| {
-                        self.state
-                            .runtime_setup
-                            .iter()
-                            .any(|entry| entry.runtime.eq_ignore_ascii_case(name))
-                    })
-                    .unwrap_or("pi")
-                    .to_string()
-            },
+            runtime: "pi".to_string(),
             safety_mode: "workspace-write".to_string(),
         };
         self.task_room_form_field = 0;
@@ -41,11 +29,8 @@ impl WorkbenchApp {
     }
     pub fn advance_active_form_field(&mut self) {
         match self.view_mode {
-            ViewMode::TaskRoomForm => {
-                self.task_room_form_field = 0;
-            }
-            ViewMode::HandoffForm => {
-                self.handoff_form_field = (self.handoff_form_field + 1).min(5);
+            ViewMode::TaskRoomForm | ViewMode::HandoffForm => {
+                // Single-field composers — Tab is a no-op.
             }
             _ => {}
         }
@@ -56,15 +41,10 @@ impl WorkbenchApp {
                 self.task_room_form_field = 0;
                 self.task_room_form.objective.push(ch);
             }
-            ViewMode::HandoffForm => match self.handoff_form_field {
-                0 => self.handoff_form.sender.push(ch),
-                1 => self.handoff_form.receiver.push(ch),
-                2 => self.handoff_form.body.push(ch),
-                3 => self.handoff_form.artifact_refs.push(ch),
-                4 => self.handoff_form.expected_next_action.push(ch),
-                5 => self.handoff_form.return_destination.push(ch),
-                _ => {}
-            },
+            ViewMode::HandoffForm => {
+                self.handoff_form_field = 0;
+                self.handoff_form.body.push(ch);
+            }
             ViewMode::StructuredQuestion => {
                 if let Some(question) = &mut self.structured_question {
                     if question.allows_free_text {
@@ -77,37 +57,26 @@ impl WorkbenchApp {
     }
     pub fn submit_task_room_form(&mut self) -> WorkbenchEffect {
         let draft = self.task_room_form.clone();
-        let target = if draft.objective.is_empty() {
-            "taskroom create".to_string()
+        if self.view_mode == ViewMode::TaskRoomForm {
+            self.pop_view();
+        }
+        self.action_status = Some(if draft.objective.is_empty() {
+            "sending room…".to_string()
         } else {
-            format!("taskroom create · {}", draft.objective)
-        };
-        self.request_confirmation(PendingConfirmation {
-            target,
-            effect_label: "Create TaskRoom".to_string(),
-            action: ConfirmedAction::CreateTaskRoom(draft),
-        })
+            format!(
+                "sending · {}",
+                draft.objective.chars().take(48).collect::<String>()
+            )
+        });
+        WorkbenchEffect::CreateTaskRoom(draft)
     }
     pub fn submit_handoff_form(&mut self) -> WorkbenchEffect {
         let draft = self.handoff_form.clone();
-        let target = format!(
-            "handoff {} → {}",
-            if draft.sender.is_empty() {
-                "?"
-            } else {
-                &draft.sender
-            },
-            if draft.receiver.is_empty() {
-                "?"
-            } else {
-                &draft.receiver
-            }
-        );
-        self.request_confirmation(PendingConfirmation {
-            target,
-            effect_label: "Create Handoff".to_string(),
-            action: ConfirmedAction::CreateHandoff(draft),
-        })
+        if self.view_mode == ViewMode::HandoffForm {
+            self.pop_view();
+        }
+        self.action_status = Some("sending handoff…".to_string());
+        WorkbenchEffect::CreateHandoff(draft)
     }
     pub fn submit_structured_answer(&mut self, index: usize) -> WorkbenchEffect {
         let Some(question) = self.structured_question.clone() else {

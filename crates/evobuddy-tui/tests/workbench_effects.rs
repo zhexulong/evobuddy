@@ -22,31 +22,22 @@ fn load_app(name: &str) -> WorkbenchApp {
 }
 
 #[test]
-fn create_taskroom_form_requests_confirmation_with_target_and_effect() {
+fn create_taskroom_form_sends_immediately_without_confirmation() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     handle_key_event(&mut app, KeyInput::NewRoom);
     handle_key_event(&mut app, KeyInput::Char('M'));
     handle_key_event(&mut app, KeyInput::Char('V'));
-    handle_key_event(&mut app, KeyInput::NextField);
     handle_key_event(&mut app, KeyInput::Char('D'));
     handle_key_event(&mut app, KeyInput::Char('o'));
 
     let effect = handle_key_event(&mut app, KeyInput::Enter);
-    assert_eq!(app.view_mode, ViewMode::ConfirmAction);
+    assert_ne!(app.view_mode, ViewMode::ConfirmAction);
     match effect {
-        WorkbenchEffect::RequestConfirmation(PendingConfirmation {
-            target,
-            effect_label,
-            action,
-        }) => {
-            assert!(target.contains("MV") || target.contains("taskroom") || !target.is_empty());
-            assert!(
-                effect_label.to_lowercase().contains("create")
-                    || effect_label.to_lowercase().contains("taskroom")
-            );
-            assert!(matches!(action, ConfirmedAction::CreateTaskRoom(_)));
+        WorkbenchEffect::CreateTaskRoom(draft) => {
+            assert!(draft.objective.contains('M') || draft.objective.contains("MV"));
+            assert_eq!(draft.runtime, "pi");
         }
-        other => panic!("expected RequestConfirmation, got {other:?}"),
+        other => panic!("expected CreateTaskRoom, got {other:?}"),
     }
     assert!(app.durable_writes.is_empty());
 }
@@ -133,23 +124,20 @@ fn stop_and_archive_require_confirmation_and_are_not_detach() {
 }
 
 #[test]
-fn handoff_form_requests_confirmation_before_create_effect() {
+fn handoff_form_sends_immediately_without_confirmation() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     app.push_view(ViewMode::TaskRoomWorkspace);
     handle_key_event(&mut app, KeyInput::Handoff);
-    handle_key_event(&mut app, KeyInput::Char('B'));
-    handle_key_event(&mut app, KeyInput::NextField);
-    handle_key_event(&mut app, KeyInput::Char('R'));
-    handle_key_event(&mut app, KeyInput::NextField);
     handle_key_event(&mut app, KeyInput::Char('O'));
+    handle_key_event(&mut app, KeyInput::Char('K'));
 
     let effect = handle_key_event(&mut app, KeyInput::Enter);
-    assert_eq!(app.view_mode, ViewMode::ConfirmAction);
+    assert_ne!(app.view_mode, ViewMode::ConfirmAction);
     match effect {
-        WorkbenchEffect::RequestConfirmation(PendingConfirmation { action, .. }) => {
-            assert!(matches!(action, ConfirmedAction::CreateHandoff(_)));
+        WorkbenchEffect::CreateHandoff(draft) => {
+            assert_eq!(draft.body, "OK");
         }
-        other => panic!("expected handoff confirmation, got {other:?}"),
+        other => panic!("expected CreateHandoff, got {other:?}"),
     }
 }
 

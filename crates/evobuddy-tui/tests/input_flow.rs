@@ -31,14 +31,15 @@ fn navigation_changes_selection_and_cycles_focus() {
 }
 
 #[test]
-fn home_enter_opens_native_runtime_not_workspace() {
+fn home_enter_opens_room_detail_not_forced_attach() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     let effect = handle_key_event(&mut app, KeyInput::Enter);
+    assert_eq!(effect, WorkbenchEffect::None);
     assert!(
-        matches!(effect, WorkbenchEffect::OpenNativeRuntime { .. }),
-        "Home Enter must Attach/open native runtime, got {effect:?}"
+        matches!(app.view_mode, ViewMode::Detail(_)),
+        "Home Enter opens room thread/detail, got {:?}",
+        app.view_mode
     );
-    assert_eq!(app.view_mode, ViewMode::Dashboard, "stay on Home; no workspace splash");
     assert!(app.durable_writes.is_empty());
 }
 
@@ -57,13 +58,20 @@ fn enter_on_focused_buddy_opens_focused_delegate_workspace() {
 }
 
 #[test]
-fn enter_on_task_rooms_opens_native_runtime() {
+fn enter_on_task_rooms_opens_detail_attach_is_explicit_actions_key() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     assert_eq!(app.focus, FocusPane::TaskRooms);
     let effect = handle_key_event(&mut app, KeyInput::Enter);
     assert_eq!(app.selected_task_room, 0);
-    assert!(matches!(effect, WorkbenchEffect::OpenNativeRuntime { .. }));
+    assert_eq!(effect, WorkbenchEffect::None);
+    assert!(matches!(app.view_mode, ViewMode::Detail(_)));
+    handle_key_event(&mut app, KeyInput::Escape);
     assert_eq!(app.view_mode, ViewMode::Dashboard);
+    let attach = handle_key_event(&mut app, KeyInput::Actions);
+    assert!(
+        matches!(attach, WorkbenchEffect::OpenNativeRuntime { .. }),
+        "Actions key attaches, got {attach:?}"
+    );
     assert!(app.durable_writes.is_empty());
 }
 
@@ -162,15 +170,13 @@ fn new_room_form_opens_from_dashboard_and_submits_typed_effect() {
     }
     let effect = handle_key_event(&mut app, KeyInput::Enter);
     match effect {
-        WorkbenchEffect::RequestConfirmation(pending) => {
-            assert!(matches!(
-                pending.action,
-                evobuddy_tui::app::ConfirmedAction::CreateTaskRoom(CreateTaskRoomDraft { objective, .. })
-                    if objective == "Ship it"
-            ));
+        WorkbenchEffect::CreateTaskRoom(CreateTaskRoomDraft { objective, runtime, .. }) => {
+            assert_eq!(objective, "Ship it");
+            assert_eq!(runtime, "pi");
         }
-        other => panic!("expected RequestConfirmation, got {other:?}"),
+        other => panic!("expected CreateTaskRoom, got {other:?}"),
     }
+    assert_ne!(app.view_mode, ViewMode::ConfirmAction);
     assert!(app.durable_writes.is_empty());
 }
 
@@ -184,27 +190,17 @@ fn handoff_form_opens_from_taskroom_workspace_and_submits_typed_effect() {
     handle_key_event(&mut app, KeyInput::Handoff);
     assert_eq!(app.view_mode, ViewMode::HandoffForm);
 
-    handle_key_event(&mut app, KeyInput::Char('B'));
-    handle_key_event(&mut app, KeyInput::NextField);
-    handle_key_event(&mut app, KeyInput::Char('R'));
-    handle_key_event(&mut app, KeyInput::NextField);
-    handle_key_event(&mut app, KeyInput::Char('O'));
+    for ch in "please review".chars() {
+        handle_key_event(&mut app, KeyInput::Char(ch));
+    }
 
     let effect = handle_key_event(&mut app, KeyInput::Enter);
-    assert_eq!(app.view_mode, ViewMode::ConfirmAction);
+    assert_ne!(app.view_mode, ViewMode::ConfirmAction);
     match effect {
-        WorkbenchEffect::RequestConfirmation(pending) => {
-            assert!(matches!(
-                pending.action,
-                evobuddy_tui::app::ConfirmedAction::CreateHandoff(CreateHandoffDraft {
-                    sender,
-                    receiver,
-                    body,
-                    ..
-                }) if sender == "B" && receiver == "R" && body == "O"
-            ));
+        WorkbenchEffect::CreateHandoff(CreateHandoffDraft { body, .. }) => {
+            assert_eq!(body, "please review");
         }
-        other => panic!("expected RequestConfirmation, got {other:?}"),
+        other => panic!("expected CreateHandoff, got {other:?}"),
     }
 }
 
@@ -264,10 +260,11 @@ fn taskroom_first_home_exposes_contextual_actions_from_selected_room() {
     assert_eq!(app.selected_task_room, 1);
 
     let effect = handle_key_event(&mut app, KeyInput::Enter);
+    assert_eq!(effect, WorkbenchEffect::None);
     assert!(
-        matches!(effect, WorkbenchEffect::OpenNativeRuntime { .. }),
-        "selected room Enter attaches, got {effect:?}"
+        matches!(app.view_mode, ViewMode::Detail(_)),
+        "selected room Enter opens detail/thread, got {:?}",
+        app.view_mode
     );
-    assert_eq!(app.view_mode, ViewMode::Dashboard);
     assert!(app.durable_writes.is_empty());
 }

@@ -71,10 +71,13 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
                 app.submit_structured_answer(index)
             } else if app.view_mode == ViewMode::CommandPalette {
                 app.execute_selected_command()
-            } else if matches!(
-                app.view_mode,
-                ViewMode::Dashboard | ViewMode::TaskRoomWorkspace
-            ) && app.focus == FocusPane::TaskRooms
+            } else if matches!(app.view_mode, ViewMode::Dashboard)
+                && app.focus == FocusPane::TaskRooms
+            {
+                app.push_view(ViewMode::Detail(app.current_detail_view()));
+                WorkbenchEffect::None
+            } else if app.view_mode == ViewMode::TaskRoomWorkspace
+                && app.focus == FocusPane::TaskRooms
             {
                 app.open_native_runtime_effect()
             } else if app.focus == FocusPane::TeamBuddies {

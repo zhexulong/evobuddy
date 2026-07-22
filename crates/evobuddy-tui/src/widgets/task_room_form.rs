@@ -10,41 +10,52 @@ pub fn render_task_room_form(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Re
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(5),
-            Constraint::Min(8),
+            Constraint::Length(4),
+            Constraint::Min(6),
             Constraint::Length(2),
         ])
         .split(area);
 
     frame.render_widget(
         Paragraph::new(vec![
-            Line::from(Span::styled("TaskRoom Form", selected_style())),
-            Line::from("Destination: Create TaskRoom"),
-            Line::from("Effect: durable TaskRoom draft"),
+            Line::from(Span::styled("New room · message", selected_style())),
+            Line::from("Type intent · Enter sends as task · runtime defaults to pi"),
         ])
-        .block(surface_block("TaskRoom Form", true)),
+        .block(surface_block("Compose", true)),
         rows[0],
     );
 
-    let body = [
-        format!("Objective: {}", app.task_room_form.objective),
+    let objective = if app.task_room_form.objective.is_empty() {
+        "Describe the work…".to_string()
+    } else {
+        app.task_room_form.objective.clone()
+    };
+    let title_hint = if app.task_room_form.objective.is_empty() {
+        String::new()
+    } else if app.task_room_form.objective.chars().count() > 80 {
         format!(
-            "Acceptance criteria: {}",
-            app.task_room_form.acceptance_criteria
-        ),
-        format!("Workspace: {}", app.task_room_form.workspace),
-        format!("Actor: {}", app.task_room_form.actor),
-        format!("Runtime: {}", app.task_room_form.runtime),
-        format!("Safety mode: {}", app.task_room_form.safety_mode),
-    ]
-    .join("\n");
+            "Title: {}...",
+            app.task_room_form
+                .objective
+                .chars()
+                .take(77)
+                .collect::<String>()
+        )
+    } else {
+        format!("Title: {}", app.task_room_form.objective)
+    };
+    let body = [objective, title_hint]
+        .into_iter()
+        .filter(|line| !line.is_empty())
+        .collect::<Vec<_>>()
+        .join("\n");
     frame.render_widget(
-        Paragraph::new(body).block(surface_block("Fields", false)),
+        Paragraph::new(body).block(surface_block("Message", false)),
         rows[1],
     );
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "Enter submit · Esc cancel · Ctrl+Tab next field",
+            "Enter send · Esc cancel",
             muted_style(),
         ))),
         rows[2],

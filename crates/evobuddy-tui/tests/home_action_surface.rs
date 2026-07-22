@@ -71,7 +71,7 @@ fn home_snapshot_omits_promoted_handoff_and_evidence_actions() {
 }
 
 #[test]
-fn home_enter_hint_is_short_attach_not_open_native_runtime() {
+fn home_enter_hint_is_open_thread_attach_is_secondary() {
     use evobuddy_tui::action_hints::{action_hints, short_primary_action_label};
     use evobuddy_tui::model::ActionAvailability;
 
@@ -88,14 +88,14 @@ fn home_enter_hint_is_short_attach_not_open_native_runtime() {
         .into_iter()
         .find(|h| h.key == "Enter")
         .expect("Enter hint");
-    assert_eq!(enter.label, "Attach");
+    assert_eq!(enter.label, "Open");
     assert!(enter.enabled);
 
     let frame = render_dashboard_snapshot(&app, 120, 40).unwrap();
-    assert!(frame.contains("Attach"), "{frame}");
+    assert!(frame.contains("Open"), "{frame}");
     assert!(
         !frame.contains("Open native runtime"),
-        "bar/peek must short-label open-native-runtime:\n{frame}"
+        "bar/peek must not show eng open-native-runtime label:\n{frame}"
     );
 }
 

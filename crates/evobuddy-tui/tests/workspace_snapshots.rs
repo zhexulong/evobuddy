@@ -188,22 +188,26 @@ fn taskroom_form_snapshot_names_destination_fields_and_effect() {
 
     let snapshot = render_current_snapshot(&app, 120, 40).expect("render task room form snapshot");
     for landmark in [
-        "TaskRoom Form",
-        "Destination: Create TaskRoom",
-        "Effect: durable TaskRoom draft",
-        "Objective",
-        "Acceptance criteria",
-        "Workspace",
-        "Actor",
-        "Runtime",
-        "Safety mode",
+        "New room",
+        "message",
+        "Compose",
         "map",
-        "Enter submit",
+        "Enter send",
         "Esc cancel",
     ] {
         assert!(
             snapshot.contains(landmark),
             "missing task composer landmark `{landmark}` in snapshot:\n{snapshot}"
+        );
+    }
+    for forbidden in [
+        "Acceptance criteria",
+        "Safety mode",
+        "TaskRoom Form",
+    ] {
+        assert!(
+            !snapshot.contains(forbidden),
+            "field wall remnant `{forbidden}` still shown:\n{snapshot}"
         );
     }
 }
@@ -216,21 +220,16 @@ fn handoff_form_snapshot_names_destination_fields_and_effect() {
     handle_key_event(&mut app, KeyInput::Char('b'));
 
     let snapshot = render_current_snapshot(&app, 120, 40).expect("render handoff form snapshot");
-    for landmark in [
-        "Handoff Form",
-        "Destination: durable HandoffRecord",
-        "Effect: record handoff only",
-        "Sender",
-        "Receiver",
-        "Body",
-        "Artifact refs",
-        "Expected next action",
-        "Return destination",
-        "b",
-    ] {
+    for landmark in ["Handoff", "message", "Compose", "Enter send", "b"] {
         assert!(
             snapshot.contains(landmark),
             "missing handoff form landmark `{landmark}` in snapshot:\n{snapshot}"
+        );
+    }
+    for forbidden in ["Artifact refs", "Return destination", "Handoff Form"] {
+        assert!(
+            !snapshot.contains(forbidden),
+            "field wall remnant `{forbidden}` still shown:\n{snapshot}"
         );
     }
 }

@@ -16,7 +16,7 @@ import {
   createTaskRoomHandoffInStore,
   stopTaskRoomSession,
 } from '../../src/core/evobuddy-taskroom-store.mjs';
-import { createPiFirstTaskRoom } from '../../src/core/evobuddy-taskroom-pi-defaults.mjs';
+import { createPiFirstTaskRoom, handoffWithWake } from '../../src/core/evobuddy-taskroom-pi-defaults.mjs';
 import { installOpenCodeMemberInstructions } from '../../src/install/opencode-member-instructions.mjs';
 import { generateRecentUpdateSummary, readRecentUpdateSummary } from '../../src/core/evobuddy-update-summary.mjs';
 
@@ -41,7 +41,7 @@ function usage() {
   evobuddy buddies invoke <buddyName> --task <text> --project <path>
   evobuddy buddies sync --project <path>
   evobuddy workbench --project <path>
-  evobuddy taskroom create --project <path> --room <id> --title <text> --objective <text>
+  evobuddy taskroom create --project <path> --room <id> --title <text> --objective <text> [--runtime pi]
   evobuddy taskroom participant add --project <path> --room <id> --participant-id <id> --actor-name <name> --actor-kind <kind> --role <role>
   evobuddy taskroom handoff create --project <path> --room <id> --handoff-id <id> --from-instance <id> --to-instance <id> --handoff-kind <kind>
   evobuddy taskroom session stop --project <path> --room <id> --instance <id> --reason <text>
@@ -185,6 +185,7 @@ function parseFlags(argv) {
     else if (arg === '--from-instance') parsed.fromInstance = requireValue(argv, i += 1, arg);
     else if (arg === '--to-instance') parsed.toInstance = requireValue(argv, i += 1, arg);
     else if (arg === '--handoff-kind') parsed.handoffKind = requireValue(argv, i += 1, arg);
+    else if (arg === '--body') parsed.body = requireValue(argv, i += 1, arg);
     else if (arg === '--reason') parsed.reason = requireValue(argv, i += 1, arg);
     else if (arg === '--json-out') parsed.jsonOut = requireValue(argv, i += 1, arg);
     else if (arg === '--input-root') parsed.inputRoot = requireValue(argv, i += 1, arg);
@@ -209,7 +210,7 @@ function taskroomSessionHelp() {
   return `Usage:
   evobuddy taskroom create --project <path> --room <id> --title <text> --objective <text> [--runtime pi] [--created-at <iso>] [--json]
   evobuddy taskroom participant add --project <path> --room <id> --participant-id <id> --actor-name <name> --actor-kind <kind> --role <role> [--runtime <name>] [--json]
-  evobuddy taskroom handoff create --project <path> --room <id> --handoff-id <id> --from-instance <id> --to-instance <id> --handoff-kind <kind> [--created-at <iso>] [--json]
+  evobuddy taskroom handoff create --project <path> --room <id> --handoff-id <id> --from-instance <id> --to-instance <id> --handoff-kind <kind> [--body <text>] [--created-at <iso>] [--json]
   evobuddy taskroom session stop --project <path> --room <id> --instance <id> --reason <text> [--json]
   evobuddy taskroom archive --project <path> --room <id> [--json]
   evobuddy taskroom session reserve --project <path> --room <id> --instance <id> --runtime <name> [--workspace <path>] [--participant <name>] [--json]
@@ -263,21 +264,18 @@ async function taskroomHandoffCreate(argv) {
   const args = parseFlags(argv);
   if (!args.project) throw new Error('missing value for --project');
   if (!args.room) throw new Error('missing value for --room');
-  if (!args.handoffId) throw new Error('missing value for --handoff-id');
   if (!args.fromInstance) throw new Error('missing value for --from-instance');
   if (!args.toInstance) throw new Error('missing value for --to-instance');
-  if (!args.handoffKind) throw new Error('missing value for --handoff-kind');
-  const handoff = await createTaskRoomHandoffInStore(resolve(args.project), args.room, {
-    handoffId: args.handoffId,
+  const result = await handoffWithWake(resolve(args.project), {
     roomId: args.room,
-    fromInstanceId: args.fromInstance,
-    toInstanceId: args.toInstance,
-    handoffKind: args.handoffKind,
-    artifactRefs: [],
-    evidenceRefs: [],
+    handoffId: args.handoffId,
+    from: args.fromInstance,
+    to: args.toInstance,
+    body: args.body ?? 'review requested',
+    handoffKind: args.handoffKind ?? 'review-request',
     createdAt: args.createdAt ?? isoNow(),
   });
-  return { stdout: args.json ? `${JSON.stringify(handoff)}\n` : `${handoff.handoffId}\n` };
+  return { stdout: args.json ? `${JSON.stringify(result)}\n` : `${result.handoffId}\n` };
 }
 
 async function taskroomSessionStop(argv) {

@@ -416,6 +416,7 @@ pub fn taskroom_handoff_create_command(
     from_instance: &str,
     to_instance: &str,
     handoff_kind: &str,
+    body: Option<&str>,
     created_at: Option<&str>,
 ) -> BackendCommand {
     let mut args = vec![
@@ -436,6 +437,10 @@ pub fn taskroom_handoff_create_command(
         "--handoff-kind".to_string(),
         handoff_kind.to_string(),
     ];
+    if let Some(body) = body {
+        args.push("--body".to_string());
+        args.push(body.to_string());
+    }
     if let Some(created_at) = created_at {
         args.push("--created-at".to_string());
         args.push(created_at.to_string());

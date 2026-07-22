@@ -233,10 +233,43 @@ fn execute_workbench_effect(
         }
         WorkbenchEffect::CreateHandoff(draft) => {
             let project = project_root(app);
-            let room_id = app
-                .selected_task_room()
+            let room = app.selected_task_room();
+            let room_id = room
                 .map(|room| room.id.clone())
                 .unwrap_or_else(|| "taskroom:unknown".to_string());
+            let builder_id = room
+                .and_then(|r| {
+                    r.participants
+                        .iter()
+                        .find(|p| p.role.eq_ignore_ascii_case("builder"))
+                        .or_else(|| r.participants.first())
+                        .map(|p| p.id.clone())
+                })
+                .unwrap_or_default();
+            let reviewer_id = room
+                .and_then(|r| {
+                    r.participants
+                        .iter()
+                        .find(|p| p.role.eq_ignore_ascii_case("reviewer"))
+                        .or_else(|| r.participants.get(1))
+                        .map(|p| p.id.clone())
+                })
+                .unwrap_or_default();
+            let from = if draft.sender.trim().is_empty() {
+                builder_id
+            } else {
+                draft.sender.clone()
+            };
+            let to = if draft.receiver.trim().is_empty() {
+                reviewer_id
+            } else {
+                draft.receiver.clone()
+            };
+            let body = if draft.body.trim().is_empty() {
+                "review requested".to_string()
+            } else {
+                draft.body.clone()
+            };
             let handoff_id = format!(
                 "handoff:{}",
                 SystemTime::now()
@@ -248,9 +281,10 @@ fn execute_workbench_effect(
                 &project,
                 &room_id,
                 &handoff_id,
-                &draft.sender,
-                &draft.receiver,
-                "assignment",
+                &from,
+                &to,
+                "review-request",
+                Some(&body),
                 Some(&iso_now()),
             );
             run_backend_command(&command, &project)?;

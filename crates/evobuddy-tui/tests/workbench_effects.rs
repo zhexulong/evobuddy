@@ -254,6 +254,7 @@ fn backend_commands_use_structured_argv_only() {
             "instance:builder:1",
             "instance:reviewer:1",
             "review-request",
+            Some("please review"),
             Some("2026-07-20T12:02:00.000Z"),
         ),
         BackendCommand {
@@ -275,6 +276,8 @@ fn backend_commands_use_structured_argv_only() {
                 "instance:reviewer:1".to_string(),
                 "--handoff-kind".to_string(),
                 "review-request".to_string(),
+                "--body".to_string(),
+                "please review".to_string(),
                 "--created-at".to_string(),
                 "2026-07-20T12:02:00.000Z".to_string(),
                 "--json".to_string(),

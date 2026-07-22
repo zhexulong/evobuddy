@@ -15,7 +15,7 @@ pub fn render_detail(
     detail: DetailView,
 ) {
     if detail == DetailView::TaskRoom {
-        render_task_room_thread(frame, app, area);
+        render_task_room_surface(frame, app, area);
         return;
     }
 
@@ -56,11 +56,16 @@ pub fn render_detail(
     );
 }
 
-fn render_task_room_thread(frame: &mut Frame<'_>, app: &WorkbenchApp, area: ratatui::layout::Rect) {
+fn render_task_room_surface(
+    frame: &mut Frame<'_>,
+    app: &WorkbenchApp,
+    area: ratatui::layout::Rect,
+) {
     let t = theme();
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
+            Constraint::Length(2),
             Constraint::Length(2),
             Constraint::Min(4),
             Constraint::Length(3),
@@ -94,6 +99,50 @@ fn render_task_room_thread(frame: &mut Frame<'_>, app: &WorkbenchApp, area: rata
                 .padding(Padding::horizontal(1)),
         ),
         rows[0],
+    );
+
+    let roster_line = match room {
+        Some(room) if !room.participants.is_empty() => {
+            let parts: Vec<String> = room
+                .participants
+                .iter()
+                .map(|p| {
+                    let role = if p.role.is_empty() {
+                        ""
+                    } else {
+                        p.role.as_str()
+                    };
+                    let rt = if p.runtime.is_empty() {
+                        "?"
+                    } else {
+                        p.runtime.as_str()
+                    };
+                    if role.is_empty() {
+                        format!("{} ({rt})", p.display_name)
+                    } else {
+                        format!("{} · {role} · {rt}", p.display_name)
+                    }
+                })
+                .collect();
+            Line::from(vec![
+                Span::styled("  members  ", Style::default().fg(t.text_muted)),
+                Span::styled(parts.join("  ·  "), Style::default().fg(t.text)),
+            ])
+        }
+        Some(_) => Line::from(Span::styled(
+            "  members  (none yet)",
+            Style::default().fg(t.text_muted),
+        )),
+        None => Line::from(""),
+    };
+    frame.render_widget(
+        Paragraph::new(roster_line).block(
+            Block::default()
+                .borders(Borders::BOTTOM)
+                .border_style(Style::default().fg(t.border))
+                .style(Style::default().bg(t.surface)),
+        ),
+        rows[1],
     );
 
     let mut thread_lines: Vec<Line> = Vec::new();
@@ -139,8 +188,12 @@ fn render_task_room_thread(frame: &mut Frame<'_>, app: &WorkbenchApp, area: rata
     frame.render_widget(
         Paragraph::new(thread_lines)
             .wrap(Wrap { trim: false })
-            .block(Block::default().borders(Borders::NONE).padding(Padding::horizontal(0))),
-        rows[1],
+            .block(
+                Block::default()
+                    .borders(Borders::NONE)
+                    .style(Style::default().bg(t.bg)),
+            ),
+        rows[2],
     );
 
     let focused = Style::default()
@@ -165,11 +218,12 @@ fn render_task_room_thread(frame: &mut Frame<'_>, app: &WorkbenchApp, area: rata
             Block::default()
                 .borders(Borders::TOP)
                 .border_style(Style::default().fg(t.border_focus))
+                .style(Style::default().bg(t.surface))
                 .title(Span::styled(
                     " enter send · esc back · ctrl+a attach ",
                     muted_style(),
                 )),
         ),
-        rows[2],
+        rows[3],
     );
 }

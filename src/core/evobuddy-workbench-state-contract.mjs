@@ -562,9 +562,14 @@ async function projectDurableTaskRooms(projectRoot, generatedAt) {
         id: cleanString(p.participantId) ?? 'participant',
         displayName: titleCase(cleanString(p.actorName) ?? cleanString(p.participantId) ?? 'participant'),
         kind: p.actorKind ?? 'team-agent',
-        status: status === 'NeedsReview' ? 'Working' : 'Available',
+        status: status === 'NeedsReview' && p.role === 'reviewer'
+          ? 'Needs input'
+          : status === 'Working'
+            ? 'Working'
+            : 'Available',
         role: p.role ?? '',
         runtime: normalizeRuntime(p.runtime) ?? runtime,
+        crewAgentId: cleanString(p.crewAgentId) ?? null,
       })),
       rounds: [],
       handoffs: [],
@@ -579,8 +584,11 @@ async function projectDurableTaskRooms(projectRoot, generatedAt) {
         staleAfter: generatedAt,
       },
       availableActions: seatCount > 0
-        ? [{ id: 'open-native-runtime', label: 'Open native runtime', enabled: true, disabledReason: null }]
-        : [{ id: 'open-native-runtime', label: 'Open native runtime', enabled: false, disabledReason: 'No seats in room' }],
+        ? [
+          { id: 'open-room', label: 'Open', enabled: true, disabledReason: null },
+          { id: 'open-native-runtime', label: 'Attach', enabled: true, disabledReason: null },
+        ]
+        : [{ id: 'open-native-runtime', label: 'Attach', enabled: false, disabledReason: 'No seats in room' }],
       returnedTo: null,
       artifactsSummary: [],
       summary: sanitizeText(room.objective ?? room.title ?? room.roomId),
@@ -644,6 +652,13 @@ export async function exportEvobuddyWorkbenchState({
   const taskRooms = mergeTaskRooms(reportRooms, durableRooms);
   const teamAgentNames = deriveTeamAgentNames(artifacts, taskRooms);
   const focusedBuddyNames = deriveFocusedBuddyNames(artifacts, buddiesRegistry);
+  let crew = [];
+  try {
+    const { listCrewAgents } = await import('./evobuddy-crew-store.mjs');
+    crew = await listCrewAgents(resolvedProjectRoot);
+  } catch {
+    crew = [];
+  }
 
   return {
     schema: 'evobuddy.workbench.state.v1',
@@ -653,6 +668,14 @@ export async function exportEvobuddyWorkbenchState({
       teamAgents: buildTeamAgents(teamAgentNames, taskRooms),
       focusedBuddies: buildFocusedBuddies(focusedBuddyNames, buddiesRegistry),
     },
+    crew: list(crew).map((a) => ({
+      agentId: cleanString(a.agentId) ?? 'crew:unknown',
+      displayName: titleCase(cleanString(a.displayName) ?? 'agent'),
+      description: sanitizeText(a.description ?? ''),
+      runtime: normalizeRuntime(a.runtime) ?? 'pi',
+      kind: a.kind ?? 'team-agent',
+      status: a.status ?? 'idle',
+    })),
     taskRooms,
     nativeSessions,
     runtimeCapabilities,

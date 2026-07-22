@@ -73,6 +73,7 @@ async function main() {
         '--title', 'joint J1',
         '--objective', 'joint create multi pi seats',
         '--runtime', 'pi',
+        '--template', 'pair',
         '--json',
       ], projectRoot);
       if (r.status !== 0) {
@@ -84,7 +85,7 @@ async function main() {
         const allPi = (room.participants ?? []).every((p) => p.runtime === 'pi');
         const explicitOk = seats >= 2 && roles.includes('builder') && roles.includes('reviewer') && allPi;
 
-        // Default path: omit --runtime must still yield pi seats (TUI/CLI product default).
+        // Default path without --runtime: solo primary, still pi.
         const defaultRoomId = `taskroom:j1-default-${Date.now()}`;
         const rDefault = runCli([
           'taskroom', 'create',
@@ -103,8 +104,8 @@ async function main() {
           const dSeats = defaultRoom.participants?.length ?? 0;
           const dRoles = (defaultRoom.participants ?? []).map((p) => p.role).sort();
           const dAllPi = (defaultRoom.participants ?? []).every((p) => p.runtime === 'pi');
-          defaultOk = dSeats >= 2 && dRoles.includes('builder') && dRoles.includes('reviewer') && dAllPi;
-          defaultDetail = { roomId: defaultRoomId, seats: dSeats, roles: dRoles, allPi: dAllPi };
+          defaultOk = dSeats >= 1 && dRoles.includes('builder') && dAllPi;
+          defaultDetail = { roomId: defaultRoomId, seats: dSeats, roles: dRoles, allPi: dAllPi, template: 'solo' };
         }
 
         ok = explicitOk && defaultOk;

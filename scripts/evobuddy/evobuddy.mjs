@@ -22,6 +22,7 @@ import {
   createPiFirstTaskRoom,
   handoffWithWake,
 } from '../../src/core/evobuddy-taskroom-pi-defaults.mjs';
+import { addCrewAgent, listCrewAgents } from '../../src/core/evobuddy-crew-store.mjs';
 import { installOpenCodeMemberInstructions } from '../../src/install/opencode-member-instructions.mjs';
 import { generateRecentUpdateSummary, readRecentUpdateSummary } from '../../src/core/evobuddy-update-summary.mjs';
 
@@ -192,6 +193,9 @@ function parseFlags(argv) {
     else if (arg === '--handoff-kind') parsed.handoffKind = requireValue(argv, i += 1, arg);
     else if (arg === '--body') parsed.body = requireValue(argv, i += 1, arg);
     else if (arg === '--from') parsed.from = requireValue(argv, i += 1, arg);
+    else if (arg === '--template') parsed.template = requireValue(argv, i += 1, arg);
+    else if (arg === '--name') parsed.name = requireValue(argv, i += 1, arg);
+    else if (arg === '--description') parsed.description = requireValue(argv, i += 1, arg);
     else if (arg === '--outcome') parsed.outcome = requireValue(argv, i += 1, arg);
     else if (arg === '--note') parsed.note = requireValue(argv, i += 1, arg);
     else if (arg === '--reason') parsed.reason = requireValue(argv, i += 1, arg);
@@ -232,6 +236,29 @@ function taskroomSessionHelp() {
 `;
 }
 
+async function crewAgentAdd(argv) {
+  const args = parseFlags(argv);
+  if (!args.project) throw new Error('missing value for --project');
+  if (!args.name) throw new Error('missing value for --name');
+  const agent = await addCrewAgent(resolve(args.project), {
+    displayName: args.name,
+    description: args.description ?? '',
+    runtime: args.runtime ?? 'pi',
+  });
+  return { stdout: args.json ? `${JSON.stringify(agent)}\n` : `${agent.agentId}\n` };
+}
+
+async function crewList(argv) {
+  const args = parseFlags(argv);
+  if (!args.project) throw new Error('missing value for --project');
+  const agents = await listCrewAgents(resolve(args.project));
+  return {
+    stdout: args.json
+      ? `${JSON.stringify({ agents }, null, 2)}\n`
+      : `${agents.map((a) => `${a.displayName}\t${a.runtime}\t${a.agentId}`).join('\n')}${agents.length ? '\n' : ''}`,
+  };
+}
+
 async function taskroomCreate(argv) {
   if (argv.includes('--help') || argv.includes('-h')) return { stdout: taskroomSessionHelp() };
   const args = parseFlags(argv);
@@ -240,11 +267,13 @@ async function taskroomCreate(argv) {
   // Empty create is allowed: room opens first; human describes work as in-room messages.
   const objective = args.objective ?? args.title ?? 'new room';
   const runtime = String(args.runtime ?? 'pi').toLowerCase();
+  const template = String(args.template ?? 'solo').toLowerCase();
   const room = await createPiFirstTaskRoom(resolve(args.project), {
     roomId: args.room,
     title: args.title ?? objective,
     objective,
     runtime,
+    template,
     createdAt: args.createdAt ?? isoNow(),
   });
   return { stdout: args.json ? `${JSON.stringify(room)}\n` : `${room.roomId}\n` };
@@ -870,6 +899,8 @@ async function dispatch(argv) {
   if (command === 'setup') return setupProject(argv.slice(1));
   if (command === 'doctor') return doctor(argv.slice(1));
   if (command === 'workbench') return workbench(argv.slice(1));
+  if (command === 'crew' && subcommand === 'agent' && action === 'add') return crewAgentAdd(rest);
+  if (command === 'crew' && subcommand === 'list') return crewList([action, ...rest].filter((value) => value !== undefined));
   if (command === 'taskroom' && subcommand === 'create') return taskroomCreate([action, ...rest].filter((value) => value !== undefined));
   if (command === 'taskroom' && subcommand === 'message' && action === 'send') return taskroomMessageSend(rest);
   if (command === 'taskroom' && subcommand === 'participant' && action === 'add') return taskroomParticipantAdd(rest);

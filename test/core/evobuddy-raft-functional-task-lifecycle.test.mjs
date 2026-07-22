@@ -27,7 +27,10 @@ test('create elevates message intent to tracked task with claimable owner', asyn
 test('handoff sets NeedsReview and timeline is readable; review complete without TUI', async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-rf-rev-'));
   await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-  const room = await createPiFirstTaskRoom(projectRoot, { objective: 'review loop' });
+  const room = await createPiFirstTaskRoom(projectRoot, {
+    objective: 'review loop',
+    template: 'pair',
+  });
   const builder = room.participants.find((p) => p.role === 'builder');
   const reviewer = room.participants.find((p) => p.role === 'reviewer');
   await handoffWithWake(projectRoot, {

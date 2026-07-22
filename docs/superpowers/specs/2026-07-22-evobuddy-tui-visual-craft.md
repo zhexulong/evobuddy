@@ -271,9 +271,11 @@ Stable IDs for plans/evals (craft, not R-FINAL RF*).
 
 | ID | State (2026-07-22) |
 |---|---|
-| V0 / V1 | **Landed** in branch (text-entry mode + Ctrl quit) — keep regression tests |
-| V2 | **Partial** — quieter room chrome started; refine until snapshots match §4.1 |
-| V3–V9 | **Open** |
+| V0 / V1 (craft keys) | **Landed** — text-entry mode + Ctrl quit |
+| V2 room stream | **Landed** — header + roster + stream + `›` composer |
+| Grok V1–V4 theme/keys | **Landed** — see `evobuddy-tui-grok-visual-alignment.md` V-FINAL |
+| V4 Home demote panes | **Partial** — Activity-first; secondary panes still present |
+| V5–V9 | **Open / polish** |
 
 ---
 

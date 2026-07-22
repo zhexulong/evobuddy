@@ -228,7 +228,7 @@ async function main() {
       const { createRuntimeSessionOpenPlan } = await import(pathToFileURL(join(REPO, 'src/core/evobuddy-runtime-session-router.mjs')).href);
       const { createPiNativeSessionAdapter } = await import(pathToFileURL(join(REPO, 'src/adapters/pi-native-session.mjs')).href);
       await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-      const room = await createPiFirstTaskRoom(projectRoot, { objective: 'S1 solo pi path' });
+      const room = await createPiFirstTaskRoom(projectRoot, { objective: 'S1 solo pi path', template: 'pair' });
       const builder = room.participants.find((p) => p.role === 'builder') ?? room.participants[0];
       const multiSeat = (room.participants?.length ?? 0) >= 2;
       const runtimePi = room.participants?.[0]?.runtime === 'pi';

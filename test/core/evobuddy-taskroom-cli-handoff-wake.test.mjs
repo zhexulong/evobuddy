@@ -14,7 +14,10 @@ const REPO = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 test('CLI handoff create writes body + content-free wake', async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-cli-handoff-'));
   await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-  const room = await createPiFirstTaskRoom(projectRoot, { objective: 'cli handoff wake' });
+  const room = await createPiFirstTaskRoom(projectRoot, {
+    objective: 'cli handoff wake',
+    template: 'pair',
+  });
   const builder = room.participants.find((p) => p.role === 'builder');
   const reviewer = room.participants.find((p) => p.role === 'reviewer');
   const handoffId = 'handoff:cli-1';

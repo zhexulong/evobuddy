@@ -11,7 +11,7 @@ import { readTaskRoomTimeline } from '../../src/core/evobuddy-taskroom-timeline.
 test('timeline lists user request and handoff summary after handoff', async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-timeline-'));
   await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-  const room = await createPiFirstTaskRoom(projectRoot, { objective: 'timeline room' });
+  const room = await createPiFirstTaskRoom(projectRoot, { objective: 'timeline room', template: 'pair' });
   const builder = room.participants.find((p) => p.role === 'builder');
   const reviewer = room.participants.find((p) => p.role === 'reviewer');
   await handoffWithWake(projectRoot, {

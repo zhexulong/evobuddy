@@ -23,6 +23,7 @@ fn sample_room() -> TaskRoom {
             role: "builder".to_string(),
             runtime: "pi".to_string(),
             native_session_descriptor_id: Some("session-1".to_string()),
+            crew_agent_id: None,
         }],
         rounds: vec![Round {
             id: "round:1".to_string(),

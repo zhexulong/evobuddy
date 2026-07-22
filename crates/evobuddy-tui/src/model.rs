@@ -9,6 +9,8 @@ pub struct WorkbenchState {
     #[serde(rename = "generatedAt")]
     pub generated_at: Option<String>,
     pub actors: Actors,
+    #[serde(default)]
+    pub crew: Vec<CrewAgent>,
     #[serde(rename = "taskRooms")]
     pub task_rooms: Vec<TaskRoom>,
     #[serde(rename = "runtimeSetup")]
@@ -19,6 +21,22 @@ pub struct WorkbenchState {
     pub runtime_capabilities: Vec<RuntimeCapabilitySummary>,
     pub updates: Vec<UpdateItem>,
     pub diagnostics: Diagnostics,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct CrewAgent {
+    #[serde(rename = "agentId")]
+    pub agent_id: String,
+    #[serde(rename = "displayName")]
+    pub display_name: String,
+    #[serde(default)]
+    pub description: String,
+    #[serde(default)]
+    pub runtime: String,
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub status: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -105,6 +123,8 @@ pub struct Participant {
     pub runtime: String,
     #[serde(default, rename = "nativeSessionDescriptorId")]
     pub native_session_descriptor_id: Option<String>,
+    #[serde(default, rename = "crewAgentId")]
+    pub crew_agent_id: Option<String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

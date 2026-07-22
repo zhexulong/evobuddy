@@ -10,7 +10,10 @@ import { exportEvobuddyWorkbenchState } from '../../src/core/evobuddy-workbench-
 test('export includes durable pi-first room seats', async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-export-durable-'));
   await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-  const room = await createPiFirstTaskRoom(projectRoot, { objective: 'export seats' });
+  const room = await createPiFirstTaskRoom(projectRoot, {
+    objective: 'export seats',
+    template: 'pair',
+  });
   const state = await exportEvobuddyWorkbenchState({ projectRoot });
   const projected = state.taskRooms.find((r) => r.id === room.roomId);
   assert.ok(projected, 'durable room missing from export');
@@ -24,7 +27,10 @@ test('export includes durable pi-first room seats', async () => {
 test('export marks NeedsReview after handoff wake', async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-export-nr-'));
   await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-  const room = await createPiFirstTaskRoom(projectRoot, { objective: 'needs review' });
+  const room = await createPiFirstTaskRoom(projectRoot, {
+    objective: 'needs review',
+    template: 'pair',
+  });
   const builder = room.participants.find((p) => p.role === 'builder');
   const reviewer = room.participants.find((p) => p.role === 'reviewer');
   await handoffWithWake(projectRoot, {

@@ -37,8 +37,8 @@ fn render_header(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
     let title = Span::styled(
         " EvoBuddy ",
         Style::default()
-            .fg(t.text_inverse)
-            .bg(t.accent)
+            .fg(t.text)
+            .bg(t.surface_alt)
             .add_modifier(Modifier::BOLD),
     );
     let meta = Span::styled(
@@ -62,18 +62,18 @@ fn render_attention_strip(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect)
         .count();
     let line = if app.search_query.trim().is_empty() {
         Line::from(vec![
-            Span::styled(" ● ", Style::default().fg(t.accent).bg(t.bg)),
+            Span::styled(" ● ", Style::default().fg(t.danger).bg(t.bg)),
             Span::styled(
                 format!("{needs} Needs you"),
                 Style::default()
-                    .fg(t.accent)
+                    .fg(t.danger)
                     .bg(t.bg)
                     .add_modifier(Modifier::BOLD),
             ),
             Span::styled("  ·  ", muted_style().bg(t.bg)),
             Span::styled(
                 format!("{working} Working"),
-                Style::default().fg(t.warning).bg(t.bg),
+                Style::default().fg(t.info).bg(t.bg),
             ),
             Span::styled("  ·  ", muted_style().bg(t.bg)),
             Span::styled(
@@ -83,7 +83,7 @@ fn render_attention_strip(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect)
             Span::styled("  ·  ", muted_style().bg(t.bg)),
             Span::styled(
                 format!("{returned} returned"),
-                Style::default().fg(t.info).bg(t.bg),
+                Style::default().fg(t.warning).bg(t.bg),
             ),
         ])
     } else {

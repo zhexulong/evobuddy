@@ -167,6 +167,9 @@ fn map_key_event(app: &WorkbenchApp, key: KeyEvent) -> Option<KeyInput> {
         KeyCode::Char(':') if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT => {
             Some(KeyInput::Commands)
         }
+        KeyCode::Char('p') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+            Some(KeyInput::Commands)
+        }
         KeyCode::Char('n') if key.modifiers.is_empty() => Some(KeyInput::NewRoom),
         KeyCode::Char('m') if key.modifiers.is_empty() => Some(KeyInput::ChooseSeat),
         KeyCode::Char('h') if key.modifiers.is_empty() => Some(KeyInput::Handoff),

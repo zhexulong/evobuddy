@@ -21,6 +21,7 @@ test('CLI taskroom create yields builder+reviewer with pi runtime', async () => 
     '--room', roomId,
     '--title', 'wire through',
     '--objective', 'ship G2 create path',
+    '--template', 'pair',
     '--json',
   ], { cwd: REPO, encoding: 'utf8' });
   assert.equal(r.status, 0, r.stderr || r.stdout);
@@ -29,4 +30,24 @@ test('CLI taskroom create yields builder+reviewer with pi runtime', async () => 
   const roles = room.participants.map((p) => p.role).sort();
   assert.deepEqual(roles, ['builder', 'reviewer']);
   assert.ok(room.participants.every((p) => p.runtime === 'pi'));
+});
+
+test('CLI taskroom create default solo yields one primary seat', async () => {
+  const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-cli-solo-'));
+  await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  const roomId = 'taskroom:cli-solo-1';
+  const r = spawnSync(process.execPath, [
+    join(REPO, 'scripts/evobuddy/evobuddy.mjs'),
+    'taskroom', 'create',
+    '--project', projectRoot,
+    '--room', roomId,
+    '--title', 'solo',
+    '--objective', 'solo default',
+    '--json',
+  ], { cwd: REPO, encoding: 'utf8' });
+  assert.equal(r.status, 0, r.stderr || r.stdout);
+  const room = await readTaskRoom(projectRoot, roomId);
+  assert.equal(room.participants.length, 1);
+  assert.equal(room.participants[0].role, 'builder');
+  assert.equal(room.participants[0].runtime, 'pi');
 });

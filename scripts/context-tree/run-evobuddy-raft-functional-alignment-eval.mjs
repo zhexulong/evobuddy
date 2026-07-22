@@ -230,6 +230,7 @@ async function main() {
     try {
       const room = await createPiFirstTaskRoom(projectRoot, {
         objective: 'needs you after handoff',
+        template: 'pair',
         roomId: 'taskroom:rf6',
       });
       const builder = room.participants.find((p) => p.role === 'builder');
@@ -262,6 +263,7 @@ async function main() {
     try {
       const room = await createPiFirstTaskRoom(projectRoot, {
         objective: 'timeline human intent and handoff',
+        template: 'pair',
         roomId: 'taskroom:rf7',
       });
       const builder = room.participants.find((p) => p.role === 'builder');
@@ -308,7 +310,7 @@ async function main() {
       const listed = await listTaskRooms(projectRoot);
       const still = listed.some((item) => item.roomId === room.roomId);
       const reloaded = await readTaskRoom(projectRoot, room.roomId);
-      ok = still && reloaded.status !== 'archived' && (reloaded.participants?.length ?? 0) >= 2;
+      ok = still && reloaded.status !== 'archived' && (reloaded.participants?.length ?? 0) >= 1;
       detail = {
         stillThere: still,
         roomStatus: reloaded.status,
@@ -337,11 +339,11 @@ async function main() {
       if (r.status !== 0) throw new Error(r.stderr || r.stdout || `status ${r.status}`);
       const room = await readTaskRoom(projectRoot, roomId);
       const roles = (room.participants ?? []).map((p) => p.role).sort();
-      ok = room.participants.length >= 2
+      // Product default is solo; multi-seat is --template pair (regression of pi seats).
+      ok = room.participants.length >= 1
         && roles.includes('builder')
-        && roles.includes('reviewer')
         && room.participants.every((p) => p.runtime === 'pi');
-      detail = { seats: room.participants.length, roles, allPi: true };
+      detail = { seats: room.participants.length, roles, allPi: true, defaultTemplate: 'solo' };
     } catch (error) {
       detail = { error: error instanceof Error ? error.message : String(error) };
     }
@@ -355,6 +357,7 @@ async function main() {
     try {
       const room = await createPiFirstTaskRoom(projectRoot, {
         objective: 'rf10 wake',
+        template: 'pair',
         roomId: 'taskroom:rf10',
       });
       const builder = room.participants.find((p) => p.role === 'builder');
@@ -401,6 +404,7 @@ async function main() {
     try {
       const room = await createPiFirstTaskRoom(projectRoot, {
         objective: 'review ack without tui',
+        template: 'pair',
         roomId: 'taskroom:rf-review',
       });
       const builder = room.participants.find((p) => p.role === 'builder');

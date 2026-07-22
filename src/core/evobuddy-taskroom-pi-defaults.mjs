@@ -19,42 +19,87 @@ export async function createPiFirstTaskRoom(projectRoot, draft = {}) {
   const roomId = draft.roomId ?? `taskroom:${randomUUID()}`;
   const createdAt = draft.createdAt ?? new Date().toISOString();
   const title = draft.title ?? (objective.length > 80 ? `${objective.slice(0, 77)}...` : objective);
-  const builderId = draft.builderId ?? `participant:builder:${randomUUID()}`;
-  const reviewerId = draft.reviewerId ?? `participant:reviewer:${randomUUID()}`;
+  // Product default solo; pass template:'pair' for builder+reviewer (L1/joint J1).
+  const template = String(draft.template ?? 'solo').toLowerCase();
   const asTask = draft.asTask !== false;
+
+  const { ensureBootstrapCrewAgent, addCrewAgent, listCrewAgents } = await import('./evobuddy-crew-store.mjs');
+  let primaryCrew = null;
+  try {
+    primaryCrew = await ensureBootstrapCrewAgent(projectRoot, {
+      displayName: draft.actor ?? 'builder',
+      runtime,
+    });
+  } catch {
+    primaryCrew = null;
+  }
+
+  const builderId = draft.builderId
+    ?? primaryCrew?.agentId
+    ?? `participant:builder:${randomUUID()}`;
+  const participants = [
+    {
+      participantId: builderId,
+      actorName: primaryCrew?.displayName ?? draft.actor ?? 'builder',
+      actorKind: 'team-agent',
+      role: 'builder',
+      runtime: primaryCrew?.runtime ?? runtime,
+      crewAgentId: primaryCrew?.agentId ?? null,
+    },
+  ];
+
+  if (template === 'pair' || template === 'pair-review' || template === 'multi') {
+    let reviewerCrew = null;
+    try {
+      const agents = await listCrewAgents(projectRoot);
+      reviewerCrew = agents.find((a) => a.displayName === 'reviewer' || a.role === 'reviewer')
+        ?? null;
+      if (!reviewerCrew) {
+        reviewerCrew = await addCrewAgent(projectRoot, {
+          displayName: 'reviewer',
+          description: 'Reviewer lane',
+          runtime,
+        });
+      }
+    } catch {
+      reviewerCrew = null;
+    }
+    const reviewerId = draft.reviewerId
+      ?? reviewerCrew?.agentId
+      ?? `participant:reviewer:${randomUUID()}`;
+    participants.push({
+      participantId: reviewerId,
+      actorName: reviewerCrew?.displayName ?? 'reviewer',
+      actorKind: 'team-agent',
+      role: 'reviewer',
+      runtime: reviewerCrew?.runtime ?? runtime,
+      crewAgentId: reviewerCrew?.agentId ?? null,
+    });
+  }
+
   const room = await createDurableTaskRoom(projectRoot, {
     roomId,
     title,
     objective,
     status: 'active',
     createdAt,
-    participants: [
-      {
-        participantId: builderId,
-        actorName: draft.actor ?? 'builder',
-        actorKind: 'team-agent',
-        role: 'builder',
-        runtime,
-      },
-      {
-        participantId: reviewerId,
-        actorName: 'reviewer',
-        actorKind: 'team-agent',
-        role: 'reviewer',
-        runtime,
-      },
-    ],
-    messages: [{
-      messageId: `message:user-request:${randomUUID()}`,
-      roomId,
-      fromParticipantId: builderId,
-      toParticipantIds: [builderId],
-      kind: 'user-request',
-      body: draft.acceptanceCriteria ?? objective,
-      artifactRefs: [],
-      createdAt,
-    }],
+    participants,
+    messages: objective === 'new room' && !draft.acceptanceCriteria
+      ? []
+      : [{
+        messageId: `message:user-request:${randomUUID()}`,
+        roomId,
+        fromParticipantId: builderId,
+        toParticipantIds: [builderId],
+        kind: 'user-request',
+        body: draft.acceptanceCriteria ?? objective,
+        artifactRefs: [],
+        createdAt,
+      }],
   });
+  room.template = template === 'pair' || template === 'pair-review' || template === 'multi'
+    ? 'pair'
+    : 'solo';
 
   room.task = {
     kind: asTask ? 'task' : 'message',
@@ -66,15 +111,13 @@ export async function createPiFirstTaskRoom(projectRoot, draft = {}) {
   };
   room.raftStatus = 'Queued';
 
-  // Background-first plan: record pi rpc launch intent without OpenNativeRuntime.
-  // Live spawn is optional via draft.spawnBackground === true (or startBackgroundSeat).
   if (runtime === 'pi') {
     const { resolvePiRpcArgv } = await import('./evobuddy-pi-rpc-worker.mjs');
     let argv = ['pi', '--mode', 'rpc', '--no-session'];
     try {
       argv = resolvePiRpcArgv();
     } catch {
-      // keep default argv when adapter missing in constrained tests
+      argv = ['pi', '--mode', 'rpc', '--no-session'];
     }
     room.backgroundRun = {
       kind: 'pi-rpc',

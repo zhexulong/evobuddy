@@ -211,19 +211,21 @@ fn execute_workbench_effect(
                     .map(|duration| duration.as_millis())
                     .unwrap_or(0)
             );
-            let title = if draft.objective.is_empty() {
-                room_id.clone()
+            let objective = draft.objective.clone();
+            let title = crate::backend::title_from_objective(&objective, &room_id);
+            let runtime = if draft.runtime.trim().is_empty() {
+                "pi"
             } else {
-                draft.objective.clone()
+                draft.runtime.as_str()
             };
             let command = taskroom_create_command(
                 &project,
                 &room_id,
                 &title,
-                &draft.objective,
+                &objective,
+                Some(runtime),
                 Some(&iso_now()),
             );
-            let _ = draft;
             run_backend_command(&command, &project)?;
             app.durable_writes.push(format!("created {room_id}"));
             app.action_status = Some(format!("created {room_id}"));

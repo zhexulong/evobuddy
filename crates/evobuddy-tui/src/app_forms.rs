@@ -110,7 +110,7 @@ impl WorkbenchApp {
         })
     }
     pub fn submit_structured_answer(&mut self, index: usize) -> WorkbenchEffect {
-        let Some(question) = &self.structured_question else {
+        let Some(question) = self.structured_question.clone() else {
             return WorkbenchEffect::None;
         };
         let answer = question
@@ -127,6 +127,15 @@ impl WorkbenchApp {
         let Some(answer) = answer else {
             return WorkbenchEffect::None;
         };
+        if let Some(room_id) = question.attach_room_id {
+            self.structured_question = None;
+            self.pop_view();
+            self.action_status = Some("opening seat…".to_string());
+            return WorkbenchEffect::OpenNativeRuntime {
+                room_id,
+                instance_id: answer,
+            };
+        }
         self.action_status = Some("structured answer recorded".to_string());
         self.push_view(ViewMode::ActionProgress);
         WorkbenchEffect::AnswerQuestion(answer)

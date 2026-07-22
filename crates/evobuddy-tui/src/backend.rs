@@ -328,6 +328,7 @@ pub fn taskroom_create_command(
     room_id: &str,
     title: &str,
     objective: &str,
+    runtime: Option<&str>,
     created_at: Option<&str>,
 ) -> BackendCommand {
     let mut args = vec![
@@ -343,6 +344,10 @@ pub fn taskroom_create_command(
         "--objective".to_string(),
         objective.to_string(),
     ];
+    if let Some(runtime) = runtime {
+        args.push("--runtime".to_string());
+        args.push(runtime.to_string());
+    }
     if let Some(created_at) = created_at {
         args.push("--created-at".to_string());
         args.push(created_at.to_string());
@@ -351,6 +356,18 @@ pub fn taskroom_create_command(
     BackendCommand {
         program: "node".to_string(),
         args,
+    }
+}
+
+pub fn title_from_objective(objective: &str, fallback: &str) -> String {
+    let trimmed = objective.trim();
+    if trimmed.is_empty() {
+        return fallback.to_string();
+    }
+    if trimmed.chars().count() > 80 {
+        format!("{}...", trimmed.chars().take(77).collect::<String>())
+    } else {
+        trimmed.to_string()
     }
 }
 

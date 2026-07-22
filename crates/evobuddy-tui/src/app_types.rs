@@ -62,6 +62,7 @@ pub struct StructuredQuestion {
     pub free_text: String,
     pub destination_label: String,
     pub effect_label: String,
+    pub attach_room_id: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

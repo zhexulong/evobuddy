@@ -184,6 +184,7 @@ fn backend_commands_use_structured_argv_only() {
             "taskroom:alpha",
             "Alpha",
             "Ship ownership",
+            Some("pi"),
             Some("2026-07-20T12:00:00.000Z"),
         ),
         BackendCommand {
@@ -200,6 +201,8 @@ fn backend_commands_use_structured_argv_only() {
                 "Alpha".to_string(),
                 "--objective".to_string(),
                 "Ship ownership".to_string(),
+                "--runtime".to_string(),
+                "pi".to_string(),
                 "--created-at".to_string(),
                 "2026-07-20T12:00:00.000Z".to_string(),
                 "--json".to_string(),

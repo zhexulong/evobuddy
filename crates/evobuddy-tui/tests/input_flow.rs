@@ -228,6 +228,7 @@ fn structured_question_accepts_numbered_answer_with_typed_effect() {
         free_text: String::new(),
         destination_label: "Runtime selection".to_string(),
         effect_label: "Open native runtime".to_string(),
+        attach_room_id: None,
     });
     app.push_view(ViewMode::StructuredQuestion);
 

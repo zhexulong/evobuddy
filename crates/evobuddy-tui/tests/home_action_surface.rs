@@ -153,6 +153,33 @@ fn home_m_key_opens_seat_choice_for_multi_seat_room() {
 }
 
 #[test]
+fn seat_choice_submit_opens_selected_participant_without_action_progress() {
+    let mut app = load_app();
+    let room_id = app.selected_task_room().expect("room").id.clone();
+    app.present_seat_choice();
+    let question = app.structured_question.as_ref().expect("seat question");
+    assert_eq!(question.attach_room_id.as_deref(), Some(room_id.as_str()));
+    let reviewer_index = question
+        .choices
+        .iter()
+        .position(|c| c.label.to_lowercase().contains("reviewer") || c.id.to_lowercase().contains("reviewer"))
+        .expect("reviewer choice");
+    let reviewer_id = question.choices[reviewer_index].id.clone();
+    let effect = app.submit_structured_answer(reviewer_index);
+    match effect {
+        WorkbenchEffect::OpenNativeRuntime {
+            instance_id,
+            room_id: effect_room,
+        } => {
+            assert_eq!(instance_id, reviewer_id);
+            assert_eq!(effect_room, room_id);
+        }
+        other => panic!("expected OpenNativeRuntime, got {other:?}"),
+    }
+    assert_ne!(app.view_mode, ViewMode::ActionProgress);
+}
+
+#[test]
 fn home_attention_labels_include_ready_working_needs_copy() {
     let app = load_app();
     let text = render_dashboard_snapshot(&app, 100, 24).expect("render home");

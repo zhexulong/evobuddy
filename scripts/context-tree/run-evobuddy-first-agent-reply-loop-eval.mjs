@@ -20,7 +20,8 @@ const outPath = outArgIndex >= 0
   : join(REPO, 'evobuddy-first-agent-reply-loop-eval-report.json');
 
 function entry(id, status, detail = {}) {
-  return { id, status, method: 'l1-contract', ...detail };
+  // status last so detail fields like activation.status cannot overwrite pass/fail
+  return { id, method: 'l1-contract', ...detail, status };
 }
 
 function runCli(args, opts = {}) {

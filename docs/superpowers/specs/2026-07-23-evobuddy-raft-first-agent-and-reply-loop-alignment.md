@@ -1,6 +1,6 @@
 # EvoBuddy ↔ Raft First Agent + Reply Loop Alignment
 
-**Status:** Spec for next product epic (onboarding crew + “someone replies”) — **O-FINAL not claimed**  
+**Status:** Product epic (onboarding crew + “someone replies”) — **O-FINAL PASS** (L1; `npm run evobuddy:eval-first-agent-reply-loop`)  
 **Date:** 2026-07-23  
 **Scope:** How a **new project** gets its **first agent**, how the team grows like Raft, and how a **room message/task** produces **agent work + timeline replies without requiring Attach**  
 **Local Raft mirror (gitignored):** `ref/raft-docs/` (`meet-your-onboarding-agent`, `hand-off-your-first-task`, `build-your-agent-team`, `features_agents_lifecycle`, `features_agents_external`, …)
@@ -32,13 +32,13 @@
 
 | Gate | Name | Status (2026-07-23) | Unlocks |
 |---|---|---|---|
-| **O0** | Prior L1 + R0 + C0 held | **PASS** (joint + RF + crew evals as of PR #10 lineage) | Safe base |
-| **O1** | Empty project → **exactly one first agent** (onboarding-style) | **NOT PASS** | No forced duo; Cindy-like bootstrap |
-| **O2** | First room shows that agent; optional first hello / empty thread copy | **PARTIAL** (roster on Enter; no onboarding hello) | Room feels occupied |
-| **O3** | Message / As Task **activates** primary seat (wake or spawn headless) | **NOT PASS** | Work without Attach |
-| **O4** | Agent **progress/result** appears on room timeline | **NOT PASS** | “Someone replied” |
-| **O5** | Needs you / review without living in runtime TUI; Attach secondary | **PARTIAL** (handoff NeedsReview yes; daily send no) | Walk-away loop |
-| **O-FINAL** | First-agent + reply loop Raft-aligned | **NOT PASS** | All O0–O5; OE* green |
+| **O0** | Prior L1 + R0 + C0 held | **PASS** (joint + RF + crew via OE0) | Safe base |
+| **O1** | Empty project → **exactly one first agent** (onboarding-style) | **PASS** (OE1–OE3) | No forced duo; Cindy-like bootstrap |
+| **O2** | First room shows that agent; optional first hello / empty thread copy | **PASS** (OE4; FA4 hello still optional) | Room feels occupied |
+| **O3** | Message / As Task **activates** primary seat (wake or spawn headless) | **PASS** (OE5–OE6, OE10) | Work without Attach |
+| **O4** | Agent **progress/result** appears on room timeline | **PASS** (OE7) | “Someone replied” |
+| **O5** | Needs you / review without living in runtime TUI; Attach secondary | **PASS** (OE8 + OE9; handoff held) | Walk-away loop |
+| **O-FINAL** | First-agent + reply loop Raft-aligned | **PASS** | Report: `evobuddy-first-agent-reply-loop-eval-report.json` |
 
 **Rule:** Intermediate **PASS** is shippable for its scope. **O-FINAL** is the only claim that “new project + room chat matches Raft hand-off *with replies*.” Do not announce O-FINAL if only O0/C-FINAL/R-FINAL L1 contracts are green.
 
@@ -265,7 +265,7 @@ npm run evobuddy:eval-first-agent-reply-loop
 | O0.2 | RF / crew gates not regressed | RF + CE suites |
 | O0.3 | Enter≠Attach; Attach secondary | cargo + CE4/CE7 |
 
-### O1 — First agent bootstrap — **NOT PASS**
+### O1 — First agent bootstrap — **PASS**
 
 | # | Requirement | Proof |
 |---|---|---|
@@ -274,7 +274,7 @@ npm run evobuddy:eval-first-agent-reply-loop
 | O1.3 | Solo room primary linked to crew agent | OE3 |
 | O1.4 | Product copy describes gradual first agent | Docs/help |
 
-### O2 — Room feels occupied — **PARTIAL**
+### O2 — Room feels occupied — **PASS**
 
 | # | Requirement | Proof |
 |---|---|---|
@@ -284,7 +284,7 @@ npm run evobuddy:eval-first-agent-reply-loop
 
 **Min for O2 PASS:** O2.1 + O2.2. Hello optional.
 
-### O3 — Activation without Attach — **NOT PASS**
+### O3 — Activation without Attach — **PASS**
 
 | # | Requirement | Proof |
 |---|---|---|
@@ -293,7 +293,7 @@ npm run evobuddy:eval-first-agent-reply-loop
 | O3.3 | Failure is honest (no sticky fake Working) | OE10 |
 | O3.4 | Self-only `to=[from]` is not the only work routing | Code + OE5 |
 
-### O4 — Thread reply — **NOT PASS**
+### O4 — Thread reply — **PASS**
 
 | # | Requirement | Proof |
 |---|---|---|
@@ -301,7 +301,7 @@ npm run evobuddy:eval-first-agent-reply-loop
 | O4.2 | Human can read it in room surface without Attach | OE7 + room export |
 | O4.3 | Kinds distinguishable from pure user-request | Timeline schema |
 
-### O5 — Review / Needs you — **PARTIAL**
+### O5 — Review / Needs you — **PASS**
 
 | # | Requirement | Proof |
 |---|---|---|
@@ -396,6 +396,7 @@ O-FINAL PASS — First agent + reply loop
 | Date | Note |
 |---|---|
 | 2026-07-23 | Initial O0–O5 / O-FINAL ladder: Raft first agent (Cindy-like) + message/task reply loop; honest NOT PASS on O1/O3/O4; separates reply from R-FINAL L1 plan-only contracts |
+| 2026-07-23 | **O-FINAL PASS (L1):** `ensureFirstCrewAgent`, `activatePrimaryOnRoomWork` / `sendRoomWorkMessage`, agent timeline kinds, Needs you from agent-question; harness `evobuddy:eval-first-agent-reply-loop` |
 
 ---
 

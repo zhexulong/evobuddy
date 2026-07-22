@@ -114,6 +114,7 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
             Some(KeyInput::Commands)
         }
         KeyCode::Char('n') if key.modifiers.is_empty() => Some(KeyInput::NewRoom),
+        KeyCode::Char('m') if key.modifiers.is_empty() => Some(KeyInput::ChooseSeat),
         KeyCode::Char('h') if key.modifiers.is_empty() => Some(KeyInput::Handoff),
         KeyCode::Char('?') => Some(KeyInput::Help),
         KeyCode::Char('a') if key.modifiers.is_empty() => Some(KeyInput::Actions),

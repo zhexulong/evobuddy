@@ -133,3 +133,59 @@ fn empty_home_teaches_n_without_handoff() {
     );
     assert!(!frame.to_lowercase().contains("handoff"), "{frame}");
 }
+
+#[test]
+fn multi_seat_present_seat_choice_lists_builder_and_reviewer() {
+    let mut app = load_app();
+    let room = app.selected_task_room().expect("room");
+    assert!(
+        room.participants.len() >= 2,
+        "fixture room should be multi-seat for D3"
+    );
+    let effect = app.present_seat_choice();
+    assert_eq!(effect, WorkbenchEffect::None);
+    assert_eq!(app.view_mode, ViewMode::StructuredQuestion);
+    let question = app.structured_question.as_ref().expect("seat question");
+    assert!(question.prompt.contains("Choose seat"));
+    assert!(question.choices.len() >= 2);
+    let labels = question
+        .choices
+        .iter()
+        .map(|c| c.label.to_lowercase())
+        .collect::<Vec<_>>();
+    assert!(
+        labels.iter().any(|l| l.contains("builder") || l.contains("reviewer")),
+        "seat labels should surface builder/reviewer: {labels:?}"
+    );
+}
+
+#[test]
+fn home_m_key_opens_seat_choice_for_multi_seat_room() {
+    let mut app = load_app();
+    assert!(
+        app.selected_task_room()
+            .map(|room| room.participants.len() >= 2)
+            .unwrap_or(false)
+    );
+    let effect = handle_key_event(&mut app, KeyInput::ChooseSeat);
+    assert_eq!(effect, WorkbenchEffect::None);
+    assert_eq!(app.view_mode, ViewMode::StructuredQuestion);
+}
+
+#[test]
+fn home_attention_labels_include_ready_working_needs_copy() {
+    let app = load_app();
+    let text = render_dashboard_snapshot(&app, 100, 24).expect("render home");
+    assert!(
+        text.contains("Needs you") || text.contains("need"),
+        "Home should show Needs-style copy: {text}"
+    );
+    assert!(
+        text.contains("Working") || text.contains("working"),
+        "Home should show Working copy: {text}"
+    );
+    assert!(
+        text.contains("Ready") || text.contains("ready"),
+        "Home should show Ready copy: {text}"
+    );
+}

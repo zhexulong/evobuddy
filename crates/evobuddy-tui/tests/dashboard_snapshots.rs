@@ -37,13 +37,12 @@ fn dashboard_snapshot_120x40_shows_agent_command_center() {
     let app = load_app("evobuddy-workbench-state-v1.json");
     let snapshot = render_dashboard_snapshot(&app, 120, 40).expect("render snapshot");
     for landmark in [
-        "need input",
+        "Needs you",
         "Work inbox",
         "Selected TaskRoom",
         "Work:",
         "Done when:",
         "New room",
-        "Search",
         "Help",
         "Attach",
     ] {
@@ -52,6 +51,10 @@ fn dashboard_snapshot_120x40_shows_agent_command_center() {
             "missing inbox landmark `{landmark}`:\n{snapshot}"
         );
     }
+    assert!(
+        snapshot.contains("Search") || snapshot.contains("Choose seat"),
+        "home bar should keep Search or multi-seat Choose seat:\n{snapshot}"
+    );
     assert!(!snapshot.contains("Read-only boundary"));
 }
 
@@ -59,8 +62,16 @@ fn dashboard_snapshot_120x40_shows_agent_command_center() {
 fn dashboard_snapshot_attention_strip_counts_taskrooms() {
     let app = load_app("evobuddy-workbench-state-v1.json");
     let snapshot = render_dashboard_snapshot(&app, 120, 40).expect("render snapshot");
-    assert!(snapshot.contains("need input") || snapshot.contains("Needs"));
-    assert!(snapshot.contains("Working") || snapshot.contains("Returned"));
+    assert!(
+        snapshot.contains("need input")
+            || snapshot.contains("Needs you")
+            || snapshot.contains("Needs")
+    );
+    assert!(
+        snapshot.contains("Working")
+            || snapshot.contains("Ready")
+            || snapshot.contains("Returned")
+    );
     assert!(snapshot.contains("Returned"));
 }
 

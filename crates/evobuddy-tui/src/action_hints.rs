@@ -55,12 +55,21 @@ pub fn short_primary_action_label(action: &ActionAvailability) -> String {
 }
 
 fn dashboard_hints(app: &WorkbenchApp) -> Vec<ActionHint> {
-    vec![
+    let multi_seat = app
+        .selected_task_room()
+        .map(|room| room.participants.len() > 1)
+        .unwrap_or(false);
+    let mut hints = vec![
         open_hint(app),
         hint("n", "New room", true, None),
-        hint("/", "Search", true, None),
-        hint("?", "Help", true, None),
-    ]
+    ];
+    if multi_seat {
+        hints.push(hint("m", "Choose seat", true, None));
+    } else {
+        hints.push(hint("/", "Search", true, None));
+    }
+    hints.push(hint("?", "Help", true, None));
+    hints
 }
 
 fn task_room_workspace_hints(app: &WorkbenchApp) -> Vec<ActionHint> {

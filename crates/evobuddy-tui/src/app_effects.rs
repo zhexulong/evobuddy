@@ -121,7 +121,9 @@ impl WorkbenchApp {
         let label = action.label.clone();
         let instance_id = room
             .participants
-            .first()
+            .iter()
+            .find(|participant| participant.role.eq_ignore_ascii_case("builder"))
+            .or_else(|| room.participants.first())
             .map(|participant| participant.id.clone())
             .unwrap_or_default();
         self.action_status = Some(format!("opening {label}…"));
@@ -129,6 +131,44 @@ impl WorkbenchApp {
             room_id,
             instance_id,
         }
+    }
+
+    pub fn present_seat_choice(&mut self) -> WorkbenchEffect {
+        let Some(room) = self.selected_task_room() else {
+            return WorkbenchEffect::None;
+        };
+        if room.participants.len() < 2 {
+            return self.open_native_runtime_effect();
+        }
+        let choices = room
+            .participants
+            .iter()
+            .map(|participant| StructuredQuestionChoice {
+                id: participant.id.clone(),
+                label: if participant.role.is_empty() {
+                    participant.display_name.clone()
+                } else {
+                    format!("{} · {}", participant.display_name, participant.role)
+                },
+            })
+            .collect::<Vec<_>>();
+        let count = choices.len();
+        self.structured_question = Some(StructuredQuestion {
+            prompt: format!(
+                "Choose seat ({} participant{})",
+                count,
+                if count == 1 { "" } else { "s" }
+            ),
+            choices,
+            selected_choice: 0,
+            allows_free_text: false,
+            free_text: String::new(),
+            destination_label: room.title.clone(),
+            effect_label: "Open selected seat".to_string(),
+        });
+        self.push_view(ViewMode::StructuredQuestion);
+        self.action_status = Some("choose seat…".to_string());
+        WorkbenchEffect::None
     }
     pub fn visible_commands(&self) -> Vec<CommandEntry> {
         let query = self.command_query.trim().to_lowercase();

@@ -54,11 +54,17 @@ fn render_header(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
 fn render_attention_strip(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
     let t = theme();
     let (needs, working, returned) = attention_counts(app);
+    let ready = app
+        .state
+        .task_rooms
+        .iter()
+        .filter(|room| matches!(room.status, crate::model::TaskRoomStatus::Queued))
+        .count();
     let line = if app.search_query.trim().is_empty() {
         Line::from(vec![
             Span::styled(" ● ", Style::default().fg(t.accent).bg(t.bg)),
             Span::styled(
-                format!("{needs} need input"),
+                format!("{needs} Needs you"),
                 Style::default()
                     .fg(t.accent)
                     .bg(t.bg)
@@ -66,8 +72,13 @@ fn render_attention_strip(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect)
             ),
             Span::styled("  ·  ", muted_style().bg(t.bg)),
             Span::styled(
-                format!("{working} working"),
+                format!("{working} Working"),
                 Style::default().fg(t.warning).bg(t.bg),
+            ),
+            Span::styled("  ·  ", muted_style().bg(t.bg)),
+            Span::styled(
+                format!("{ready} Ready"),
+                Style::default().fg(t.success).bg(t.bg),
             ),
             Span::styled("  ·  ", muted_style().bg(t.bg)),
             Span::styled(
@@ -167,10 +178,15 @@ fn render_context_line(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
         .map(|s| format!("{} {}", s.runtime, runtime_status_label(&s.status)))
         .collect::<Vec<_>>()
         .join(" · ");
-    let text = if total == 0 {
+    let team = team_roster_pills(app);
+    let text = if total == 0 && team.is_empty() {
         " No runtime probes yet ".to_string()
-    } else {
+    } else if team.is_empty() {
         format!(" {ready}/{total} ready · {runtimes} ")
+    } else if total == 0 {
+        format!(" Team {team} ")
+    } else {
+        format!(" Team {team} · {ready}/{total} ready · {runtimes} ")
     };
     frame.render_widget(
         Paragraph::new(Span::styled(
@@ -179,6 +195,24 @@ fn render_context_line(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
         )),
         area,
     );
+}
+
+fn team_roster_pills(app: &WorkbenchApp) -> String {
+    let Some(room) = app.selected_task_room() else {
+        return String::new();
+    };
+    room.participants
+        .iter()
+        .take(4)
+        .map(|participant| {
+            if participant.role.is_empty() {
+                participant.display_name.clone()
+            } else {
+                format!("{}({})", participant.display_name, participant.role)
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" · ")
 }
 
 fn render_footer(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {

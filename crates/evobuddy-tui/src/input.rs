@@ -16,6 +16,7 @@ pub enum KeyInput {
     Help,
     Actions,
     NewRoom,
+    ChooseSeat,
     Handoff,
     NextField,
     RuntimeSetup,
@@ -138,6 +139,16 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
         KeyInput::NewRoom => {
             app.open_task_room_form();
             WorkbenchEffect::None
+        }
+        KeyInput::ChooseSeat => {
+            if matches!(
+                app.view_mode,
+                ViewMode::Dashboard | ViewMode::TaskRoomWorkspace
+            ) {
+                app.present_seat_choice()
+            } else {
+                WorkbenchEffect::None
+            }
         }
         KeyInput::Handoff => {
             if app.view_mode == ViewMode::TaskRoomWorkspace {

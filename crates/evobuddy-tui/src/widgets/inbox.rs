@@ -82,7 +82,13 @@ pub fn render_selected_task_room_detail(
     } else {
         room.participants
             .iter()
-            .map(|p| p.display_name.as_str())
+            .map(|p| {
+                if p.role.is_empty() {
+                    p.display_name.clone()
+                } else {
+                    format!("{} ({})", p.display_name, p.role)
+                }
+            })
             .collect::<Vec<_>>()
             .join(" · ")
     };

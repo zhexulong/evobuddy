@@ -14,7 +14,7 @@ node scripts/evobuddy/evobuddy.mjs workbench --project . --view overview
 node scripts/evobuddy/evobuddy.mjs buddies invoke skill-designer --task "Review this plan." --project . --json
 ```
 
-`evobuddy buddies invoke` is runtime-callable adapter glue. It is useful for parent agents and evals, but direct CLI execution alone is not product proof.
+`evobuddy buddies invoke` is adapter fallback glue. The primary product path is native runtime Buddy routing through `setup` → `buddies sync` → start a task in your runtime → autonomous agent invocation.
 
 ## Product Preset Authority
 
@@ -38,16 +38,6 @@ Evolution is proposal-first. `evolution-buddy` owns proposal reasoning, host cod
 
 The repo contains strict gates for adapter-observed product proof, native-spawn artifact ingestion, autonomous-choice evidence, and evolution-loop materialization. Fresh live runtime success still depends on the host runtime emitting the required native-spawn or autonomous-routing evidence; retained fixtures must not be relabeled as fresh live product success.
 
-## EvoBuddy TUI real use
-
-```bash
-cargo run -p evobuddy-tui --bin evobuddy-tui -- --project .
-```
-
-Daily loop: `n` create room → Enter open/attach → work in native TUI → `Ctrl+B d` detach → continue from same room.
-
-See `docs/evobuddy-tui-real-use-runbook.md` for Gate A/B proof ceilings and runtime prerequisites.
-
 ## Main Commands
 
 - `evobuddy setup --project <path> --runtime opencode`
@@ -56,9 +46,22 @@ See `docs/evobuddy-tui-real-use-runbook.md` for Gate A/B proof ceilings and runt
 - `evobuddy buddies invoke <buddyName> --task <text> --project <path>`
 - `evobuddy updates recent --project <path> --json --limit 10`
 - `evobuddy workbench --project <path>`
+- `evobuddy taskroom create --project <path> --room <id> --title <text> --objective <text>`
+- `evobuddy taskroom session reserve|plan-open|commit|inspect|reconcile|stop …`
+- `evobuddy taskroom archive --project <path> --room <id>`
+- `evobuddy taskroom refresh --project <path> --room <id>`
 - `npm run evobuddy:run-product-release-readiness-eval -- --project <project> --out <out> --require-runtimes opencode,claude,codex`
 - `npm run evobuddy:eval-runtime-natural-use-v0 -- --product-root <root> --out <out>`
 - `npm run evobuddy:eval-evolution-loop-v0 -- --scenario skill-designer-trigger-feedback --out <out>`
+
+## TaskRoom-first native TUI
+
+Interactive workbench navigation is **TaskRoom-first**: open attention items, then attach to each runtime's native TUI via **tmux**. Detach with **`Ctrl+B d`** (agent keeps running). See operator docs:
+
+- `docs/evobuddy-native-tui-runbook.md` — install/probe, create/open/attach/detach/stop/archive, capability matrix
+- `docs/evobuddy-native-session-recovery-runbook.md` — stale/orphan/conflict recovery
+
+Build the Rust TUI binary when needed: `npm run evobuddy:tui-build`.
 
 ## Native Buddy MVP release flow
 
@@ -83,5 +86,10 @@ Adapter fallback is explicit boundary only: it helps when native runtime routing
 
 - `docs/contracts/evobuddy-runtime-natural-use-contract.md`
 - `docs/contracts/evobuddy-evolution-loop-contract.md`
+- `docs/contracts/evobuddy-workbench-tui-contract.md`
+- `docs/contracts/evobuddy-taskroom-proof-contract.md`
+- `docs/contracts/evobuddy-native-session-contract.md`
+- `docs/evobuddy-native-tui-runbook.md`
+- `docs/evobuddy-native-session-recovery-runbook.md`
 - `docs/codex-native-spawn-acceptance-runbook.md`
 - `docs/workbuddy-style-tui-workbench-v0.md`

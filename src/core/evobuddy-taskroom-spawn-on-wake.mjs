@@ -10,10 +10,6 @@ function requireString(value, name) {
 
 const LIVE_LIFECYCLES = new Set(['creating', 'attachable', 'attached', 'detached']);
 
-/**
- * Spawn reviewer seat worker on wake when no live native session exists for the target.
- * Density: no pre-warm — only on wake.
- */
 export async function spawnSeatOnWake(projectRoot, input = {}, deps = {}) {
   requireString(projectRoot, 'projectRoot');
   const roomId = requireString(input.roomId, 'roomId');

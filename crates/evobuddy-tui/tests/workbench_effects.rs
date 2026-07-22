@@ -135,7 +135,7 @@ fn stop_and_archive_require_confirmation_and_are_not_detach() {
 #[test]
 fn handoff_form_requests_confirmation_before_create_effect() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
-    app.push_view(ViewMode::TaskRoomWorkspace);
+    handle_key_event(&mut app, KeyInput::Enter);
     handle_key_event(&mut app, KeyInput::Handoff);
     handle_key_event(&mut app, KeyInput::Char('B'));
     handle_key_event(&mut app, KeyInput::NextField);

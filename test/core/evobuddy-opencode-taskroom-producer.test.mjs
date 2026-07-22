@@ -350,12 +350,9 @@ test('blocks release proof when required TeamAgent sessions are missing', async 
   assert.match(result.blockedReasons.join('\n'), /missing required TeamAgent session\(s\): reviewer/i);
 });
 
-test('prefers a complete TeamAgent parent cohort over a newer incomplete parent', async () => {
-  const out = mkdtempSync(join(tmpdir(), 'evobuddy-realtime-complete-cohort-'));
+test('prefers the freshest parent cohort instead of reusing stale TeamAgent sessions from an older parent', async () => {
+  const out = mkdtempSync(join(tmpdir(), 'evobuddy-realtime-fresh-parent-'));
   try {
-    // Older parent has builder+reviewer+evolution-agent; newer parent has only reviewer.
-    // Prefer the complete cohort for product-observed proof instead of blocking on the incomplete fresher root.
-    // Old parent natural input intentionally names mechanism terms, so the proof remains blocked on natural-input controls.
     const result = await produceOpenCodeRealtimeForkHandoffTaskRoomProof({
       projectRoot: REPO_ROOT,
       out,
@@ -363,60 +360,10 @@ test('prefers a complete TeamAgent parent cohort over a newer incomplete parent'
     });
 
     assert.equal(result.status, 'blocked');
-    assert.match(
-      result.blockedReasons.join('\n'),
-      /natural input names mechanism terms|missing required TeamAgent session\(s\)/i,
-    );
-    // Must not claim the incomplete newer parent won and only missed builder/evolution-agent
-    // without first considering the complete older cohort path.
-    if (/missing required TeamAgent session\(s\): builder, evolution-agent/i.test(result.blockedReasons.join('\n'))) {
-      assert.fail('selected incomplete newer parent instead of complete older TeamAgent cohort');
-    }
+    assert.match(result.blockedReasons.join('\n'), /missing required TeamAgent session\(s\): builder, evolution-agent/i);
   } finally {
     rmSync(out, { recursive: true, force: true });
   }
-});
-
-test('blocks when every parent cohort is missing required TeamAgent sessions', async () => {
-  const result = await produceOpenCodeRealtimeForkHandoffTaskRoomProof({
-    projectRoot: REPO_ROOT,
-    out: '/tmp/unused-realtime-fork-handoff-all-incomplete',
-    exportSessionCorpus: async () => ({
-      corpus: {
-        sessions: [
-          {
-            sessionId: 'ses-parent-new',
-            observedAgentName: 'build',
-            isSubagent: false,
-            parentSessionId: null,
-            createdAt: '2026-07-18T00:00:00.000Z',
-            updatedAt: '2026-07-18T00:00:00.000Z',
-            promptLineage: { kind: 'root-user-prompt', parentSessionId: null, receivedPromptText: 'Clarify the product path without naming mechanisms.' },
-            messages: [
-              { role: 'user', messageId: 'msg-parent-new-user', text: 'Clarify the product path without naming mechanisms.' },
-              { role: 'assistant', messageId: 'msg-parent-new-final', text: 'Partial findings returned' },
-            ],
-          },
-          {
-            sessionId: 'ses-reviewer-new',
-            observedAgentName: 'reviewer',
-            isSubagent: true,
-            parentSessionId: 'ses-parent-new',
-            createdAt: '2026-07-18T00:02:00.000Z',
-            updatedAt: '2026-07-18T00:02:00.000Z',
-            messages: [
-              { role: 'assistant', messageId: 'msg-reviewer-new-1', text: 'Findings round 1' },
-              { role: 'assistant', messageId: 'msg-reviewer-new-2', text: 'Findings round 2' },
-            ],
-          },
-        ],
-      },
-      manifest: { source: { dbDigest: 'sha256:db' } },
-    }),
-  });
-
-  assert.equal(result.status, 'blocked');
-  assert.match(result.blockedReasons.join('\n'), /missing required TeamAgent session\(s\): builder, evolution-agent/i);
 });
 
 test('discovers the freshest parent even when it has no required TeamAgent children yet', async () => {

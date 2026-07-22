@@ -86,24 +86,17 @@ function extractSubagentInvocation(record, sessionId) {
       toolUseId: cleanString(invocation.toolUseId),
   };
   }
-  // Claude native subagents may be invoked via Agent or Task tools.
-  // Task is the current product path (subagent_type: builder|reviewer|sisyphus-junior|...).
-  const agentToolUse = toolUseItems(record).find((item) => {
-    const name = cleanString(item.name);
-    return (name === 'Agent' || name === 'Task')
-      && item.input && typeof item.input === 'object' && !Array.isArray(item.input);
-  });
+  const agentToolUse = toolUseItems(record).find((item) => cleanString(item.name) === 'Agent' && item.input && typeof item.input === 'object' && !Array.isArray(item.input));
   if (!agentToolUse) return undefined;
-  const input = agentToolUse.input;
   return {
     parentTurnId: turnIdFromRecord(record),
-    childSessionId: cleanString(input.agentId) ?? cleanString(input.childSessionId),
+    childSessionId: undefined,
     childSessionRef: undefined,
-    memberName: cleanString(input.subagent_type) ?? cleanString(input.memberName) ?? cleanString(input.agentName),
-    promptText: cleanString(input.prompt),
-    promptDigest: cleanString(input.prompt) ? sha256Text(input.prompt) : undefined,
-    baselineDefinitionRef: cleanString(input.baselineDefinitionRef) ?? cleanString(input.agentFile),
-    baselineDigest: cleanString(input.baselineDigest),
+    memberName: cleanString(agentToolUse.input.subagent_type) ?? cleanString(agentToolUse.input.memberName) ?? cleanString(agentToolUse.input.agentName),
+    promptText: cleanString(agentToolUse.input.prompt),
+    promptDigest: cleanString(agentToolUse.input.prompt) ? sha256Text(agentToolUse.input.prompt) : undefined,
+    baselineDefinitionRef: cleanString(agentToolUse.input.baselineDefinitionRef) ?? cleanString(agentToolUse.input.agentFile),
+    baselineDigest: cleanString(agentToolUse.input.baselineDigest),
     evidenceRef: buildRecordRef(sessionId, cleanString(record.value?.uuid) ?? turnIdFromRecord(record)),
     toolUseId: cleanString(agentToolUse.id),
   };
@@ -126,20 +119,11 @@ function extractResultReturn(record, sessionId) {
   const toolResult = toolResultItems(record)[0];
   if (!toolResult) return undefined;
   const resultText = textFromContent(toolResult.content ?? record.value?.message?.content ?? record.value?.content ?? record.value?.text);
-  const toolUseResult = record.value?.toolUseResult;
-  // Task tool results carry agentId/agentType; Agent tool results may use similar fields.
-  const childSessionId = cleanString(toolUseResult?.agentId)
-    ?? cleanString(toolUseResult?.childSessionId)
-    ?? cleanString(toolUseResult?.agent_id);
-  const memberName = cleanString(toolUseResult?.agentType)
-    ?? cleanString(toolUseResult?.subagent_type)
-    ?? cleanString(toolUseResult?.memberName)
-    ?? cleanString(toolUseResult?.agentName);
   return {
     returnedToParent: true,
-    childSessionId,
-    childSessionRef: buildSessionRef(childSessionId),
-    memberName,
+    childSessionId: cleanString(record.value?.toolUseResult?.agentId),
+    childSessionRef: buildSessionRef(cleanString(record.value?.toolUseResult?.agentId)),
+    memberName: cleanString(record.value?.toolUseResult?.agentType),
     resultText,
     resultRef: buildRecordRef(sessionId, cleanString(record.value?.uuid) ?? turnIdFromRecord(record)),
     resultDigest: resultText ? sha256Text(resultText) : sha256Text(record.line),

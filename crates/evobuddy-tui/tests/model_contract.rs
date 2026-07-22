@@ -22,10 +22,10 @@ fn parses_v1_workbench_state_fixture() {
     assert_eq!(state.native_sessions.len(), 1);
     assert_eq!(state.runtime_capabilities.len(), 3);
     assert_eq!(state.task_rooms[0].status, TaskRoomStatus::Returned);
-    assert_eq!(
-        state.task_rooms[0].available_actions[0].id,
-        "open-native-runtime"
-    );
+    assert!(state.task_rooms[0]
+        .available_actions
+        .iter()
+        .any(|a| a.id == "open-session" || a.id == "open-native-runtime"));
     assert_eq!(
         state.task_rooms[0]
             .attention

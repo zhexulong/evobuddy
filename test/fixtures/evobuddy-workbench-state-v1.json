@@ -4,70 +4,14 @@
   "generatedAt": "2026-07-19T00:00:00.000Z",
   "actors": {
     "teamAgents": [
-      {
-        "id": "builder",
-        "displayName": "Builder",
-        "status": "Returned",
-        "role": "Builds changes",
-        "taskRoomIds": [
-          "taskroom:opencode:1",
-          "taskroom:claude:2"
-        ]
-      },
-      {
-        "id": "reviewer",
-        "displayName": "Reviewer",
-        "status": "Returned",
-        "role": "Reviews changes",
-        "taskRoomIds": [
-          "taskroom:opencode:1",
-          "taskroom:claude:2"
-        ]
-      },
-      {
-        "id": "evolution-agent",
-        "displayName": "Evolution Agent",
-        "status": "Available",
-        "role": "Receives handoffs",
-        "taskRoomIds": [
-          "taskroom:opencode:1"
-        ]
-      }
+      { "id": "builder", "displayName": "Builder", "status": "Returned", "role": "Builds changes", "taskRoomIds": ["taskroom:opencode:1", "taskroom:claude:2"] },
+      { "id": "reviewer", "displayName": "Reviewer", "status": "Returned", "role": "Reviews changes", "taskRoomIds": ["taskroom:opencode:1", "taskroom:claude:2"] },
+      { "id": "evolution-agent", "displayName": "Evolution Agent", "status": "Available", "role": "Receives handoffs", "taskRoomIds": ["taskroom:opencode:1"] }
     ],
     "focusedBuddies": [
-      {
-        "id": "explore",
-        "displayName": "Explore",
-        "status": "Available",
-        "routingSummary": "Codebase exploration",
-        "runtimeSurfaces": [
-          "opencode",
-          "claude",
-          "codex"
-        ]
-      },
-      {
-        "id": "librarian",
-        "displayName": "Librarian",
-        "status": "Available",
-        "routingSummary": "Reference research",
-        "runtimeSurfaces": [
-          "opencode",
-          "claude",
-          "codex"
-        ]
-      },
-      {
-        "id": "sisyphus-junior",
-        "displayName": "Sisyphus Junior",
-        "status": "Available",
-        "routingSummary": "Bounded execution",
-        "runtimeSurfaces": [
-          "opencode",
-          "claude",
-          "codex"
-        ]
-      }
+      { "id": "explore", "displayName": "Explore", "status": "Available", "routingSummary": "Codebase exploration", "runtimeSurfaces": ["opencode", "claude", "codex"] },
+      { "id": "librarian", "displayName": "Librarian", "status": "Available", "routingSummary": "Reference research", "runtimeSurfaces": ["opencode", "claude", "codex"] },
+      { "id": "sisyphus-junior", "displayName": "Sisyphus Junior", "status": "Available", "routingSummary": "Bounded execution", "runtimeSurfaces": ["opencode", "claude", "codex"] }
     ]
   },
   "taskRooms": [
@@ -79,57 +23,19 @@
       "objective": "Complete the retained OpenCode review loop and return findings.",
       "acceptanceCriteria": "Reviewer continuity passes, evolution handoff passes, and result return is recorded.",
       "participants": [
-        {
-          "id": "builder",
-          "displayName": "Builder",
-          "kind": "team-agent",
-          "status": "Returned",
-          "role": "builder",
-          "runtime": "opencode"
-        },
-        {
-          "id": "reviewer",
-          "displayName": "Reviewer",
-          "kind": "team-agent",
-          "status": "Returned",
-          "role": "reviewer",
-          "runtime": "opencode"
-        }
+        { "id": "builder", "displayName": "Builder", "kind": "team-agent", "status": "Returned" },
+        { "id": "reviewer", "displayName": "Reviewer", "kind": "team-agent", "status": "Returned" }
       ],
       "rounds": [
-        {
-          "id": "round:1",
-          "builderSummary": "Work produced",
-          "reviewerSummary": "Findings returned",
-          "priorReviewLinked": false
-        },
-        {
-          "id": "round:2",
-          "builderSummary": "Fixes returned",
-          "reviewerSummary": "Continuity verified",
-          "priorReviewLinked": true
-        }
+        { "id": "round:1", "builderSummary": "Work produced", "reviewerSummary": "Findings returned", "priorReviewLinked": false },
+        { "id": "round:2", "builderSummary": "Fixes returned", "reviewerSummary": "Continuity verified", "priorReviewLinked": true }
       ],
       "handoffs": [
-        {
-          "from": "builder",
-          "to": "reviewer",
-          "summary": "Patch ready"
-        },
-        {
-          "from": "reviewer",
-          "to": "builder",
-          "summary": "Findings returned"
-        }
+        { "from": "builder", "to": "reviewer", "summary": "Patch ready" },
+        { "from": "reviewer", "to": "builder", "summary": "Findings returned" }
       ],
-      "reviewerContinuity": {
-        "status": "pass",
-        "summary": "Prior review linked"
-      },
-      "evolutionHandoff": {
-        "status": "pass",
-        "summary": "Evolution agent received loop"
-      },
+      "reviewerContinuity": { "status": "pass", "summary": "Prior review linked" },
+      "evolutionHandoff": { "status": "pass", "summary": "Evolution agent received loop" },
       "attention": {
         "state": "Returned",
         "sourceKind": "runtime-exporter",
@@ -139,18 +45,17 @@
         "staleAfter": "2026-07-20T00:00:00.000Z"
       },
       "availableActions": [
-        {
-          "id": "open-native-runtime",
-          "label": "Open native runtime",
-          "enabled": true,
-          "disabledReason": null
-        }
+        { "id": "open-session", "label": "Open session", "enabled": true, "disabledReason": null },
+        { "id": "resume-conversation", "label": "Resume conversation", "enabled": false, "disabledReason": "Exact resume requires validated provider conversation identity." },
+        { "id": "heuristic-resume", "label": "Resume latest candidate", "enabled": false, "disabledReason": "Heuristic resume candidates unavailable." },
+        { "id": "continue-with-context", "label": "Continue with TaskRoom context", "enabled": true, "disabledReason": null },
+        { "id": "start-new-session", "label": "Start new session", "enabled": true, "disabledReason": null },
+        { "id": "view-evidence", "label": "View evidence", "enabled": true, "disabledReason": null },
+        { "id": "retry", "label": "Retry", "enabled": false, "disabledReason": "No recoverable failure present." },
+        { "id": "open-native-runtime", "label": "Open native runtime", "enabled": true, "disabledReason": null }
       ],
       "returnedTo": "parent-agent",
-      "artifactsSummary": [
-        "review findings",
-        "fix summary"
-      ],
+      "artifactsSummary": ["review findings", "fix summary"],
       "summary": "Review loop completed"
     },
     {
@@ -161,57 +66,19 @@
       "objective": "Complete the retained Claude review loop and return feedback.",
       "acceptanceCriteria": "Reviewer continuity passes, evolution handoff passes, and result return is recorded.",
       "participants": [
-        {
-          "id": "builder",
-          "displayName": "Builder",
-          "kind": "team-agent",
-          "status": "Returned",
-          "role": "builder",
-          "runtime": "claude"
-        },
-        {
-          "id": "reviewer",
-          "displayName": "Reviewer",
-          "kind": "team-agent",
-          "status": "Returned",
-          "role": "reviewer",
-          "runtime": "claude"
-        }
+        { "id": "builder", "displayName": "Builder", "kind": "team-agent", "status": "Returned" },
+        { "id": "reviewer", "displayName": "Reviewer", "kind": "team-agent", "status": "Returned" }
       ],
       "rounds": [
-        {
-          "id": "round:1",
-          "builderSummary": "Draft ready",
-          "reviewerSummary": "Feedback returned",
-          "priorReviewLinked": false
-        },
-        {
-          "id": "round:2",
-          "builderSummary": "Revision ready",
-          "reviewerSummary": "Accepted",
-          "priorReviewLinked": true
-        }
+        { "id": "round:1", "builderSummary": "Draft ready", "reviewerSummary": "Feedback returned", "priorReviewLinked": false },
+        { "id": "round:2", "builderSummary": "Revision ready", "reviewerSummary": "Accepted", "priorReviewLinked": true }
       ],
       "handoffs": [
-        {
-          "from": "builder",
-          "to": "reviewer",
-          "summary": "Review request"
-        },
-        {
-          "from": "reviewer",
-          "to": "builder",
-          "summary": "Review feedback"
-        }
+        { "from": "builder", "to": "reviewer", "summary": "Review request" },
+        { "from": "reviewer", "to": "builder", "summary": "Review feedback" }
       ],
-      "reviewerContinuity": {
-        "status": "pass",
-        "summary": "Prior review linked"
-      },
-      "evolutionHandoff": {
-        "status": "pass",
-        "summary": "Evolution agent received loop"
-      },
+      "reviewerContinuity": { "status": "pass", "summary": "Prior review linked" },
+      "evolutionHandoff": { "status": "pass", "summary": "Evolution agent received loop" },
       "attention": {
         "state": "Returned",
         "sourceKind": "runtime-exporter",
@@ -221,18 +88,10 @@
         "staleAfter": "2026-07-20T00:00:00.000Z"
       },
       "availableActions": [
-        {
-          "id": "open-native-runtime",
-          "label": "Open native runtime",
-          "enabled": true,
-          "disabledReason": null
-        }
+        { "id": "open-native-runtime", "label": "Open native runtime", "enabled": true, "disabledReason": null }
       ],
       "returnedTo": "parent-agent",
-      "artifactsSummary": [
-        "review findings",
-        "acceptance summary"
-      ],
+      "artifactsSummary": ["review findings", "acceptance summary"],
       "summary": "Review loop completed"
     }
   ],
@@ -279,33 +138,12 @@
     }
   ],
   "runtimeSetup": [
-    {
-      "runtime": "OpenCode",
-      "teamAgent": "TeamAgent TaskRoom observed",
-      "focusedBuddy": "Focused Buddy native observed",
-      "status": "Ready"
-    },
-    {
-      "runtime": "Claude",
-      "teamAgent": "TeamAgent TaskRoom observed",
-      "focusedBuddy": "Focused Buddy native observed",
-      "status": "Ready"
-    },
-    {
-      "runtime": "Codex",
-      "teamAgent": "TeamAgent surface current; TeamAgent TaskRoom not yet observed",
-      "focusedBuddy": "Focused Buddy native observed",
-      "status": "Partial"
-    }
+    { "runtime": "OpenCode", "teamAgent": "TeamAgent TaskRoom observed", "focusedBuddy": "Focused Buddy native observed", "status": "Ready" },
+    { "runtime": "Claude", "teamAgent": "TeamAgent TaskRoom observed", "focusedBuddy": "Focused Buddy native observed", "status": "Ready" },
+    { "runtime": "Codex", "teamAgent": "TeamAgent surface current; TeamAgent TaskRoom not yet observed", "focusedBuddy": "Focused Buddy native observed", "status": "Partial" }
   ],
   "updates": [
-    {
-      "id": "update:1",
-      "text": "Updated reviewer return contract candidate.",
-      "kind": "evolution",
-      "risk": "low",
-      "targetRefs": []
-    }
+    { "id": "update:1", "text": "Updated reviewer return contract candidate.", "kind": "evolution", "risk": "low", "targetRefs": [] }
   ],
   "diagnostics": {
     "claimCeiling": "TUI state visualization; not runtime proof",

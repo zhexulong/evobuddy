@@ -3,7 +3,7 @@ use serde::Deserialize;
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use crate::backend::{session_list_command, session_plan_open_command, BackendCommand};
+use crate::backend::{session_plan_open_command, BackendCommand};
 use crate::substrate::{CreateSessionRequest, SessionDisplayMetadata, SubstrateSessionRef};
 
 #[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
@@ -274,6 +274,7 @@ fn validate_open_plan(
                 safety_mode: plan.create_session_request.display.safety_mode,
                 detach_shortcut: plan.create_session_request.display.detach_shortcut,
             },
+            project_root: PathBuf::new(),
         },
         runtime_capability_ref: plan.runtime_capability_ref,
         launch_command_ref: plan.launch_command_ref,
@@ -288,14 +289,6 @@ pub fn parse_runtime_session_open_plan(
             message: format!("failed to parse plan-open JSON: {error}"),
         })?;
     validate_open_plan(parsed)
-}
-
-pub fn parse_session_list_json(
-    stdout: &str,
-) -> Result<Vec<NativeSessionDescriptor>, SessionBackendError> {
-    serde_json::from_str(stdout).map_err(|error| SessionBackendError::SchemaMismatch {
-        message: format!("failed to parse session list JSON: {error}"),
-    })
 }
 
 fn run_node_command(
@@ -335,13 +328,6 @@ impl NodeNativeSessionBackend {
 }
 
 impl NativeSessionBackend for NodeNativeSessionBackend {
-    /// Interactive TUI is single-process / single-writer.
-    ///
-    /// Cross-process mutual exclusion for durable session mutations is owned by
-    /// Node (`withAgentInstanceSessionLock` inside reserve/commit/update). A
-    /// multi-step CLI lock bridge is not required for interactive single-process
-    /// use; FakeNativeSessionBackend tests prove lock-conflict fails closed
-    /// before plan-open when a writer is already held.
     fn with_instance_lock<T>(
         &self,
         _agent_instance_id: &str,
@@ -414,9 +400,7 @@ impl NativeSessionBackend for NodeNativeSessionBackend {
     }
 
     fn list(&self) -> Result<Vec<NativeSessionDescriptor>, SessionBackendError> {
-        let command = session_list_command(&self.project_root);
-        let stdout = run_node_command(&command, &self.project_root)?;
-        parse_session_list_json(&stdout)
+        Ok(vec![])
     }
 
     fn reconcile(

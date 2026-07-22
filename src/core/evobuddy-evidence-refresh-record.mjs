@@ -88,7 +88,15 @@ function normalizeObservation(input) {
   if (normalized.sourceKind === 'terminal-lifecycle' && /returned|completed/i.test(normalized.state)) {
     throw new Error('terminal output or idleness is not completion proof');
   }
+  // Pattern hints are provisional: they cannot claim return or completion.
+  if (normalized.sourceKind === 'bounded-pattern' && /returned|completed/i.test(normalized.state)) {
+    throw new Error('bounded pattern hints cannot prove return or completion');
+  }
   return normalized;
+}
+
+export function observationSourceKinds() {
+  return [...OBSERVATION_SOURCES];
 }
 
 function normalizeDescriptorRefresh(input) {

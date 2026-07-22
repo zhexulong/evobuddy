@@ -87,10 +87,6 @@ pub struct Participant {
     pub display_name: String,
     pub kind: String,
     pub status: ActorStatus,
-    #[serde(default)]
-    pub role: String,
-    #[serde(default)]
-    pub runtime: String,
     #[serde(default, rename = "nativeSessionDescriptorId")]
     pub native_session_descriptor_id: Option<String>,
 }
@@ -109,7 +105,7 @@ pub struct AttentionSource {
     pub stale_after: String,
 }
 
-#[derive(Debug, Clone, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Deserialize)]
 pub struct ActionAvailability {
     pub id: String,
     pub label: String,

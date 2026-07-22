@@ -50,6 +50,36 @@ fn team_member_workspace_snapshot_shows_structured_team_room_and_member_actions(
 }
 
 #[test]
+fn trace_drawer_snapshot_shows_recovery_and_proof_taxonomy_only_in_trace() {
+    let mut app = load_app("evobuddy-workbench-state-v1.json");
+    app.view_mode = ViewMode::TraceDrawer;
+    let snapshot = render_current_snapshot(&app, 120, 40).expect("render trace");
+    for landmark in [
+        "Trace",
+        "Claim ceiling",
+        "Recovery diagnostics",
+        "Proof taxonomy (trace only)",
+        "exact-resume",
+        "heuristic-resume",
+        "continue-with-context",
+        "fresh-session",
+    ] {
+        assert!(
+            snapshot.contains(landmark),
+            "missing trace landmark `{landmark}` in snapshot:\n{snapshot}"
+        );
+    }
+    assert!(
+        !snapshot
+            .lines()
+            .next()
+            .unwrap_or("")
+            .contains("PRODUCT PASS"),
+        "proof taxonomy must not appear as first-level product pass"
+    );
+}
+
+#[test]
 fn focused_buddy_workspace_snapshot_shows_delegate_boundary_and_buddy_actions() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     app.focus = FocusPane::TeamBuddies;
@@ -81,7 +111,7 @@ fn focused_buddy_workspace_snapshot_shows_delegate_boundary_and_buddy_actions() 
 #[test]
 fn task_room_workspace_snapshot_shows_collaborative_room_fields() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
-    app.push_view(ViewMode::TaskRoomWorkspace);
+    handle_key_event(&mut app, KeyInput::Enter);
 
     let snapshot =
         render_current_snapshot(&app, 120, 40).expect("render taskroom workspace snapshot");
@@ -111,7 +141,7 @@ fn command_palette_snapshot_shows_contextual_commands() {
     for landmark in [
         "Command Palette",
         "open selected agent",
-        "attach selected task room",
+        "open selected task room",
         "show handoffs",
         "filter blocked",
         "show runtime setup",
@@ -149,7 +179,7 @@ fn trace_drawer_snapshot_keeps_diagnostics_behind_drawer() {
 }
 
 #[test]
-fn taskroom_form_snapshot_shows_fields_and_submit_hints() {
+fn taskroom_form_snapshot_names_destination_fields_and_effect() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     handle_key_event(&mut app, KeyInput::NewRoom);
     handle_key_event(&mut app, KeyInput::Char('m'));
@@ -158,38 +188,38 @@ fn taskroom_form_snapshot_shows_fields_and_submit_hints() {
 
     let snapshot = render_current_snapshot(&app, 120, 40).expect("render task room form snapshot");
     for landmark in [
-        "New work",
-        "compose",
+        "TaskRoom Form",
+        "Destination: Create TaskRoom",
+        "Effect: durable TaskRoom draft",
+        "Objective",
+        "Acceptance criteria",
+        "Workspace",
+        "Actor",
+        "Runtime",
+        "Safety mode",
         "map",
-        "Enter create",
+        "Enter submit",
         "Esc cancel",
-        "Ctrl+C quit",
     ] {
         assert!(
             snapshot.contains(landmark),
-            "missing new-work composer landmark `{landmark}` in snapshot:\n{snapshot}"
+            "missing task composer landmark `{landmark}` in snapshot:\n{snapshot}"
         );
     }
-    assert!(
-        !snapshot.contains("What should we do?"),
-        "composer must not use labeled form fields:\n{snapshot}"
-    );
-    assert!(
-        !snapshot.contains("Runtime (advanced)"),
-        "composer must not show config fields:\n{snapshot}"
-    );
 }
 
 #[test]
-fn handoff_form_snapshot_shows_fields_and_submit_hints() {
+fn handoff_form_snapshot_names_destination_fields_and_effect() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
-    app.push_view(ViewMode::TaskRoomWorkspace);
+    handle_key_event(&mut app, KeyInput::Enter);
     handle_key_event(&mut app, KeyInput::Handoff);
     handle_key_event(&mut app, KeyInput::Char('b'));
 
     let snapshot = render_current_snapshot(&app, 120, 40).expect("render handoff form snapshot");
     for landmark in [
         "Handoff Form",
+        "Destination: durable HandoffRecord",
+        "Effect: record handoff only",
         "Sender",
         "Receiver",
         "Body",
@@ -197,18 +227,12 @@ fn handoff_form_snapshot_shows_fields_and_submit_hints() {
         "Expected next action",
         "Return destination",
         "b",
-        "Enter submit",
-        "Esc cancel",
     ] {
         assert!(
             snapshot.contains(landmark),
             "missing handoff form landmark `{landmark}` in snapshot:\n{snapshot}"
         );
     }
-    assert!(
-        !snapshot.contains("Destination: durable"),
-        "handoff form_kit does not show Destination chrome:\n{snapshot}"
-    );
 }
 
 #[test]

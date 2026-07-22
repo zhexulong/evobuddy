@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 
 import { resolveEvobuddyProjectState } from './evobuddy-project-state.mjs';
 import { validateTaskRoomWake } from './evobuddy-taskroom-mailbox.mjs';
-import { readTaskRoom } from './evobuddy-taskroom-store.mjs';
+import { readTaskRoom, readTaskRoomJsonl } from './evobuddy-taskroom-store.mjs';
 
 function requireString(value, name) {
   if (typeof value !== 'string' || value.trim().length === 0) throw new Error(`required non-empty string: ${name}`);
@@ -51,7 +51,15 @@ export async function pullHandoffBodyAfterWake(projectRoot, input) {
   if (!wake) throw new Error(`no wake found for participant: ${participantId}`);
 
   const room = await readTaskRoom(projectRoot, roomId);
-  const message = (room.messages ?? []).find((entry) => entry.messageId === wake.messageId);
+  let message = (room.messages ?? []).find((entry) => entry.messageId === wake.messageId);
+  if (!message) {
+    try {
+      const messages = await readTaskRoomJsonl(projectRoot, roomId, 'messages');
+      message = messages.find((entry) => entry.messageId === wake.messageId);
+    } catch {
+      message = null;
+    }
+  }
   if (!message) throw new Error(`handoff message not found for wake: ${wake.messageId}`);
 
   const handoffPath = join(

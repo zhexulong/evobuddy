@@ -3,7 +3,7 @@ use std::io::{self, Write};
 
 use super::{AttachOutcome, SessionDisplayMetadata, SubstrateSessionRef};
 
-const MANAGED_STATUS_LINE: &str = "EvoBuddy | leave: F10 or Ctrl+\\  (also Ctrl+B d)";
+const MANAGED_STATUS_LINE: &str = "EvoBuddy-managed | Detach: Ctrl+B d";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum AttachPath {
@@ -29,7 +29,7 @@ pub fn format_pre_attach_notice(
     session: &SubstrateSessionRef,
 ) -> String {
     format!(
-        "Attaching to native runtime\nParticipant: {}\nRuntime: {}\nWorkspace: {}\nSafety mode: {}\nSession: {}\nLeave session: F10  or  Ctrl+\\  (also Ctrl+B d)\n",
+        "Attaching to native runtime\nParticipant: {}\nRuntime: {}\nWorkspace: {}\nSafety mode: {}\nSession: {}\nDetach: Ctrl+B d\n",
         display.participant,
         display.runtime,
         display.workspace,

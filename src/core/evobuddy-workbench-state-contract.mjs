@@ -1,11 +1,15 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { listNativeSessions } from './evobuddy-native-session-store.mjs';
+import {
+  formatSourceQualifiedAttentionLabel,
+  isObservationStale,
+  reduceNativeSessionEvidence,
+} from './evobuddy-native-session-evidence.mjs';
 import { createRuntimeCapabilityDescriptor, deriveContinuationAction } from './evobuddy-runtime-capability.mjs';
 import { readEvobuddyWorkbenchArtifacts } from './evobuddy-workbench-artifacts.mjs';
 import { resolveEvobuddyProjectState } from './evobuddy-project-state.mjs';
 import { readRecentUpdateSummary } from './evobuddy-update-summary.mjs';
-import { projectTaskRoomsForWorkbench } from './evobuddy-taskroom-mutation.mjs';
 
 const TEAM_AGENT_ROLE_FALLBACKS = Object.freeze({
   builder: 'Builds and revises changes',
@@ -76,8 +80,7 @@ function normalizeTaskRoomStatus(value) {
   if (!raw) return 'Queued';
   if (['completed'].includes(raw)) return 'Completed';
   if (['pass', 'returned', 'done'].includes(raw)) return 'Returned';
-  if (['active', 'open', 'ready', 'todo', 'queued', 'pending', 'idle'].includes(raw)) return 'Queued';
-  if (['working', 'running', 'in-progress', 'in_progress'].includes(raw)) return 'Working';
+  if (['working', 'running', 'in-progress', 'active'].includes(raw)) return 'Working';
   if (['needs-input', 'needs input', 'waiting'].includes(raw)) return 'NeedsInput';
   if (['needs-review', 'needs review', 'review-needed'].includes(raw)) return 'NeedsReview';
   if (['blocked', 'partial', 'projected', 'not-applicable', 'external-plan3-proof-attached', 'stale', 'unknown'].includes(raw)) return 'Blocked';
@@ -105,19 +108,127 @@ function buildAcceptanceCriteria(report, proof) {
   return sanitizeText(parts.join('; ')) || 'TaskRoom outcome remains evidence-backed and explicit.';
 }
 
-function buildAttention(report, proof, index, generatedAt) {
+function mapWorkbenchStatusToEvidenceState(status) {
+  const raw = String(status ?? '').trim();
+  if (raw === 'NeedsInput') return 'needs-input';
+  if (raw === 'NeedsReview') return 'needs-review';
+  if (raw === 'Returned') return 'returned';
+  if (raw === 'Completed') return 'completed';
+  if (raw === 'Working') return 'working';
+  if (raw === 'Failed') return 'failed';
+  if (raw === 'Blocked') return 'blocked';
+  if (raw === 'Queued') return 'queued';
+  if (raw === 'Archived') return 'archived';
+  return normalizeStateForEvidence(raw);
+}
+
+function normalizeStateForEvidence(value) {
+  return String(value ?? '')
+    .trim()
+    .replace(/([a-z0-9])([A-Z])/g, '$1-$2')
+    .toLowerCase()
+    .replace(/[\s_]+/g, '-');
+}
+
+function buildAttention(report, proof, index, generatedAt, evidenceRefreshObservation) {
   const observedAt = cleanString(report?.generatedAt) ?? cleanString(report?.createdAt) ?? generatedAt;
-  const projectedState = proof?.resultReturn?.status === 'pass' || cleanString(proof?.resultReturn?.returnedTo)
+  const runtime = normalizeRuntime(report?.runtime);
+  const hasReturn = proof?.resultReturn?.status === 'pass' || cleanString(proof?.resultReturn?.returnedTo);
+  const projectedStatus = hasReturn
     ? 'Returned'
     : normalizeTaskRoomStatus(report?.taskRoom?.status ?? report?.status);
-  return {
-    state: projectedState,
-    sourceKind: 'runtime-exporter',
-    sourceRef: cleanString(list(proof?.exporterRefs)[0]?.ref) ?? `taskroom-report:${index + 1}`,
-    observedAt,
-    confidence: proof?.resultReturn?.status === 'pass' || report?.proofScope === 'product-observed' ? 'high' : 'medium',
-    staleAfter: cleanString(report?.staleAfter) ?? observedAt,
+
+  const reportObservation = {
+    state: mapWorkbenchStatusToEvidenceState(projectedStatus),
+    sourceKind: cleanString(report?.attention?.sourceKind)
+      ?? cleanString(evidenceRefreshObservation?.sourceKind)
+      ?? 'runtime-exporter',
+    sourceRef: cleanString(evidenceRefreshObservation?.sourceRef)
+      ?? cleanString(list(proof?.evidenceRefs)[0]?.ref)
+      ?? `taskroom-report:${index + 1}`,
+    observedAt: cleanString(evidenceRefreshObservation?.observedAt) ?? observedAt,
+    confidence: evidenceRefreshObservation?.confidence
+      ?? (hasReturn || report?.proofScope === 'product-observed' ? 'high' : 'medium'),
+    staleAfter: cleanString(evidenceRefreshObservation?.staleAfter)
+      ?? cleanString(report?.staleAfter)
+      ?? observedAt,
   };
+
+  const runtimeEvidence = [];
+  if (evidenceRefreshObservation) runtimeEvidence.push(evidenceRefreshObservation);
+  if (report?.attention && typeof report.attention === 'object') {
+    runtimeEvidence.push({
+      state: report.attention.state ?? reportObservation.state,
+      sourceKind: report.attention.sourceKind ?? reportObservation.sourceKind,
+      sourceRef: report.attention.sourceRef ?? reportObservation.sourceRef,
+      observedAt: report.attention.observedAt ?? reportObservation.observedAt,
+      confidence: report.attention.confidence ?? reportObservation.confidence,
+      staleAfter: report.attention.staleAfter ?? reportObservation.staleAfter,
+    });
+  }
+  if (runtimeEvidence.length === 0) runtimeEvidence.push(reportObservation);
+
+  const reduced = reduceNativeSessionEvidence({
+    terminal: null,
+    runtimeEvidence,
+    handoffs: hasReturn
+      ? [{
+        returnedTo: cleanString(proof?.resultReturn?.returnedTo) ?? 'parent-agent',
+        status: 'pass',
+        sourceKind: 'runtime-exporter',
+        sourceRef: cleanString(list(proof?.evidenceRefs)[0]?.ref) ?? `taskroom-report:${index + 1}`,
+      }]
+      : [],
+    roomOutcome: projectedStatus === 'Completed'
+      ? { accepted: true, sourceKind: 'runtime-exporter', sourceRef: `taskroom-report:${index + 1}` }
+      : null,
+    runtime,
+    now: generatedAt,
+  });
+
+  const stale = reduced.stale || isObservationStale(reduced.observation, generatedAt);
+  let displayState = projectedStatus;
+  if (stale && !hasReturn) {
+    displayState = 'Blocked';
+  } else if (reduced.workState === 'needs-input') {
+    displayState = 'NeedsInput';
+  } else if (hasReturn) {
+    displayState = 'Returned';
+  }
+
+  const attentionLabel = reduced.attentionLabel
+    ?? formatSourceQualifiedAttentionLabel({
+      state: reduced.observation.state,
+      runtime,
+      provisional: reduced.provisional,
+      stale,
+    });
+
+  return {
+    state: displayState,
+    sourceKind: reduced.observation.sourceKind,
+    sourceRef: reduced.observation.sourceRef,
+    observedAt: reduced.observation.observedAt,
+    confidence: reduced.observation.confidence,
+    staleAfter: reduced.observation.staleAfter,
+    attentionLabel,
+    stale,
+    provisional: reduced.provisional,
+  };
+}
+
+function loadEvidenceRefreshObservation(projectRoot, roomId) {
+  if (!projectRoot || !roomId) return undefined;
+  try {
+    const state = resolveEvobuddyProjectState({ projectRoot });
+    const path = state.evidenceRefreshRecordPath(roomId);
+    if (!existsSync(path)) return undefined;
+    const record = JSON.parse(readFileSync(path, 'utf8'));
+    const descriptor = list(record?.descriptors)[0];
+    return descriptor?.observation;
+  } catch {
+    return undefined;
+  }
 }
 
 function buildRuntimeCapabilities(runtimeSetup) {
@@ -217,10 +328,15 @@ function buildRuntimeSetup(plan2, taskRooms, blockedReasons) {
   return [
     {
       runtime: 'Pi',
-      teamAgent: observed.has('pi') ? 'TeamAgent TaskRoom observed' : 'TeamAgent TaskRoom not yet observed',
-      focusedBuddy: readiness.subagentBuddyNativeParity?.status ? 'Focused Buddy native observed' : 'Focused Buddy native not yet observed',
-      status: observed.has('pi') ? 'Ready' : blockedReasons.length > 0 ? 'Blocked' : 'Partial',
+      teamAgent: (taskRooms ?? []).some((room) => String(room.runtime ?? '').toLowerCase() === 'pi')
+        ? 'TeamAgent TaskRoom observed'
+        : 'TeamAgent TaskRoom not yet observed',
+      focusedBuddy: 'FocusedBuddy optional',
+      status: (taskRooms ?? []).some((room) => String(room.runtime ?? '').toLowerCase() === 'pi')
+        ? 'Ready'
+        : 'Partial',
     },
+
     {
       runtime: 'OpenCode',
       teamAgent: observed.has('opencode') ? 'TeamAgent TaskRoom observed' : 'TeamAgent TaskRoom not yet observed',
@@ -252,17 +368,23 @@ function roomSummary(report, proof) {
   return sanitizeText(`${report?.title ?? 'TaskRoom'} completed with ${rounds.length} review rounds.`);
 }
 
-function normalizeTaskRooms(taskRoomReports, runtimeCapabilities, generatedAt) {
+function normalizeTaskRooms(taskRoomReports, runtimeCapabilities, generatedAt, projectRoot) {
   return list(taskRoomReports).map((report, index) => {
     const proof = report?.taskRoom?.proof ?? {};
+    const roomId = safeTaskRoomId(cleanString(proof.roomId) ?? cleanString(report?.title), report?.runtime, index);
+    const evidenceRefreshObservation = loadEvidenceRefreshObservation(projectRoot, roomId)
+      ?? loadEvidenceRefreshObservation(projectRoot, cleanString(proof.roomId));
+    const attention = buildAttention(report, proof, index, generatedAt, evidenceRefreshObservation);
     const projectedStatus = proof?.resultReturn?.status === 'pass' || cleanString(proof?.resultReturn?.returnedTo)
       ? 'Returned'
-      : normalizeTaskRoomStatus(report?.taskRoom?.status ?? report?.status);
+      : attention.state === 'NeedsInput'
+        ? 'NeedsInput'
+        : normalizeTaskRoomStatus(report?.taskRoom?.status ?? report?.status);
     const participants = list(proof.participants).map((participant) => ({
       id: cleanString(participant.actorName) ?? cleanString(participant.participantId) ?? 'participant',
       displayName: titleCase(cleanString(participant.actorName) ?? cleanString(participant.participantId) ?? 'participant'),
       kind: participant.actorKind ?? 'team-agent',
-      status: 'Returned',
+      status: projectedStatus === 'Returned' ? 'Returned' : projectedStatus,
     }));
     const participantNameById = new Map(list(proof.participants).map((participant) => [participant.participantId, participant.actorName]));
     const rounds = list(proof.rounds).map((round) => ({
@@ -272,7 +394,7 @@ function normalizeTaskRooms(taskRoomReports, runtimeCapabilities, generatedAt) {
       priorReviewLinked: list(round.priorReviewDigests).length > 0,
     }));
     return {
-      id: safeTaskRoomId(cleanString(proof.roomId) ?? cleanString(report?.title), report?.runtime, index),
+      id: roomId,
       title: sanitizeText(report?.title ?? `${report?.runtime ?? 'runtime'} TaskRoom`),
       runtime: normalizeRuntime(report?.runtime) ?? 'unknown',
       status: projectedStatus,
@@ -293,7 +415,7 @@ function normalizeTaskRooms(taskRoomReports, runtimeCapabilities, generatedAt) {
         status: cleanString(report?.evolutionHandoff?.status) ?? 'unknown',
         summary: sanitizeText(report?.evolutionHandoff?.agentName ? `${report.evolutionHandoff.agentName} received completed loop evidence.` : ''),
       },
-      attention: buildAttention(report, proof, index, generatedAt),
+      attention,
       availableActions: [],
       returnedTo: cleanString(proof.resultReturn?.returnedTo),
       artifactsSummary: rounds.flatMap((round) => [round.builderSummary, round.reviewerSummary]).filter(Boolean),
@@ -415,33 +537,13 @@ export async function exportEvobuddyWorkbenchState({
     taskRoomReportPaths,
     taskRoomReportPath,
   });
-  const useDurableRooms = !inputRoot
-    && !aggregateReportPath
-    && !plan1ReportPath
-    && !plan2ReportPath
-    && !taskRoomReportPath
-    && taskRoomReportPaths.length === 0;
   const updateSummary = await readRecentUpdateSummary({ projectRoot: resolvedProjectRoot, limit: 10 });
   const buddiesRegistry = readJsonIfExists(state.registryPath, [], undefined) ?? { version: '1', members: [] };
   const nativeSessionBlockedReasons = [];
   const nativeSessions = await buildNativeSessions(resolvedProjectRoot, nativeSessionBlockedReasons);
-
-  let durableRooms = [];
-  const durableBlockedReasons = [];
-  try {
-    durableRooms = await projectTaskRoomsForWorkbench(resolvedProjectRoot);
-  } catch (error) {
-    durableBlockedReasons.push(`failed to project durable taskrooms: ${error.message}`);
-  }
-
-  const reportRooms = normalizeTaskRooms(artifacts.taskRoomReports, [], generatedAt);
-  // Prefer durable rooms for interactive path; fixtures remain for read-only compatibility when no durable rooms.
-  const roomsForSetup = useDurableRooms && durableRooms.length > 0 ? durableRooms : reportRooms;
-  const runtimeSetup = buildRuntimeSetup(artifacts.plan2, roomsForSetup, artifacts.blockedReasons);
+  const runtimeSetup = buildRuntimeSetup(artifacts.plan2, normalizeTaskRooms(artifacts.taskRoomReports, [], generatedAt, resolvedProjectRoot), artifacts.blockedReasons);
   const runtimeCapabilities = buildRuntimeCapabilities(runtimeSetup);
-  // Re-normalize report rooms with capabilities for fixture path; durable rooms already have availableActions.
-  const normalizedReportRooms = normalizeTaskRooms(artifacts.taskRoomReports, runtimeCapabilities, generatedAt);
-  const taskRooms = mergeTaskRooms(useDurableRooms ? durableRooms : [], normalizedReportRooms, runtimeCapabilities);
+  const taskRooms = normalizeTaskRooms(artifacts.taskRoomReports, runtimeCapabilities, generatedAt, resolvedProjectRoot);
   const teamAgentNames = deriveTeamAgentNames(artifacts, taskRooms);
   const focusedBuddyNames = deriveFocusedBuddyNames(artifacts, buddiesRegistry);
 
@@ -461,27 +563,7 @@ export async function exportEvobuddyWorkbenchState({
     diagnostics: {
       claimCeiling: 'TUI state visualization; not runtime proof',
       hiddenProofFieldsPresent: false,
-      blockedReasons: [...list(artifacts.blockedReasons), ...nativeSessionBlockedReasons, ...durableBlockedReasons]
-        .map((reason) => sanitizeText(reason))
-        .filter(Boolean),
+      blockedReasons: [...list(artifacts.blockedReasons), ...nativeSessionBlockedReasons].map((reason) => sanitizeText(reason)).filter(Boolean),
     },
   };
-}
-
-function mergeTaskRooms(durableRooms, reportRooms, runtimeCapabilities) {
-  const byId = new Map();
-  for (const room of reportRooms) {
-    byId.set(room.id, room);
-  }
-  for (const room of durableRooms) {
-    // Durable rooms win on id collision (interactive authority).
-    const withActions = room.availableActions?.length
-      ? room
-      : {
-        ...room,
-        availableActions: buildTaskRoomActions(room, runtimeCapabilities),
-      };
-    byId.set(room.id, withActions);
-  }
-  return [...byId.values()].sort((left, right) => String(left.id).localeCompare(String(right.id)));
 }

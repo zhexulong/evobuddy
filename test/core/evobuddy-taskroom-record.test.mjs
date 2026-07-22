@@ -38,3 +38,19 @@ test('participant preserves additive native session descriptor linkage', () => {
   assert.equal(participant.nativeSessionDescriptorId, 'session-reviewer-1');
   assert.equal(participant.runtimeSessionRef, 'opencode:session:reviewer');
 });
+
+test('createTaskRoomMessage accepts agent-progress/result/question', () => {
+  for (const kind of ['agent-progress', 'agent-result', 'agent-question']) {
+    const msg = createTaskRoomMessage({
+      messageId: `message:${kind}:1`,
+      roomId: 'taskroom:t',
+      fromParticipantId: 'crew:a',
+      toParticipantIds: [],
+      kind,
+      body: 'working…',
+      artifactRefs: [],
+      createdAt: '2026-07-23T00:00:00.000Z',
+    });
+    assert.equal(msg.kind, kind);
+  }
+});

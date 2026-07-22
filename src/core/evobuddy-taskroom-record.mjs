@@ -2,7 +2,19 @@ import { createHash } from 'node:crypto';
 
 const ACTOR_KINDS = new Set(['team-agent', 'subagent-buddy', 'user', 'external']);
 const PARTICIPANT_ROLES = new Set(['builder', 'reviewer', 'coordinator', 'evolution', 'researcher', 'user', 'other']);
-const MESSAGE_KINDS = new Set(['user-request', 'assignment', 'handoff', 'review-findings', 'fix-summary', 'status', 'final-result', 'evolution-request']);
+const MESSAGE_KINDS = new Set([
+  'user-request',
+  'assignment',
+  'handoff',
+  'review-findings',
+  'fix-summary',
+  'status',
+  'final-result',
+  'evolution-request',
+  'agent-progress',
+  'agent-result',
+  'agent-question',
+]);
 const ARTIFACT_KINDS = new Set(['patch-summary', 'review-findings', 'test-output', 'decision', 'risk', 'source-ref', 'evolution-proposal']);
 const TASKROOM_STATUSES = new Set(['active', 'completed', 'blocked', 'archived']);
 

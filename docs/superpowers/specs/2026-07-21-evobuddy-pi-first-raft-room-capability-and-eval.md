@@ -246,3 +246,12 @@ Out of scope for this bar: Raft web UI clone, mobile PWA, full MCP suite on ever
 - EvoBuddy TUI product: `docs/superpowers/specs/2026-07-21-evobuddy-tui-product-spec-v1.md`  
 - Team design: `docs/superpowers/specs/2026-07-17-evobuddy-raft-agent-team-and-omo-subagent-design.md`  
 - Host samples (2026-07-21): pi idle ~160–180MB; opencode tree ~1.2GB+
+
+---
+
+## Release status (2026-07-22)
+
+**Gate pass ≠ S3 density certified.** Authoritative wording and matrix coverage:
+`docs/superpowers/specs/2026-07-22-pi-first-raft-room-release-status.md` and
+`docs/reports/evobuddy-pi-first-raft-room-eval-report.json`.
+

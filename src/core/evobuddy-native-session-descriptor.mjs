@@ -6,7 +6,7 @@ export const NATIVE_SESSION_LIFECYCLES = Object.freeze([
 ]);
 
 const LIFECYCLES = new Set(NATIVE_SESSION_LIFECYCLES);
-const RUNTIMES = new Set(['opencode', 'claude', 'codex', 'gemini']);
+const RUNTIMES = new Set(['opencode', 'claude', 'codex', 'gemini', 'pi']);
 const SUBSTRATES = new Set(['tmux']);
 const ALLOWED_INPUT_KEYS = new Set([
   'descriptorId',

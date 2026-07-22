@@ -22,7 +22,7 @@ const ALLOWED_KEYS = new Set([
   'digest',
 ]);
 const FORBIDDEN_KEYS = new Set(['env', 'environment', 'secret', 'token', 'authToken']);
-const RUNTIMES = new Set(['opencode', 'claude', 'codex', 'gemini']);
+const RUNTIMES = new Set(['opencode', 'claude', 'codex', 'gemini', 'pi']);
 
 function stable(value) {
   if (Array.isArray(value)) return value.map(stable);

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { existsSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { dirname, join, resolve } from 'node:path';
@@ -17,6 +17,7 @@ import {
   createTaskRoomFromDraft,
 } from '../../src/core/evobuddy-taskroom-mutation.mjs';
 import { listTaskRooms } from '../../src/core/evobuddy-taskroom-store.mjs';
+import { listWakes, pullHandoffBodyAfterWake } from '../../src/core/evobuddy-taskroom-wake-store.mjs';
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const PACKAGE_JSON = JSON.parse(await readFile(join(REPO_ROOT, 'package.json'), 'utf8'));
@@ -39,7 +40,7 @@ function usage() {
   evobuddy buddies invoke <buddyName> --task <text> --project <path>
   evobuddy buddies sync --project <path>
   evobuddy workbench --project <path>
-  evobuddy taskroom create --project <path> --objective <text> --runtime <name> --json
+  evobuddy taskroom create --project <path> --objective <text> [--runtime <name>] --json
   evobuddy taskroom handoff create --project <path> --room <id> --from <id> --to <id> --body <text> --json
   evobuddy taskroom list --project <path> --json
   evobuddy taskroom session reserve --project <path> --room <id> --instance <id> --runtime <name>
@@ -199,10 +200,64 @@ function parseFlags(argv) {
   return parsed;
 }
 
+function firstNonEmptyLine(text) {
+  return String(text ?? '').split(/\r?\n/).map((line) => line.trim()).find(Boolean) ?? null;
+}
+
+function resolveCommandPath(command) {
+  const lookup = process.platform === 'win32'
+    ? spawnSync('where', [command], { encoding: 'utf8' })
+    : spawnSync('which', [command], { encoding: 'utf8' });
+  if (lookup.error || lookup.status !== 0) return null;
+  return firstNonEmptyLine(lookup.stdout);
+}
+
+function probeCommandVersion(commandPath, args) {
+  const result = spawnSync(commandPath, args, { encoding: 'utf8' });
+  if (result.error || result.status !== 0) return null;
+  return firstNonEmptyLine(`${result.stdout ?? ''}\n${result.stderr ?? ''}`);
+}
+
+function probeCliRuntime(command, versionArgs, { includePath = false } = {}) {
+  const commandPath = resolveCommandPath(command);
+  const present = Boolean(commandPath);
+  const version = present ? probeCommandVersion(commandPath, versionArgs) : null;
+  const base = { present, version };
+  return includePath ? { ...base, path: commandPath } : base;
+}
+
+function probeDoctorRuntimes() {
+  return {
+    pi: probeCliRuntime('pi', ['--version'], { includePath: true }),
+    tmux: probeCliRuntime('tmux', ['-V']),
+  };
+}
+
+function sampleSelfRssKb() {
+  if (process.platform !== 'linux') return null;
+  try {
+    const status = readFileSync(`/proc/${process.pid}/status`, 'utf8');
+    const match = status.match(/^VmRSS:\s+(\d+)\s+kB$/m);
+    return match ? Number.parseInt(match[1], 10) : null;
+  } catch {
+    return null;
+  }
+}
+
+function doctorMemoryBudgetNote() {
+  return {
+    note: 'Soft memory budget (spec A3/S3): idle pi rpc p95 < 250MB; 2× pi sum < 500MB; multi-seat pi sum ≤ 40% of one OpenCode process tree when sampled.',
+    sampleCommand: 'node scripts/context-tree/sample-seat-rss.mjs --count 2 --hold-ms 3000 --include-opencode',
+    selfRssKb: sampleSelfRssKb(),
+  };
+}
+
 function taskroomHelp() {
   return `Usage:
-  evobuddy taskroom create --project <path> --objective <text> --runtime <name> [--title <text>] [--actor <name>] [--workspace <path>] [--safety-mode <mode>] [--acceptance <text>] --json
+  evobuddy taskroom create --project <path> --objective <text> [--runtime <name>] [--title <text>] [--actor <name>] [--workspace <path>] [--safety-mode <mode>] [--acceptance <text>] --json
   evobuddy taskroom handoff create --project <path> --room <id> --from <id> --to <id> --body <text> --json
+  evobuddy taskroom wake list --project <path> --room <id> --json
+  evobuddy taskroom message check --project <path> --room <id> --participant <id> --json
   evobuddy taskroom list --project <path> --json
   evobuddy taskroom session reserve --project <path> --room <id> --instance <id> --runtime <name> [--workspace <path>] [--participant <name>] [--json]
   evobuddy taskroom session list --project <path> [--json]
@@ -223,7 +278,7 @@ async function taskroomCreate(argv) {
   const args = parseFlags(argv);
   if (!args.project) throw new Error('missing value for --project');
   if (!args.objective) throw new Error('missing value for --objective');
-  if (!args.runtime) throw new Error('missing value for --runtime');
+  const runtime = args.runtime ?? 'pi';
   const projectRoot = resolve(args.project);
   await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
   const room = await createTaskRoomFromDraft(projectRoot, {
@@ -231,7 +286,7 @@ async function taskroomCreate(argv) {
     acceptanceCriteria: args.acceptanceCriteria,
     workspace: args.workspace ? resolve(args.workspace) : projectRoot,
     actor: args.actor,
-    runtime: args.runtime,
+    runtime,
     safetyMode: args.safetyMode,
     title: args.title,
   });
@@ -255,6 +310,32 @@ async function taskroomHandoffCreate(argv) {
     body: args.body,
   });
   return { stdout: args.json ? `${JSON.stringify(handoff)}\n` : `${handoff.handoffId}\n` };
+}
+
+async function taskroomWakeList(argv) {
+  if (argv.includes('--help') || argv.includes('-h')) return { stdout: taskroomHelp() };
+  const args = parseFlags(argv);
+  if (!args.project) throw new Error('missing value for --project');
+  if (!args.room) throw new Error('missing value for --room');
+  const projectRoot = resolve(args.project);
+  await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  const wakes = await listWakes(projectRoot, args.room);
+  return { stdout: args.json ? `${JSON.stringify({ wakes })}\n` : `${wakes.length}\n` };
+}
+
+async function taskroomMessageCheck(argv) {
+  if (argv.includes('--help') || argv.includes('-h')) return { stdout: taskroomHelp() };
+  const args = parseFlags(argv);
+  if (!args.project) throw new Error('missing value for --project');
+  if (!args.room) throw new Error('missing value for --room');
+  if (!args.participant) throw new Error('missing value for --participant');
+  const projectRoot = resolve(args.project);
+  await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  const pulled = await pullHandoffBodyAfterWake(projectRoot, {
+    roomId: args.room,
+    participantId: args.participant,
+  });
+  return { stdout: args.json ? `${JSON.stringify(pulled)}\n` : `${pulled.body}\n` };
 }
 
 async function taskroomList(argv) {
@@ -559,6 +640,8 @@ async function doctor(argv) {
     packageBin: PACKAGE_JSON.bin?.evobuddy,
     dispatcherThin: true,
     liveRuntimeRequired: false,
+    runtimes: probeDoctorRuntimes(),
+    memory: doctorMemoryBudgetNote(),
     commands,
   };
   if (args.project) {
@@ -705,6 +788,8 @@ async function dispatch(argv) {
   if (command === 'taskroom' && subcommand === 'create') return taskroomCreate([action, ...rest].filter((value) => value !== undefined));
   if (command === 'taskroom' && subcommand === 'list') return taskroomList([action, ...rest].filter((value) => value !== undefined));
   if (command === 'taskroom' && subcommand === 'handoff' && action === 'create') return taskroomHandoffCreate(rest);
+  if (command === 'taskroom' && subcommand === 'wake' && action === 'list') return taskroomWakeList(rest);
+  if (command === 'taskroom' && subcommand === 'message' && action === 'check') return taskroomMessageCheck(rest);
   if (command === 'taskroom' && subcommand === 'session' && action === 'reserve') return taskroomSessionReserve(rest);
   if (command === 'taskroom' && subcommand === 'session' && action === 'list') return taskroomSessionList(rest);
   if (command === 'taskroom' && subcommand === 'session' && action === 'plan-open') return taskroomSessionPlanOpen(rest);

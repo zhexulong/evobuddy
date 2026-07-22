@@ -88,7 +88,7 @@ function normalizeTaskRoomStatus(value) {
 
 function normalizeRuntime(value) {
   const normalized = cleanString(value)?.toLowerCase();
-  return ['opencode', 'claude', 'codex', 'gemini'].includes(normalized) ? normalized : null;
+  return ['pi', 'opencode', 'claude', 'codex', 'gemini'].includes(normalized) ? normalized : null;
 }
 
 function buildAcceptanceCriteria(report, proof) {
@@ -215,6 +215,12 @@ function buildRuntimeSetup(plan2, taskRooms, blockedReasons) {
   const observed = new Set(taskRooms.map((room) => room.runtime).filter(Boolean));
   const readiness = plan2?.readiness ?? {};
   return [
+    {
+      runtime: 'Pi',
+      teamAgent: observed.has('pi') ? 'TeamAgent TaskRoom observed' : 'TeamAgent TaskRoom not yet observed',
+      focusedBuddy: readiness.subagentBuddyNativeParity?.status ? 'Focused Buddy native observed' : 'Focused Buddy native not yet observed',
+      status: observed.has('pi') ? 'Ready' : blockedReasons.length > 0 ? 'Blocked' : 'Partial',
+    },
     {
       runtime: 'OpenCode',
       teamAgent: observed.has('opencode') ? 'TeamAgent TaskRoom observed' : 'TeamAgent TaskRoom not yet observed',
@@ -409,6 +415,12 @@ export async function exportEvobuddyWorkbenchState({
     taskRoomReportPaths,
     taskRoomReportPath,
   });
+  const useDurableRooms = !inputRoot
+    && !aggregateReportPath
+    && !plan1ReportPath
+    && !plan2ReportPath
+    && !taskRoomReportPath
+    && taskRoomReportPaths.length === 0;
   const updateSummary = await readRecentUpdateSummary({ projectRoot: resolvedProjectRoot, limit: 10 });
   const buddiesRegistry = readJsonIfExists(state.registryPath, [], undefined) ?? { version: '1', members: [] };
   const nativeSessionBlockedReasons = [];
@@ -424,12 +436,12 @@ export async function exportEvobuddyWorkbenchState({
 
   const reportRooms = normalizeTaskRooms(artifacts.taskRoomReports, [], generatedAt);
   // Prefer durable rooms for interactive path; fixtures remain for read-only compatibility when no durable rooms.
-  const roomsForSetup = durableRooms.length > 0 ? durableRooms : reportRooms;
+  const roomsForSetup = useDurableRooms && durableRooms.length > 0 ? durableRooms : reportRooms;
   const runtimeSetup = buildRuntimeSetup(artifacts.plan2, roomsForSetup, artifacts.blockedReasons);
   const runtimeCapabilities = buildRuntimeCapabilities(runtimeSetup);
   // Re-normalize report rooms with capabilities for fixture path; durable rooms already have availableActions.
   const normalizedReportRooms = normalizeTaskRooms(artifacts.taskRoomReports, runtimeCapabilities, generatedAt);
-  const taskRooms = mergeTaskRooms(durableRooms, normalizedReportRooms, runtimeCapabilities);
+  const taskRooms = mergeTaskRooms(useDurableRooms ? durableRooms : [], normalizedReportRooms, runtimeCapabilities);
   const teamAgentNames = deriveTeamAgentNames(artifacts, taskRooms);
   const focusedBuddyNames = deriveFocusedBuddyNames(artifacts, buddiesRegistry);
 

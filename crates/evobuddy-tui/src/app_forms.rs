@@ -10,7 +10,7 @@ impl WorkbenchApp {
             workspace: self.state.project_root.clone(),
             actor: String::new(),
             runtime: {
-                let preferred = ["opencode", "claude", "codex"];
+                let preferred = ["pi", "opencode", "claude", "codex"];
                 preferred
                     .into_iter()
                     .find(|name| {
@@ -19,7 +19,7 @@ impl WorkbenchApp {
                             .iter()
                             .any(|entry| entry.runtime.eq_ignore_ascii_case(name))
                     })
-                    .unwrap_or("opencode")
+                    .unwrap_or("pi")
                     .to_string()
             },
             safety_mode: "workspace-write".to_string(),

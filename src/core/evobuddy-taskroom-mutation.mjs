@@ -6,21 +6,22 @@ import {
   createTaskRoom,
   createTaskRoomMessage,
 } from './evobuddy-taskroom-record.mjs';
-import { createTaskRoomHandoff } from './evobuddy-taskroom-mailbox.mjs';
+import { createTaskRoomHandoff, createTaskRoomWake } from './evobuddy-taskroom-mailbox.mjs';
 import {
   ensureTaskRoomLayout,
   listTaskRooms,
   updateTaskRoom,
   writeTaskRoom,
 } from './evobuddy-taskroom-store.mjs';
+import { appendWake } from './evobuddy-taskroom-wake-store.mjs';
+import { appendTaskRoomActivity } from './evobuddy-taskroom-activity-log.mjs';
 import { resolveEvobuddyProjectState } from './evobuddy-project-state.mjs';
 import {
   createRuntimeCapabilityDescriptor,
-  deriveContinuationAction,
 } from './evobuddy-runtime-capability.mjs';
 import { listNativeSessions } from './evobuddy-native-session-store.mjs';
 
-const SUPPORTED_RUNTIMES = new Set(['opencode', 'claude', 'codex', 'gemini']);
+const SUPPORTED_RUNTIMES = new Set(['opencode', 'claude', 'codex', 'gemini', 'pi']);
 
 function requireString(value, name) {
   if (typeof value !== 'string' || value.trim().length === 0) throw new Error(`required non-empty string: ${name}`);
@@ -69,6 +70,18 @@ function builderParticipant({ actor, runtime, participantId }) {
     actorName,
     actorKind: 'team-agent',
     role: 'builder',
+    runtime,
+    runtimeSessionRef: null,
+    nativeSessionDescriptorId: null,
+  };
+}
+
+function reviewerParticipant({ runtime }) {
+  return {
+    participantId: `participant:reviewer:${randomUUID()}`,
+    actorName: 'reviewer',
+    actorKind: 'team-agent',
+    role: 'reviewer',
     runtime,
     runtimeSessionRef: null,
     nativeSessionDescriptorId: null,
@@ -259,6 +272,8 @@ function projectDurableRoom(room, nativeSessions = []) {
       id: participant.participantId,
       displayName: titleCase(participant.actorName ?? participant.participantId),
       kind: participant.actorKind ?? 'team-agent',
+      role: participant.role ?? 'other',
+      runtime: optionalString(participant.runtime),
       status,
     })),
     rounds: [],
@@ -279,6 +294,8 @@ function projectDurableRoom(room, nativeSessions = []) {
     summary: room.title,
     workspace: optionalString(room.workspace),
     safetyMode: optionalString(room.safetyMode),
+    ownerParticipantId: optionalString(room.ownerParticipantId),
+    claimedAt: optionalString(room.claimedAt),
   };
   projected.availableActions = buildAvailableActions({
     ...projected,
@@ -292,15 +309,17 @@ export async function createTaskRoomFromDraft(projectRoot, draft) {
   requireString(projectRoot, 'projectRoot');
   requireObject(draft, 'draft');
   const objective = requireString(draft.objective, 'objective');
-  const runtime = normalizeRuntime(draft.runtime);
+  const runtime = normalizeRuntime(draft.runtime ?? 'pi');
   const createdAt = optionalString(draft.createdAt) ?? isoNow();
   const roomId = roomIdFromDraft(draft);
   const title = titleFromObjective(objective, draft.title);
-  const participant = builderParticipant({
+  const builder = builderParticipant({
     actor: draft.actor,
     runtime,
     participantId: optionalString(draft.participantId),
   });
+  const reviewer = reviewerParticipant({ runtime });
+  const participants = [builder, reviewer];
   const acceptanceCriteria = defaultAcceptance(draft);
   const workspace = optionalString(draft.workspace);
   const safetyMode = optionalString(draft.safetyMode);
@@ -311,12 +330,12 @@ export async function createTaskRoomFromDraft(projectRoot, draft) {
     objective,
     status: 'active',
     createdAt,
-    participants: [participant],
+    participants,
     messages: [{
       messageId: `message:user-request:${randomUUID()}`,
       roomId,
-      fromParticipantId: participant.participantId,
-      toParticipantIds: [participant.participantId],
+      fromParticipantId: builder.participantId,
+      toParticipantIds: participants.map((participant) => participant.participantId),
       kind: 'user-request',
       body: acceptanceCriteria,
       artifactRefs: [],
@@ -339,6 +358,29 @@ export async function createTaskRoomFromDraft(projectRoot, draft) {
     safetyMode,
     runtime,
   };
+}
+
+export async function claimTaskRoom(projectRoot, roomId, participantId) {
+  requireString(projectRoot, 'projectRoot');
+  const safeRoomId = requireString(roomId, 'roomId');
+  const ownerId = requireString(participantId, 'participantId');
+  const claimedAt = isoNow();
+
+  return updateTaskRoom(projectRoot, safeRoomId, (room) => {
+    if (!(room.participants ?? []).some((participant) => participant.participantId === ownerId)) {
+      throw new Error(`taskroom participant not found: ${ownerId}`);
+    }
+    const existingOwnerId = optionalString(room.ownerParticipantId);
+    if (existingOwnerId && existingOwnerId !== ownerId) {
+      throw new Error(`taskroom already claimed by owner: ${existingOwnerId}`);
+    }
+    return {
+      ...room,
+      ownerParticipantId: ownerId,
+      claimedAt: optionalString(room.claimedAt) ?? claimedAt,
+      digest: undefined,
+    };
+  });
 }
 
 export async function createHandoffFromDraft(projectRoot, draft) {
@@ -367,6 +409,7 @@ export async function createHandoffFromDraft(projectRoot, draft) {
 
   await updateTaskRoom(projectRoot, roomId, (room) => ({
     ...room,
+    status: 'needs-review',
     messages: [...(room.messages ?? []), message],
     digest: undefined,
   }));
@@ -384,7 +427,36 @@ export async function createHandoffFromDraft(projectRoot, draft) {
   const state = resolveEvobuddyProjectState({ projectRoot });
   const handoffPath = join(state.taskroomPath(roomId), 'handoffs', `${handoffId}.json`);
   await atomicWriteJson(handoffPath, handoff);
-  return handoff;
+
+  const wakeReason = optionalString(draft.reason) ?? 'handoff-ready';
+  const wake = await appendWake(projectRoot, createTaskRoomWake({
+    roomId,
+    messageId,
+    participantId: toParticipantId,
+    occurredAt: createdAt,
+    reason: wakeReason,
+  }));
+
+  await appendTaskRoomActivity(projectRoot, {
+    roomId,
+    kind: 'handoff',
+    at: createdAt,
+    participantId: fromParticipantId,
+    targetParticipantId: toParticipantId,
+    messageId,
+    detail: handoffId,
+  });
+  await appendTaskRoomActivity(projectRoot, {
+    roomId,
+    kind: 'wake',
+    at: createdAt,
+    participantId: toParticipantId,
+    messageId,
+    wakeReason,
+    outcome: 'written',
+  });
+
+  return { ...handoff, wake };
 }
 
 export async function projectTaskRoomsForWorkbench(projectRoot, options = {}) {

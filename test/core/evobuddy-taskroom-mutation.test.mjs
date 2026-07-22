@@ -33,10 +33,13 @@ describe('evobuddy taskroom mutations', () => {
       assert.equal(created.objective, 'Ship durable TaskRoom create path');
       assert.equal(created.status, 'active');
       assert.match(created.title, /Ship durable TaskRoom create path/);
-      assert.equal(created.participants.length, 1);
+      assert.ok(created.participants.length >= 2);
       assert.equal(created.participants[0].role, 'builder');
       assert.equal(created.participants[0].actorName, 'builder');
       assert.equal(created.participants[0].runtime, 'codex');
+      assert.equal(created.participants[1].role, 'reviewer');
+      assert.equal(created.participants[1].actorName, 'reviewer');
+      assert.equal(created.participants[1].runtime, 'codex');
 
       const reloaded = await readTaskRoom(projectRoot, created.roomId);
       assert.equal(reloaded.roomId, created.roomId);
@@ -53,7 +56,7 @@ describe('evobuddy taskroom mutations', () => {
       assert.equal(projected[0].status, 'Queued');
       assert.equal(projected[0].objective, 'Ship durable TaskRoom create path');
       assert.match(projected[0].acceptanceCriteria, /Room persists and export enables open-native-runtime/);
-      assert.equal(projected[0].participants.length, 1);
+      assert.ok(projected[0].participants.length >= 2);
       assert.equal(Array.isArray(projected[0].availableActions), true);
       assert.ok(['start-new-session','continue-with-taskroom-context','resume-conversation','heuristic-resume'].includes(projected[0].availableActions[0].id));
       assert.equal(projected[0].availableActions[0].enabled, true);
@@ -112,7 +115,7 @@ describe('evobuddy taskroom mutations', () => {
     }
   });
 
-  it('defaults title from objective and requires objective + runtime', async () => {
+  it('defaults title from objective and requires objective + valid runtime', async () => {
     const projectRoot = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-mutation-defaults-'));
     try {
       await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
@@ -121,7 +124,7 @@ describe('evobuddy taskroom mutations', () => {
         /objective/i,
       );
       await assert.rejects(
-        () => createTaskRoomFromDraft(projectRoot, { objective: 'Need runtime' }),
+        () => createTaskRoomFromDraft(projectRoot, { objective: 'Need valid runtime', runtime: 'bad-runtime' }),
         /runtime/i,
       );
 
@@ -131,6 +134,11 @@ describe('evobuddy taskroom mutations', () => {
       });
       assert.equal(created.title, 'Default title from objective text');
       assert.equal(created.participants[0].actorName, 'builder');
+
+      const defaultRuntime = await createTaskRoomFromDraft(projectRoot, {
+        objective: 'Default runtime uses pi',
+      });
+      assert.equal(defaultRuntime.runtime, 'pi');
     } finally {
       rmSync(projectRoot, { recursive: true, force: true });
     }

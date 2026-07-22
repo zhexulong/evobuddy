@@ -200,12 +200,19 @@ pub fn field_style(active: bool, error: bool) -> Style {
     Style::default().fg(t.text)
 }
 
-/// List selection: accent bar feel without full reverse magenta on long lines.
 pub fn selected_style() -> Style {
     let t = theme();
     Style::default()
         .fg(t.text)
         .bg(t.surface_alt)
+        .add_modifier(Modifier::BOLD)
+}
+
+/// Selected list marker (left rail) without full-line reverse blocks.
+pub fn selected_marker_style() -> Style {
+    let t = theme();
+    Style::default()
+        .fg(t.border_focus)
         .add_modifier(Modifier::BOLD)
 }
 

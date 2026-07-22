@@ -310,13 +310,13 @@ npm run evobuddy:eval-crew-room-surface
 
 Joint L1 + pi-first gate still green after changes.
 
-### C1 — Crew roster — **NOT PASS**
+### C1 — Crew roster — **PASS**
 
 | # | Requirement | Proof |
 |---|---|---|
 | C1.1 | Project stores ≥0 agents independently of rooms | CE1 |
 | C1.2 | Add agent with name + runtime default pi | CE1 |
-| C1.3 | List crew via CLI or workbench export | Unit/integration |
+| C1.3 | List crew via CLI or workbench export | `crew list` + export `crew[]` |
 
 ### C2 — Add member — **PASS** (CLI; TUI wizard optional)
 

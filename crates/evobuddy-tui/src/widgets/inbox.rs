@@ -7,7 +7,10 @@ use ratatui::Frame;
 use crate::action_hints::short_primary_action_label;
 use crate::app::WorkbenchApp;
 use crate::model::{TaskRoom, TaskRoomStatus};
-use crate::theme::{muted_style, pane_block, selected_style, status_glyph, task_room_status_style};
+use crate::theme::{
+    muted_style, pane_block, selected_marker_style, selected_style, status_glyph,
+    task_room_status_style,
+};
 
 pub fn render_work_inbox(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect, focused: bool) {
     let rooms = visible_rooms(app);
@@ -28,18 +31,22 @@ pub fn render_work_inbox(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect, 
         .iter()
         .enumerate()
         .map(|(index, room)| {
-            let marker = if index == selected { "❯ " } else { "  " };
             let glyph = status_glyph(&room.status);
             let status = format_status(&room.status);
             let runtime = primary_runtime(room);
             let title = truncate(&room.title, area_title_width(area));
-            let line = format!("{marker}{glyph} {status:<8} {title}  {runtime}");
-            let style = if index == selected {
-                selected_style()
+            let body = format!("{glyph} {status:<8} {title}  {runtime}");
+            if index == selected {
+                ListItem::new(Line::from(vec![
+                    Span::styled("❯ ", selected_marker_style()),
+                    Span::styled(body, selected_style()),
+                ]))
             } else {
-                task_room_status_style(&room.status)
-            };
-            ListItem::new(Line::from(Span::styled(line, style)))
+                ListItem::new(Line::from(vec![
+                    Span::raw("  "),
+                    Span::styled(body, task_room_status_style(&room.status)),
+                ]))
+            }
         })
         .collect();
 

@@ -275,7 +275,7 @@ Stable IDs for plans/evals (craft, not R-FINAL RF*).
 | V2 room stream | **PASS** — header + roster + stream + `›` composer |
 | Grok V1–V4 theme/keys | **PASS** — see `evobuddy-tui-grok-visual-alignment.md` V-FINAL |
 | V4 Home demote panes | **PASS** — Tab stays on TaskRooms; secondary via palette/explicit keys |
-| V5 selection polish | **PARTIAL** — surface_alt selection; long-line left-bar only partial |
+| V5 selection polish | **PASS** — `❯` + focus color + surface_alt body (no full reverse magenta) |
 | V6 copy audit | **PASS** — daily path product language |
 | V5.2 double-tap quit | **PASS** — plain q / Ctrl+Q need second press within 1s |
 | V7 dual-pane Home | **PASS** — wide/compact = list \| room peek; ambient members line |
@@ -332,4 +332,5 @@ A craft pass is **shippable** when:
 |---|---|
 | 2026-07-22 | Initial craft spec: diagnosis of “ugly”, OpenCode/Grok direction, TEXT vs NAV keys, target Home/Room layouts, V0–V9 backlog, acceptance without conflating R-FINAL |
 | 2026-07-22 | Status honesty: P0 craft PASS; Home demote / dual-pane / compact still OPEN |
+| 2026-07-22 | V5–V9 mostly PASS; residual only optional dogfood |
 | 2026-07-22 | V7 dual-pane Home + V8 craft eval npm + V9 compact density; peek copy product language |

@@ -269,7 +269,7 @@ Existing focused cargo tests green before restyle.
 | V4.3 | Help lists actual bindings | **PASS** |
 | V4.4 | VE4 + VE5 pass | **PASS** (input_flow unit tests) |
 
-### V5 — Quit/destructive — **PARTIAL**
+### V5 — Quit/destructive — **PASS**
 
 | # | Requirement | Status |
 |---|---|---|
@@ -360,3 +360,4 @@ V-FINAL PASS — EvoBuddy TUI Grok craft
 | 2026-07-22 | Initial Grok visual/keyboard alignment from ref/grok-build user-guide + GrokNight source; V0–V5 / V-FINAL ladder; extract ref/grok-build-docs |
 | 2026-07-22 | V-FINAL PASS (L1 craft): GrokNight tokens+quantize, hierarchy, bar, list/compose keys, Ctrl+P |
 | 2026-07-22 | Intermediate V1–V5 section tables synced to PASS/PARTIAL; double-tap quit remains OPEN |
+| 2026-07-22 | V5 double-tap quit PASS; intermediate § tables synced |

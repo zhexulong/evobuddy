@@ -20,6 +20,8 @@ fn sample_room() -> TaskRoom {
             display_name: "Builder".to_string(),
             kind: "team-agent".to_string(),
             status: ActorStatus::Working,
+            role: "builder".to_string(),
+            runtime: "pi".to_string(),
             native_session_descriptor_id: Some("session-1".to_string()),
         }],
         rounds: vec![Round {

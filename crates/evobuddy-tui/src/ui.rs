@@ -13,10 +13,11 @@ use crate::backend::{
     load_workbench_state, run_backend_command, taskroom_archive_command, taskroom_create_command,
     taskroom_handoff_create_command, taskroom_message_send_command,
     taskroom_participant_add_command, taskroom_session_stop_command, BackendOptions,
+    TaskroomHandoffCreateRequest,
 };
-use crate::views::DetailView;
 use crate::input::{handle_key_event, KeyInput};
 use crate::terminal_mode::{CrosstermTerminalControl, TerminalControl};
+use crate::views::DetailView;
 use crate::views::ViewMode;
 use crate::widgets::command_palette::render_command_palette;
 use crate::widgets::confirm_action::render_confirm_action;
@@ -211,84 +212,6 @@ pub fn soft_quit_confirms(
         .unwrap_or(false)
 }
 
-#[cfg(test)]
-mod key_map_tests {
-    use super::*;
-    use crate::model::parse_workbench_state;
-    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
-    use std::fs;
-    use std::path::PathBuf;
-
-    fn sample_app() -> WorkbenchApp {
-        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-            .join("../../test/fixtures/evobuddy-workbench-state-v1.json");
-        let text = fs::read_to_string(path).expect("fixture");
-        WorkbenchApp::new(parse_workbench_state(&text).expect("parse"))
-    }
-
-    #[test]
-    fn ctrl_c_d_always_immediate_quit() {
-        let app = sample_app();
-        for (code, mods) in [
-            (KeyCode::Char('c'), KeyModifiers::CONTROL),
-            (KeyCode::Char('d'), KeyModifiers::CONTROL),
-        ] {
-            assert_eq!(
-                map_key_event(&app, KeyEvent::new(code, mods)),
-                Some(KeyInput::Quit)
-            );
-        }
-    }
-
-    #[test]
-    fn text_entry_types_letters_instead_of_commands() {
-        let mut app = sample_app();
-        app.push_view(ViewMode::Detail(DetailView::TaskRoom));
-        assert_eq!(
-            map_key_event(&app, KeyEvent::new(KeyCode::Char('n'), KeyModifiers::NONE)),
-            Some(KeyInput::Char('n'))
-        );
-        assert_eq!(
-            map_key_event(&app, KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE)),
-            Some(KeyInput::Char('q'))
-        );
-        assert_eq!(
-            map_key_event(&app, KeyEvent::new(KeyCode::Char('j'), KeyModifiers::NONE)),
-            Some(KeyInput::Char('j'))
-        );
-        assert_eq!(
-            map_key_event(&app, KeyEvent::new(KeyCode::Char('a'), KeyModifiers::NONE)),
-            Some(KeyInput::Char('a'))
-        );
-    }
-
-    #[test]
-    fn dashboard_q_and_ctrl_q_are_soft_quit() {
-        let app = sample_app();
-        assert_eq!(
-            map_key_event(&app, KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE)),
-            Some(KeyInput::SoftQuit)
-        );
-        assert_eq!(
-            map_key_event(
-                &app,
-                KeyEvent::new(KeyCode::Char('q'), KeyModifiers::CONTROL)
-            ),
-            Some(KeyInput::SoftQuit)
-        );
-    }
-
-    #[test]
-    fn soft_quit_double_tap_within_window() {
-        let t0 = std::time::Instant::now();
-        let t1 = t0 + Duration::from_millis(400);
-        let t2 = t0 + Duration::from_millis(1500);
-        assert!(!soft_quit_confirms(None, t0, Duration::from_secs(1)));
-        assert!(soft_quit_confirms(Some(t0), t1, Duration::from_secs(1)));
-        assert!(!soft_quit_confirms(Some(t0), t2, Duration::from_secs(1)));
-    }
-}
-
 pub fn run_interactive_app(app: &mut WorkbenchApp) -> Result<()> {
     let mut control = CrosstermTerminalControl;
     control.restore()?;
@@ -316,8 +239,7 @@ pub fn run_interactive_app(app: &mut WorkbenchApp) -> Result<()> {
                                 break;
                             }
                             soft_quit_armed_at = Some(now);
-                            app.action_status =
-                                Some("press q again to quit".to_string());
+                            app.action_status = Some("press q again to quit".to_string());
                             continue;
                         }
                         soft_quit_armed_at = None;
@@ -424,8 +346,7 @@ fn execute_workbench_effect(
             let project = project_root(app);
             let command = taskroom_message_send_command(&project, &room_id, &body, None);
             run_backend_command(&command, &project)?;
-            app.durable_writes
-                .push(format!("message in {room_id}"));
+            app.durable_writes.push(format!("message in {room_id}"));
             app.action_status = Some("message sent".to_string());
             if let Ok(state) = load_workbench_state(&BackendOptions {
                 project: project.clone(),
@@ -439,7 +360,12 @@ fn execute_workbench_effect(
             }) {
                 let selected_id = room_id.clone();
                 app.state = state;
-                if let Some(idx) = app.state.task_rooms.iter().position(|r| r.id == selected_id) {
+                if let Some(idx) = app
+                    .state
+                    .task_rooms
+                    .iter()
+                    .position(|r| r.id == selected_id)
+                {
                     app.selected_task_room = idx;
                 }
             }
@@ -493,13 +419,15 @@ fn execute_workbench_effect(
             );
             let command = taskroom_handoff_create_command(
                 &project,
-                &room_id,
-                &handoff_id,
-                &from,
-                &to,
-                "review-request",
-                Some(&body),
-                Some(&iso_now()),
+                TaskroomHandoffCreateRequest {
+                    room_id: &room_id,
+                    handoff_id: &handoff_id,
+                    from_instance: &from,
+                    to_instance: &to,
+                    handoff_kind: "review-request",
+                    body: Some(&body),
+                    created_at: Some(&iso_now()),
+                },
             );
             run_backend_command(&command, &project)?;
             app.durable_writes.push(format!("handoff {handoff_id}"));
@@ -570,4 +498,82 @@ fn maybe_dump_frame(app: &WorkbenchApp, width: u16, height: u16) -> Result<()> {
         eprintln!("\n<FRAME>\n{snapshot}</FRAME>");
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod key_map_tests {
+    use super::*;
+    use crate::model::parse_workbench_state;
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    use std::fs;
+    use std::path::PathBuf;
+
+    fn sample_app() -> WorkbenchApp {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../test/fixtures/evobuddy-workbench-state-v1.json");
+        let text = fs::read_to_string(path).expect("fixture");
+        WorkbenchApp::new(parse_workbench_state(&text).expect("parse"))
+    }
+
+    #[test]
+    fn ctrl_c_d_always_immediate_quit() {
+        let app = sample_app();
+        for (code, mods) in [
+            (KeyCode::Char('c'), KeyModifiers::CONTROL),
+            (KeyCode::Char('d'), KeyModifiers::CONTROL),
+        ] {
+            assert_eq!(
+                map_key_event(&app, KeyEvent::new(code, mods)),
+                Some(KeyInput::Quit)
+            );
+        }
+    }
+
+    #[test]
+    fn text_entry_types_letters_instead_of_commands() {
+        let mut app = sample_app();
+        app.push_view(ViewMode::Detail(DetailView::TaskRoom));
+        assert_eq!(
+            map_key_event(&app, KeyEvent::new(KeyCode::Char('n'), KeyModifiers::NONE)),
+            Some(KeyInput::Char('n'))
+        );
+        assert_eq!(
+            map_key_event(&app, KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE)),
+            Some(KeyInput::Char('q'))
+        );
+        assert_eq!(
+            map_key_event(&app, KeyEvent::new(KeyCode::Char('j'), KeyModifiers::NONE)),
+            Some(KeyInput::Char('j'))
+        );
+        assert_eq!(
+            map_key_event(&app, KeyEvent::new(KeyCode::Char('a'), KeyModifiers::NONE)),
+            Some(KeyInput::Char('a'))
+        );
+    }
+
+    #[test]
+    fn dashboard_q_and_ctrl_q_are_soft_quit() {
+        let app = sample_app();
+        assert_eq!(
+            map_key_event(&app, KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE)),
+            Some(KeyInput::SoftQuit)
+        );
+        assert_eq!(
+            map_key_event(
+                &app,
+                KeyEvent::new(KeyCode::Char('q'), KeyModifiers::CONTROL)
+            ),
+            Some(KeyInput::SoftQuit)
+        );
+    }
+
+    #[test]
+    fn soft_quit_double_tap_within_window() {
+        let t0 = std::time::Instant::now();
+        let t1 = t0 + Duration::from_millis(400);
+        let t2 = t0 + Duration::from_millis(1500);
+        assert!(!soft_quit_confirms(None, t0, Duration::from_secs(1)));
+        assert!(soft_quit_confirms(Some(t0), t1, Duration::from_secs(1)));
+        assert!(!soft_quit_confirms(Some(t0), t2, Duration::from_secs(1)));
+    }
 }

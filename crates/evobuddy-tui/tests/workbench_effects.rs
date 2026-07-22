@@ -7,6 +7,7 @@ use evobuddy_tui::app::{
 use evobuddy_tui::backend::{
     taskroom_archive_command, taskroom_create_command, taskroom_handoff_create_command,
     taskroom_participant_add_command, taskroom_session_stop_command, BackendCommand,
+    TaskroomHandoffCreateRequest,
 };
 use evobuddy_tui::input::{handle_key_event, KeyInput};
 use evobuddy_tui::model::parse_workbench_state;
@@ -231,13 +232,15 @@ fn backend_commands_use_structured_argv_only() {
     assert_eq!(
         taskroom_handoff_create_command(
             &project,
-            "taskroom:alpha",
-            "handoff:1",
-            "instance:builder:1",
-            "instance:reviewer:1",
-            "review-request",
-            Some("please review"),
-            Some("2026-07-20T12:02:00.000Z"),
+            TaskroomHandoffCreateRequest {
+                room_id: "taskroom:alpha",
+                handoff_id: "handoff:1",
+                from_instance: "instance:builder:1",
+                to_instance: "instance:reviewer:1",
+                handoff_kind: "review-request",
+                body: Some("please review"),
+                created_at: Some("2026-07-20T12:02:00.000Z"),
+            },
         ),
         BackendCommand {
             program: "node".to_string(),

@@ -95,6 +95,17 @@ pub struct BackendCommand {
     pub args: Vec<String>,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct TaskroomHandoffCreateRequest<'a> {
+    pub room_id: &'a str,
+    pub handoff_id: &'a str,
+    pub from_instance: &'a str,
+    pub to_instance: &'a str,
+    pub handoff_kind: &'a str,
+    pub body: Option<&'a str>,
+    pub created_at: Option<&'a str>,
+}
+
 fn read_state_file(path: &Path) -> Result<WorkbenchState> {
     let text = fs::read_to_string(path)
         .with_context(|| format!("failed to read state JSON: {}", path.display()))?;
@@ -440,13 +451,7 @@ pub fn taskroom_participant_add_command(
 
 pub fn taskroom_handoff_create_command(
     project: &Path,
-    room_id: &str,
-    handoff_id: &str,
-    from_instance: &str,
-    to_instance: &str,
-    handoff_kind: &str,
-    body: Option<&str>,
-    created_at: Option<&str>,
+    request: TaskroomHandoffCreateRequest<'_>,
 ) -> BackendCommand {
     let mut args = vec![
         "scripts/evobuddy/evobuddy.mjs".to_string(),
@@ -456,21 +461,21 @@ pub fn taskroom_handoff_create_command(
         "--project".to_string(),
         project.display().to_string(),
         "--room".to_string(),
-        room_id.to_string(),
+        request.room_id.to_string(),
         "--handoff-id".to_string(),
-        handoff_id.to_string(),
+        request.handoff_id.to_string(),
         "--from-instance".to_string(),
-        from_instance.to_string(),
+        request.from_instance.to_string(),
         "--to-instance".to_string(),
-        to_instance.to_string(),
+        request.to_instance.to_string(),
         "--handoff-kind".to_string(),
-        handoff_kind.to_string(),
+        request.handoff_kind.to_string(),
     ];
-    if let Some(body) = body {
+    if let Some(body) = request.body {
         args.push("--body".to_string());
         args.push(body.to_string());
     }
-    if let Some(created_at) = created_at {
+    if let Some(created_at) = request.created_at {
         args.push("--created-at".to_string());
         args.push(created_at.to_string());
     }

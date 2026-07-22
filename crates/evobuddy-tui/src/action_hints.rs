@@ -71,7 +71,7 @@ fn dashboard_hints(app: &WorkbenchApp) -> Vec<ActionHint> {
     let mut hints = vec![
         hint(
             "Enter",
-            if has_room { "Open" } else { "Open" }.to_string(),
+            "Open".to_string(),
             has_room,
             if has_room {
                 None

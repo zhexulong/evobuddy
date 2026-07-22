@@ -22,6 +22,7 @@ import {
   createPiFirstTaskRoom,
   handoffWithWake,
 } from '../../src/core/evobuddy-taskroom-pi-defaults.mjs';
+import { sendRoomWorkMessage } from '../../src/core/evobuddy-taskroom-activate.mjs';
 import {
   addCrewAgent,
   addCrewAgentToRoom,
@@ -311,37 +312,21 @@ async function taskroomMessageSend(argv) {
   if (!args.room) throw new Error('missing value for --room');
   if (!args.body) throw new Error('missing value for --body');
   const projectRoot = resolve(args.project);
-  const room = await readTaskRoom(projectRoot, args.room);
-  const builder = (room.participants ?? []).find((p) => p.role === 'builder')
-    ?? room.participants?.[0];
-  const from = args.fromInstance ?? args.from ?? builder?.participantId;
-  if (!from) throw new Error('missing from participant (no seats in room)');
-  const createdAt = args.createdAt ?? isoNow();
-  const message = await appendTaskRoomMessage(projectRoot, args.room, {
-    messageId: `message:user:${randomUUID()}`,
-    fromParticipantId: from,
-    toParticipantIds: [from],
-    kind: 'user-request',
+  const asTask = args.asTask === true || args['as-task'] === true
+    || argv.includes('--as-task');
+  const { message, activation } = await sendRoomWorkMessage(projectRoot, {
+    roomId: args.room,
     body: args.body,
-    artifactRefs: [],
-    createdAt,
+    fromParticipantId: args.fromInstance ?? args.from ?? null,
+    asTask,
+    createdAt: args.createdAt ?? isoNow(),
   });
-  // Elevate first human message into task title/objective when still untitled.
-  if (room.objective === 'new room' || room.title === 'new room' || room.title === room.roomId) {
-    const title = args.body.length > 80 ? `${args.body.slice(0, 77)}...` : args.body;
-    room.title = title;
-    room.objective = args.body;
-    if (room.task) {
-      room.task.status = room.task.status === 'Queued' ? 'Working' : room.task.status;
-    }
-    room.raftStatus = room.raftStatus === 'Queued' ? 'Working' : (room.raftStatus ?? 'Working');
-    const { writeFile } = await import('node:fs/promises');
-    const { resolveEvobuddyProjectState } = await import('../../src/core/evobuddy-project-state.mjs');
-    const { validateTaskRoom } = await import('../../src/core/evobuddy-taskroom-record.mjs');
-    const state = resolveEvobuddyProjectState({ projectRoot });
-    await writeFile(state.taskroomRoomJsonPath(args.room), `${JSON.stringify(validateTaskRoom(room), null, 2)}\n`, 'utf8');
+  if (args.json) {
+    return { stdout: `${JSON.stringify({ message, activation })}\n` };
   }
-  return { stdout: args.json ? `${JSON.stringify(message)}\n` : `${message.messageId}\n` };
+  const status = activation?.status ?? 'unknown';
+  const note = activation?.humanStatus ? ` · ${activation.humanStatus}` : '';
+  return { stdout: `${message.messageId} · ${status}${note}\n` };
 }
 
 async function taskroomParticipantAdd(argv) {

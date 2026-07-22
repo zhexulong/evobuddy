@@ -8,7 +8,10 @@ import { createPiFirstTaskRoom } from '../../src/core/evobuddy-taskroom-pi-defau
 import { appendTaskRoomMessage, readTaskRoom } from '../../src/core/evobuddy-taskroom-store.mjs';
 import { listWakes } from '../../src/core/evobuddy-taskroom-wake-store.mjs';
 import { readTaskRoomTimeline } from '../../src/core/evobuddy-taskroom-timeline.mjs';
-import { activatePrimaryOnRoomWork } from '../../src/core/evobuddy-taskroom-activate.mjs';
+import {
+  activatePrimaryOnRoomWork,
+  sendRoomWorkMessage,
+} from '../../src/core/evobuddy-taskroom-activate.mjs';
 
 test('activatePrimaryOnRoomWork wakes primary and posts agent-progress when spawn succeeds', async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-act-'));
@@ -87,4 +90,29 @@ test('activatePrimaryOnRoomWork is honest when spawn fails', async () => {
     && reloaded.backgroundRun?.status !== 'spawned'
     && reloaded.backgroundRun?.status !== 'already-live';
   assert.equal(fakeWorking, false);
+});
+
+test('sendRoomWorkMessage routes to primary and activates', async () => {
+  const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-send-'));
+  await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  const room = await createPiFirstTaskRoom(projectRoot, {
+    objective: 'new room',
+    template: 'solo',
+    roomId: 'taskroom:send-1',
+  });
+  const primary = room.participants[0];
+  const fakeWorker = { pid: 7, argv: ['pi', '--mode', 'rpc'], stop: async () => {} };
+  const { message, activation } = await sendRoomWorkMessage(projectRoot, {
+    roomId: room.roomId,
+    body: 'ship the login fix',
+  }, {
+    startPiRpcWorker: async () => fakeWorker,
+    listNativeSessions: async () => [],
+  });
+  assert.ok(message.toParticipantIds.includes(primary.participantId));
+  assert.ok(['spawned', 'already-live', 'queued-with-reason', 'woken'].includes(activation.status));
+  const wakes = await listWakes(projectRoot, room.roomId);
+  assert.ok(wakes.some((w) => w.participantId === primary.participantId));
+  // not self-only dead end as sole routing: primary is always a target
+  assert.deepEqual(message.toParticipantIds, [primary.participantId]);
 });

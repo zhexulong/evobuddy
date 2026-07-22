@@ -27,7 +27,10 @@ fn navigation_changes_selection_and_cycles_focus() {
     assert_eq!(app.selected_task_room, 1);
 
     handle_key_event(&mut app, KeyInput::Tab);
-    assert_eq!(app.focus, FocusPane::RuntimeSetup);
+    // Activity-first: Tab no longer cycles RuntimeSetup / TeamBuddies as peers.
+    assert_eq!(app.focus, FocusPane::TaskRooms);
+    handle_key_event(&mut app, KeyInput::ShiftTab);
+    assert_eq!(app.focus, FocusPane::TaskRooms);
 }
 
 #[test]

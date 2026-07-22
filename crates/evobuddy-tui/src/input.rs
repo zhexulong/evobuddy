@@ -25,6 +25,7 @@ pub enum KeyInput {
     ToggleTaskRooms,
     ToggleUpdates,
     Quit,
+    SoftQuit,
     StructuredAnswer(u8),
     Char(char),
     Backspace,
@@ -232,44 +233,35 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
             }
             WorkbenchEffect::None
         }
-        KeyInput::Quit => WorkbenchEffect::None,
+        KeyInput::Quit | KeyInput::SoftQuit => WorkbenchEffect::None,
     }
 }
 
 fn move_selection(app: &mut WorkbenchApp, delta: isize) {
-    match app.focus {
-        FocusPane::TeamBuddies => app.select_next_actor(delta),
-        FocusPane::TaskRooms => {
-            let max = app.state.task_rooms.len().saturating_sub(1) as isize;
-            app.selected_task_room =
-                (app.selected_task_room as isize + delta).clamp(0, max) as usize;
-        }
-        FocusPane::RuntimeSetup => {
-            let max = app.state.runtime_setup.len().saturating_sub(1) as isize;
-            app.selected_runtime_setup =
-                (app.selected_runtime_setup as isize + delta).clamp(0, max) as usize;
-        }
-        FocusPane::Updates => {
-            let max = app.state.updates.len().saturating_sub(1) as isize;
-            app.selected_update = (app.selected_update as isize + delta).clamp(0, max) as usize;
-        }
+    if app.focus != FocusPane::TaskRooms {
+        app.focus = FocusPane::TaskRooms;
     }
+    let max = app.state.task_rooms.len().saturating_sub(1) as isize;
+    app.selected_task_room = (app.selected_task_room as isize + delta).clamp(0, max) as usize;
 }
 
-fn next_focus(current: FocusPane) -> FocusPane {
-    match current {
-        FocusPane::TeamBuddies => FocusPane::TaskRooms,
-        FocusPane::TaskRooms => FocusPane::RuntimeSetup,
-        FocusPane::RuntimeSetup => FocusPane::Updates,
-        FocusPane::Updates => FocusPane::TeamBuddies,
-    }
+fn next_focus(_current: FocusPane) -> FocusPane {
+    FocusPane::TaskRooms
 }
 
-fn previous_focus(current: FocusPane) -> FocusPane {
-    match current {
-        FocusPane::TeamBuddies => FocusPane::Updates,
-        FocusPane::TaskRooms => FocusPane::TeamBuddies,
-        FocusPane::RuntimeSetup => FocusPane::TaskRooms,
-        FocusPane::Updates => FocusPane::RuntimeSetup,
+fn previous_focus(_current: FocusPane) -> FocusPane {
+    FocusPane::TaskRooms
+}
+
+#[cfg(test)]
+mod focus_tests {
+    use super::*;
+
+    #[test]
+    fn tab_stays_on_task_rooms_activity_first() {
+        assert_eq!(next_focus(FocusPane::TaskRooms), FocusPane::TaskRooms);
+        assert_eq!(next_focus(FocusPane::TeamBuddies), FocusPane::TaskRooms);
+        assert_eq!(next_focus(FocusPane::RuntimeSetup), FocusPane::TaskRooms);
+        assert_eq!(previous_focus(FocusPane::Updates), FocusPane::TaskRooms);
     }
 }

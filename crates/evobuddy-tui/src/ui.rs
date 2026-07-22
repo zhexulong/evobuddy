@@ -102,19 +102,23 @@ fn is_text_entry_view(app: &WorkbenchApp) -> bool {
     )
 }
 
-fn is_global_quit_chord(key: KeyEvent) -> bool {
+fn is_immediate_quit_chord(key: KeyEvent) -> bool {
+    matches!(
+        key.code,
+        KeyCode::Char('c') | KeyCode::Char('d') if key.modifiers.contains(KeyModifiers::CONTROL)
+    )
+}
+
+fn is_soft_quit_chord(key: KeyEvent) -> bool {
     match key.code {
-        KeyCode::Char('c') | KeyCode::Char('d') | KeyCode::Char('q')
-            if key.modifiers.contains(KeyModifiers::CONTROL) =>
-        {
-            true
-        }
+        KeyCode::Char('q') if key.modifiers.contains(KeyModifiers::CONTROL) => true,
+        KeyCode::Char('q') if key.modifiers.is_empty() => true,
         _ => false,
     }
 }
 
 fn map_key_event(app: &WorkbenchApp, key: KeyEvent) -> Option<KeyInput> {
-    if is_global_quit_chord(key) {
+    if is_immediate_quit_chord(key) {
         return Some(KeyInput::Quit);
     }
 
@@ -141,6 +145,10 @@ fn map_key_event(app: &WorkbenchApp, key: KeyEvent) -> Option<KeyInput> {
             }
             _ => None,
         };
+    }
+
+    if is_soft_quit_chord(key) {
+        return Some(KeyInput::SoftQuit);
     }
 
     match key.code {
@@ -177,7 +185,6 @@ fn map_key_event(app: &WorkbenchApp, key: KeyEvent) -> Option<KeyInput> {
         KeyCode::Char('a') if key.modifiers.is_empty() => Some(KeyInput::Actions),
         KeyCode::Char('r') if key.modifiers.is_empty() => Some(KeyInput::Trace),
         KeyCode::Char('u') if key.modifiers.is_empty() => Some(KeyInput::Updates),
-        KeyCode::Char('q') if key.modifiers.is_empty() => Some(KeyInput::Quit),
         KeyCode::Char('b') if key.modifiers.contains(KeyModifiers::CONTROL) => {
             Some(KeyInput::ToggleTaskRooms)
         }
@@ -192,6 +199,16 @@ fn map_key_event(app: &WorkbenchApp, key: KeyEvent) -> Option<KeyInput> {
         }
         _ => None,
     }
+}
+
+pub fn soft_quit_confirms(
+    armed_at: Option<std::time::Instant>,
+    now: std::time::Instant,
+    window: Duration,
+) -> bool {
+    armed_at
+        .map(|prev| now.duration_since(prev) <= window)
+        .unwrap_or(false)
 }
 
 #[cfg(test)]
@@ -210,12 +227,11 @@ mod key_map_tests {
     }
 
     #[test]
-    fn ctrl_quit_chords_always_quit() {
+    fn ctrl_c_d_always_immediate_quit() {
         let app = sample_app();
         for (code, mods) in [
             (KeyCode::Char('c'), KeyModifiers::CONTROL),
             (KeyCode::Char('d'), KeyModifiers::CONTROL),
-            (KeyCode::Char('q'), KeyModifiers::CONTROL),
         ] {
             assert_eq!(
                 map_key_event(&app, KeyEvent::new(code, mods)),
@@ -247,12 +263,29 @@ mod key_map_tests {
     }
 
     #[test]
-    fn dashboard_plain_q_still_quits() {
+    fn dashboard_q_and_ctrl_q_are_soft_quit() {
         let app = sample_app();
         assert_eq!(
             map_key_event(&app, KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE)),
-            Some(KeyInput::Quit)
+            Some(KeyInput::SoftQuit)
         );
+        assert_eq!(
+            map_key_event(
+                &app,
+                KeyEvent::new(KeyCode::Char('q'), KeyModifiers::CONTROL)
+            ),
+            Some(KeyInput::SoftQuit)
+        );
+    }
+
+    #[test]
+    fn soft_quit_double_tap_within_window() {
+        let t0 = std::time::Instant::now();
+        let t1 = t0 + Duration::from_millis(400);
+        let t2 = t0 + Duration::from_millis(1500);
+        assert!(!soft_quit_confirms(None, t0, Duration::from_secs(1)));
+        assert!(soft_quit_confirms(Some(t0), t1, Duration::from_secs(1)));
+        assert!(!soft_quit_confirms(Some(t0), t2, Duration::from_secs(1)));
     }
 }
 
@@ -264,6 +297,8 @@ pub fn run_interactive_app(app: &mut WorkbenchApp) -> Result<()> {
     let mut terminal = Terminal::new(backend).context("failed to create terminal")?;
 
     let result = (|| -> Result<()> {
+        let soft_quit_window = Duration::from_secs(1);
+        let mut soft_quit_armed_at: Option<std::time::Instant> = None;
         loop {
             terminal
                 .draw(|frame| render_frame(frame, app))
@@ -275,6 +310,17 @@ pub fn run_interactive_app(app: &mut WorkbenchApp) -> Result<()> {
                         if mapped == KeyInput::Quit {
                             break;
                         }
+                        if mapped == KeyInput::SoftQuit {
+                            let now = std::time::Instant::now();
+                            if soft_quit_confirms(soft_quit_armed_at, now, soft_quit_window) {
+                                break;
+                            }
+                            soft_quit_armed_at = Some(now);
+                            app.action_status =
+                                Some("press q again to quit".to_string());
+                            continue;
+                        }
+                        soft_quit_armed_at = None;
                         let effect = handle_key_event(app, mapped);
                         execute_workbench_effect(app, &mut terminal, &mut control, effect)?;
                     }

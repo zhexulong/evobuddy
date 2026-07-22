@@ -274,9 +274,10 @@ Stable IDs for plans/evals (craft, not R-FINAL RF*).
 | V0 / V1 (craft keys) | **PASS** — text-entry mode + Ctrl quit |
 | V2 room stream | **PASS** — header + roster + stream + `›` composer |
 | Grok V1–V4 theme/keys | **PASS** — see `evobuddy-tui-grok-visual-alignment.md` V-FINAL |
-| V4 Home demote panes | **PARTIAL** — Activity-first; TeamBuddies/RuntimeSetup still Tab-reachable |
+| V4 Home demote panes | **PASS** — Tab stays on TaskRooms; secondary via palette/explicit keys |
 | V5 selection polish | **PARTIAL** — surface_alt selection; long-line left-bar only partial |
 | V6 copy audit | **PASS** — daily path product language |
+| V5.2 double-tap quit | **PASS** — plain q / Ctrl+Q need second press within 1s |
 | V7 dual-pane Home | **OPEN** |
 | V8 visual regression harness | **PARTIAL** — cargo snapshots; no dedicated visual eval npm script |
 | V9 theme spacing pass | **PARTIAL** — tokens live; density compact mode open |

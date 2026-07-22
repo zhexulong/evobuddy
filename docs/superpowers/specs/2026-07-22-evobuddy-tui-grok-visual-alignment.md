@@ -26,8 +26,8 @@
 | **V2** | Surface hierarchy (bg layers, selection, muted) | **PASS** (bg/surface/highlight + status colors) | Layered Night palette |
 | **V3** | Action bar + hint craft | **PASS** (themed bar + short product keys) | Bottom bar craft |
 | **V4** | Keyboard model (list vs compose focus) | **PASS** (TEXT/NAV + Ctrl+P) | Letters don’t steal; palette alias |
-| **V5** | Quit / destructive double-tap | **PARTIAL** (Ctrl quit always; double-tap optional) | VR2 recommended |
-| **V-FINAL** | “Not ugly” craft bar (EvoBuddy Home) | **PASS (L1 craft)** | V1–V4; dogfood recommended |
+| **V5** | Quit / destructive double-tap | **PASS** (Ctrl+C/D immediate; q / Ctrl+Q double-tap 1s) | Soft quit armed |
+| **V-FINAL** | “Not ugly” craft bar (EvoBuddy Home) | **PASS (L1 craft)** | V1–V5 |
 
 **Rule:** V-FINAL is **visual craft**. It does **not** replace R-FINAL (Raft loop) or L1 wire-through FINAL.
 
@@ -274,7 +274,7 @@ Existing focused cargo tests green before restyle.
 | # | Requirement | Status |
 |---|---|---|
 | V5.1 | Documented quit chords | **PASS** |
-| V5.2 | Optional double-tap `q` / Ctrl+Q policy aligned with Grok spirit | **OPEN** (recommended VR2) |
+| V5.2 | Optional double-tap `q` / Ctrl+Q policy aligned with Grok spirit | **PASS** (1s window; Ctrl+C/D still immediate) |
 
 ---
 

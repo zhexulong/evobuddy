@@ -287,6 +287,18 @@ pub fn surface_block(title: &str, focused: bool) -> Block<'static> {
     pane_block(title, focused)
 }
 
+pub fn compact_density() -> bool {
+    env_truthy("EVOBUDDY_TUI_COMPACT")
+}
+
+pub fn home_body_min_height() -> u16 {
+    if compact_density() {
+        10
+    } else {
+        14
+    }
+}
+
 #[cfg(test)]
 mod theme_tests {
     use super::*;

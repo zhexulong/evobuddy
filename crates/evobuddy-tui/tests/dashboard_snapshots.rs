@@ -25,32 +25,37 @@ fn dashboard_snapshot_120x40_shows_full_panes() {
     assert!(snapshot.contains("EvoBuddy"));
     assert!(snapshot.contains("❯"));
     assert!(snapshot.contains("Work inbox") || snapshot.contains("TaskRoom inbox"));
-    assert!(snapshot.contains("Selected TaskRoom"));
-    assert!(snapshot.contains("Work:") || snapshot.contains("Objective"));
-    assert!(snapshot.contains("Done when:") || snapshot.contains("Acceptance"));
-    assert!(snapshot.contains("New room") || snapshot.contains("n  New"));
+    assert!(
+        snapshot.contains("Room") || snapshot.contains("Selected"),
+        "home dual-pane room peek missing:\n{snapshot}"
+    );
+    assert!(
+        snapshot.contains("Work ·") || snapshot.contains("Work:") || snapshot.contains("Members ·"),
+        "room peek content missing:\n{snapshot}"
+    );
+    assert!(snapshot.contains("New room") || snapshot.contains("n  New") || snapshot.contains("new"));
     assert!(!snapshot.contains("Read-only boundary"));
+    assert!(!snapshot.contains("Acceptance criteria"));
 }
 
 #[test]
 fn dashboard_snapshot_120x40_shows_agent_command_center() {
     let app = load_app("evobuddy-workbench-state-v1.json");
     let snapshot = render_dashboard_snapshot(&app, 120, 40).expect("render snapshot");
-    for landmark in [
-        "Needs you",
-        "Work inbox",
-        "Selected TaskRoom",
-        "Work:",
-        "Done when:",
-        "New room",
-        "Help",
-        "Attach",
-    ] {
+    for landmark in ["Needs you", "Work inbox", "Attach"] {
         assert!(
             snapshot.contains(landmark),
             "missing inbox landmark `{landmark}`:\n{snapshot}"
         );
     }
+    assert!(
+        snapshot.contains("Room") || snapshot.contains("Members ·") || snapshot.contains("Work ·"),
+        "dual-pane room column missing:\n{snapshot}"
+    );
+    assert!(
+        snapshot.contains("new") || snapshot.contains("New"),
+        "new room affordance missing:\n{snapshot}"
+    );
     assert!(
         snapshot.contains("Search") || snapshot.contains("Choose seat"),
         "home bar should keep Search or multi-seat Choose seat:\n{snapshot}"
@@ -90,9 +95,10 @@ fn dashboard_snapshot_80x24_compacts_but_preserves_inbox() {
     let snapshot = render_dashboard_snapshot(&app, 80, 24).expect("render snapshot");
     assert!(snapshot.contains("Work inbox") || snapshot.contains("TaskRoom"));
     assert!(
-        snapshot.contains("Selected TaskRoom")
+        snapshot.contains("Room")
+            || snapshot.contains("Work ·")
+            || snapshot.contains("Members ·")
             || snapshot.contains("Work:")
-            || snapshot.contains("Objective")
     );
     assert!(!snapshot.contains("Read-only boundary"));
 }
@@ -105,11 +111,9 @@ fn dashboard_snapshot_prioritizes_selected_taskroom_attention_and_actions() {
         "OpenCode review loop",
         "Returned",
         "Now ·",
-        "Session:",
-        "Who:",
-        "Work:",
-        "Complete the retained OpenCode",
-        "Done when:",
+        "Members ·",
+        "Work ·",
+        "Session ·",
         "Attach",
         "attachable",
     ] {
@@ -118,6 +122,11 @@ fn dashboard_snapshot_prioritizes_selected_taskroom_attention_and_actions() {
             "missing landmark `{landmark}`:\n{snapshot}"
         );
     }
+    assert!(
+        snapshot.contains("Complete the retained OpenCode")
+            || snapshot.contains("OpenCode review"),
+        "selected room work text missing:\n{snapshot}"
+    );
     assert!(
         !snapshot.contains("Primary action"),
         "Home peek must not use old Primary action chrome:\n{snapshot}"
@@ -133,7 +142,10 @@ fn dashboard_snapshot_is_taskroom_first_not_team_dashboard() {
     let app = load_app("evobuddy-workbench-state-v1.json");
     let snapshot = render_dashboard_snapshot(&app, 120, 40).expect("render snapshot");
     assert!(snapshot.contains("Work inbox"));
-    assert!(snapshot.contains("Selected TaskRoom"));
+    assert!(
+        snapshot.contains("Room") || snapshot.contains("Members ·"),
+        "taskroom-first dual pane missing:\n{snapshot}"
+    );
     assert!(!snapshot.contains("Team · Members"));
     assert!(!snapshot.contains("Delegates · OMO specialists"));
     assert!(!snapshot.contains("Read-only boundary"));

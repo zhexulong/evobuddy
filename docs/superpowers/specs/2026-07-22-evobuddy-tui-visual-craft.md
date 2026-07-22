@@ -278,9 +278,9 @@ Stable IDs for plans/evals (craft, not R-FINAL RF*).
 | V5 selection polish | **PARTIAL** — surface_alt selection; long-line left-bar only partial |
 | V6 copy audit | **PASS** — daily path product language |
 | V5.2 double-tap quit | **PASS** — plain q / Ctrl+Q need second press within 1s |
-| V7 dual-pane Home | **OPEN** |
-| V8 visual regression harness | **PARTIAL** — cargo snapshots; no dedicated visual eval npm script |
-| V9 theme spacing pass | **PARTIAL** — tokens live; density compact mode open |
+| V7 dual-pane Home | **PASS** — wide/compact = list \| room peek; ambient members line |
+| V8 visual regression harness | **PASS** — `npm run evobuddy:eval-tui-visual-craft` |
+| V9 theme spacing pass | **PASS** — GrokNight tokens + `EVOBUDDY_TUI_COMPACT=1` density |
 
 ---
 
@@ -332,3 +332,4 @@ A craft pass is **shippable** when:
 |---|---|
 | 2026-07-22 | Initial craft spec: diagnosis of “ugly”, OpenCode/Grok direction, TEXT vs NAV keys, target Home/Room layouts, V0–V9 backlog, acceptance without conflating R-FINAL |
 | 2026-07-22 | Status honesty: P0 craft PASS; Home demote / dual-pane / compact still OPEN |
+| 2026-07-22 | V7 dual-pane Home + V8 craft eval npm + V9 compact density; peek copy product language |

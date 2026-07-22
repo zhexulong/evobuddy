@@ -238,11 +238,23 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
 }
 
 fn move_selection(app: &mut WorkbenchApp, delta: isize) {
-    if app.focus != FocusPane::TaskRooms {
-        app.focus = FocusPane::TaskRooms;
+    match app.focus {
+        FocusPane::TeamBuddies => app.select_next_actor(delta),
+        FocusPane::TaskRooms => {
+            let max = app.state.task_rooms.len().saturating_sub(1) as isize;
+            app.selected_task_room =
+                (app.selected_task_room as isize + delta).clamp(0, max) as usize;
+        }
+        FocusPane::RuntimeSetup => {
+            let max = app.state.runtime_setup.len().saturating_sub(1) as isize;
+            app.selected_runtime_setup =
+                (app.selected_runtime_setup as isize + delta).clamp(0, max) as usize;
+        }
+        FocusPane::Updates => {
+            let max = app.state.updates.len().saturating_sub(1) as isize;
+            app.selected_update = (app.selected_update as isize + delta).clamp(0, max) as usize;
+        }
     }
-    let max = app.state.task_rooms.len().saturating_sub(1) as isize;
-    app.selected_task_room = (app.selected_task_room as isize + delta).clamp(0, max) as usize;
 }
 
 fn next_focus(_current: FocusPane) -> FocusPane {

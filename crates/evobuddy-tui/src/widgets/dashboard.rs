@@ -7,7 +7,7 @@ use ratatui::Frame;
 use crate::action_hints::action_hints;
 use crate::app::{FocusPane, WorkbenchApp};
 use crate::model::RuntimeSetupStatus;
-use crate::theme::{muted_style, theme};
+use crate::theme::{compact_density, home_body_min_height, muted_style, theme};
 use crate::widgets::action_bar::render_action_bar;
 use crate::widgets::inbox::{
     attention_counts, render_selected_task_room_detail, render_work_inbox,
@@ -100,35 +100,54 @@ fn render_attention_strip(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect)
 }
 
 fn render_wide(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
-    let rows = Layout::default()
-        .direction(Direction::Vertical)
-        .constraints([
-            Constraint::Length(1),
-            Constraint::Length(1),
-            Constraint::Min(14),
-            Constraint::Length(1),
-            Constraint::Length(1),
-        ])
-        .split(area);
+    let min_body = home_body_min_height();
+    let show_context = !compact_density();
+    let rows = if show_context {
+        Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Min(min_body),
+                Constraint::Length(1),
+                Constraint::Length(1),
+            ])
+            .split(area)
+    } else {
+        Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Min(min_body),
+                Constraint::Length(1),
+            ])
+            .split(area)
+    };
     render_header(frame, app, rows[0]);
     render_attention_strip(frame, app, rows[1]);
     let body = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(62), Constraint::Percentage(38)])
+        .constraints([Constraint::Percentage(58), Constraint::Percentage(42)])
         .split(rows[2]);
     render_work_inbox(frame, app, body[0], app.focus == FocusPane::TaskRooms);
     render_selected_task_room_detail(frame, app, body[1], app.focus == FocusPane::TaskRooms);
-    render_context_line(frame, app, rows[3]);
-    render_footer(frame, app, rows[4]);
+    if show_context {
+        render_context_line(frame, app, rows[3]);
+        render_footer(frame, app, rows[4]);
+    } else {
+        render_footer(frame, app, rows[3]);
+    }
 }
 
 fn render_compact(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
+    let min_body = if compact_density() { 10 } else { 12 };
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(1),
             Constraint::Length(1),
-            Constraint::Min(12),
+            Constraint::Min(min_body),
             Constraint::Length(1),
         ])
         .split(area);
@@ -144,13 +163,14 @@ fn render_compact(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
 }
 
 fn render_narrow(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
+    let peek_h = if compact_density() { 4 } else { 5 };
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(1),
             Constraint::Length(1),
             Constraint::Min(8),
-            Constraint::Length(5),
+            Constraint::Length(peek_h),
             Constraint::Length(1),
         ])
         .split(area);
@@ -163,6 +183,7 @@ fn render_narrow(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
 
 fn render_context_line(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
     let t = theme();
+    let team = team_roster_pills(app);
     let ready = app
         .state
         .runtime_setup
@@ -170,23 +191,12 @@ fn render_context_line(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect) {
         .filter(|r| matches!(r.status, RuntimeSetupStatus::Ready))
         .count();
     let total = app.state.runtime_setup.len();
-    let runtimes = app
-        .state
-        .runtime_setup
-        .iter()
-        .take(3)
-        .map(|s| format!("{} {}", s.runtime, runtime_status_label(&s.status)))
-        .collect::<Vec<_>>()
-        .join(" · ");
-    let team = team_roster_pills(app);
-    let text = if total == 0 && team.is_empty() {
-        " No runtime probes yet ".to_string()
-    } else if team.is_empty() {
-        format!(" {ready}/{total} ready · {runtimes} ")
-    } else if total == 0 {
-        format!(" Team {team} ")
+    let text = if !team.is_empty() {
+        format!(" members · {team} ")
+    } else if total > 0 {
+        format!(" {ready}/{total} runtimes ready ")
     } else {
-        format!(" Team {team} · {ready}/{total} ready · {runtimes} ")
+        " n new · enter open room ".to_string()
     };
     frame.render_widget(
         Paragraph::new(Span::styled(
@@ -233,15 +243,4 @@ fn runtime_readiness_summary(app: &WorkbenchApp) -> String {
     format!("{ready}/{} ready", app.state.runtime_setup.len())
 }
 
-fn runtime_status_label(status: &RuntimeSetupStatus) -> &'static str {
-    match status {
-        RuntimeSetupStatus::Ready => "ok",
-        RuntimeSetupStatus::Partial => "partial",
-        RuntimeSetupStatus::Blocked => "blocked",
-        RuntimeSetupStatus::Working => "working",
-        RuntimeSetupStatus::Returned => "returned",
-        RuntimeSetupStatus::Available => "available",
-        RuntimeSetupStatus::Archived => "archived",
-        RuntimeSetupStatus::Unknown => "?",
-    }
-}
+

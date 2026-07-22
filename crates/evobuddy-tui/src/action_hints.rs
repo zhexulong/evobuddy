@@ -34,9 +34,8 @@ pub fn action_hints(app: &WorkbenchApp) -> Vec<ActionHint> {
         ],
         ViewMode::Detail(crate::views::DetailView::TaskRoom) => vec![
             hint("Enter", "Send", true, None),
-            hint("a", "Attach", true, None),
+            hint("^A", "Attach", true, None),
             hint("Esc", "Back", true, None),
-            hint("?", "Help", true, None),
         ],
         ViewMode::Help
         | ViewMode::TraceDrawer

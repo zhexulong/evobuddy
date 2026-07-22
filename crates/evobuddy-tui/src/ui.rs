@@ -90,25 +90,59 @@ pub fn render_frame(frame: &mut ratatui::Frame<'_>, app: &WorkbenchApp) {
     }
 }
 
-fn is_quit_chord(key: KeyEvent) -> bool {
-    if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
-        return true;
-    }
-    if key.code == KeyCode::Char('d') && key.modifiers.contains(KeyModifiers::CONTROL) {
-        return true;
-    }
-    if key.code == KeyCode::Char('q')
-        && (key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL))
-    {
-        return true;
-    }
-    false
+fn is_text_entry_view(app: &WorkbenchApp) -> bool {
+    matches!(
+        app.view_mode,
+        ViewMode::TaskRoomForm
+            | ViewMode::HandoffForm
+            | ViewMode::Search
+            | ViewMode::CommandPalette
+            | ViewMode::Detail(DetailView::TaskRoom)
+            | ViewMode::StructuredQuestion
+    )
 }
 
-fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
-    if is_quit_chord(key) {
+fn is_global_quit_chord(key: KeyEvent) -> bool {
+    match key.code {
+        KeyCode::Char('c') | KeyCode::Char('d') | KeyCode::Char('q')
+            if key.modifiers.contains(KeyModifiers::CONTROL) =>
+        {
+            true
+        }
+        _ => false,
+    }
+}
+
+fn map_key_event(app: &WorkbenchApp, key: KeyEvent) -> Option<KeyInput> {
+    if is_global_quit_chord(key) {
         return Some(KeyInput::Quit);
     }
+
+    if is_text_entry_view(app) {
+        return match key.code {
+            KeyCode::Enter => Some(KeyInput::Enter),
+            KeyCode::Esc => Some(KeyInput::Escape),
+            KeyCode::Backspace | KeyCode::Delete => Some(KeyInput::Backspace),
+            KeyCode::Tab if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                Some(KeyInput::NextField)
+            }
+            KeyCode::Tab => Some(if key.modifiers.contains(KeyModifiers::SHIFT) {
+                KeyInput::ShiftTab
+            } else {
+                KeyInput::Tab
+            }),
+            KeyCode::Char('a') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                Some(KeyInput::Actions)
+            }
+            KeyCode::Char(ch)
+                if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
+            {
+                Some(KeyInput::Char(ch))
+            }
+            _ => None,
+        };
+    }
+
     match key.code {
         KeyCode::Up => Some(KeyInput::Up),
         KeyCode::Down => Some(KeyInput::Down),
@@ -123,8 +157,8 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
         } else {
             KeyInput::Tab
         }),
-        KeyCode::Char('j') => Some(KeyInput::Down),
-        KeyCode::Char('k') => Some(KeyInput::Up),
+        KeyCode::Char('j') if key.modifiers.is_empty() => Some(KeyInput::Down),
+        KeyCode::Char('k') if key.modifiers.is_empty() => Some(KeyInput::Up),
         KeyCode::Char('/')
             if key.modifiers.contains(KeyModifiers::CONTROL) || key.modifiers.is_empty() =>
         {
@@ -136,10 +170,11 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
         KeyCode::Char('n') if key.modifiers.is_empty() => Some(KeyInput::NewRoom),
         KeyCode::Char('m') if key.modifiers.is_empty() => Some(KeyInput::ChooseSeat),
         KeyCode::Char('h') if key.modifiers.is_empty() => Some(KeyInput::Handoff),
-        KeyCode::Char('?') => Some(KeyInput::Help),
+        KeyCode::Char('?') if key.modifiers.is_empty() => Some(KeyInput::Help),
         KeyCode::Char('a') if key.modifiers.is_empty() => Some(KeyInput::Actions),
         KeyCode::Char('r') if key.modifiers.is_empty() => Some(KeyInput::Trace),
         KeyCode::Char('u') if key.modifiers.is_empty() => Some(KeyInput::Updates),
+        KeyCode::Char('q') if key.modifiers.is_empty() => Some(KeyInput::Quit),
         KeyCode::Char('b') if key.modifiers.contains(KeyModifiers::CONTROL) => {
             Some(KeyInput::ToggleTaskRooms)
         }
@@ -157,20 +192,64 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
 }
 
 #[cfg(test)]
-mod quit_chord_tests {
+mod key_map_tests {
     use super::*;
+    use crate::model::parse_workbench_state;
     use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+    use std::fs;
+    use std::path::PathBuf;
+
+    fn sample_app() -> WorkbenchApp {
+        let path = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+            .join("../../test/fixtures/evobuddy-workbench-state-v1.json");
+        let text = fs::read_to_string(path).expect("fixture");
+        WorkbenchApp::new(parse_workbench_state(&text).expect("parse"))
+    }
 
     #[test]
-    fn ctrl_c_d_q_and_plain_q_map_to_quit() {
-        let ctrl_c = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
-        let ctrl_d = KeyEvent::new(KeyCode::Char('d'), KeyModifiers::CONTROL);
-        let ctrl_q = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::CONTROL);
-        let plain_q = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE);
-        assert_eq!(map_key_event(ctrl_c), Some(KeyInput::Quit));
-        assert_eq!(map_key_event(ctrl_d), Some(KeyInput::Quit));
-        assert_eq!(map_key_event(ctrl_q), Some(KeyInput::Quit));
-        assert_eq!(map_key_event(plain_q), Some(KeyInput::Quit));
+    fn ctrl_quit_chords_always_quit() {
+        let app = sample_app();
+        for (code, mods) in [
+            (KeyCode::Char('c'), KeyModifiers::CONTROL),
+            (KeyCode::Char('d'), KeyModifiers::CONTROL),
+            (KeyCode::Char('q'), KeyModifiers::CONTROL),
+        ] {
+            assert_eq!(
+                map_key_event(&app, KeyEvent::new(code, mods)),
+                Some(KeyInput::Quit)
+            );
+        }
+    }
+
+    #[test]
+    fn text_entry_types_letters_instead_of_commands() {
+        let mut app = sample_app();
+        app.push_view(ViewMode::Detail(DetailView::TaskRoom));
+        assert_eq!(
+            map_key_event(&app, KeyEvent::new(KeyCode::Char('n'), KeyModifiers::NONE)),
+            Some(KeyInput::Char('n'))
+        );
+        assert_eq!(
+            map_key_event(&app, KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE)),
+            Some(KeyInput::Char('q'))
+        );
+        assert_eq!(
+            map_key_event(&app, KeyEvent::new(KeyCode::Char('j'), KeyModifiers::NONE)),
+            Some(KeyInput::Char('j'))
+        );
+        assert_eq!(
+            map_key_event(&app, KeyEvent::new(KeyCode::Char('a'), KeyModifiers::NONE)),
+            Some(KeyInput::Char('a'))
+        );
+    }
+
+    #[test]
+    fn dashboard_plain_q_still_quits() {
+        let app = sample_app();
+        assert_eq!(
+            map_key_event(&app, KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE)),
+            Some(KeyInput::Quit)
+        );
     }
 }
 
@@ -189,7 +268,7 @@ pub fn run_interactive_app(app: &mut WorkbenchApp) -> Result<()> {
             maybe_dump_frame(app, terminal.size()?.width, terminal.size()?.height)?;
             if event::poll(Duration::from_millis(100)).context("failed to poll terminal events")? {
                 if let Event::Key(key) = event::read().context("failed to read terminal event")? {
-                    if let Some(mapped) = map_key_event(key) {
+                    if let Some(mapped) = map_key_event(app, key) {
                         if mapped == KeyInput::Quit {
                             break;
                         }

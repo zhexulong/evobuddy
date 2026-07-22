@@ -187,12 +187,17 @@ fn task_room_detail_shows_thread_and_composer() {
     handle_key_event(&mut app, KeyInput::Char('p'));
 
     let snapshot = render_current_snapshot(&app, 120, 40).expect("render room thread");
-    for landmark in ["Room", "Thread", "Composer", "map", "Enter send"] {
+    for landmark in ["map", "enter send", "esc back"] {
         assert!(
-            snapshot.contains(landmark),
+            snapshot.to_lowercase().contains(&landmark.to_lowercase())
+                || snapshot.contains(landmark),
             "missing room thread landmark `{landmark}` in snapshot:\n{snapshot}"
         );
     }
+    assert!(
+        snapshot.contains("map") || snapshot.contains("›"),
+        "composer draft missing in snapshot:\n{snapshot}"
+    );
     for forbidden in ["Acceptance criteria", "Safety mode", "TaskRoom Form"] {
         assert!(
             !snapshot.contains(forbidden),
@@ -230,10 +235,10 @@ fn taskroom_detail_view_uses_sorted_selected_room_not_raw_fixture_order() {
 
     let snapshot = render_current_snapshot(&app, 80, 20).expect("render detail snapshot");
 
-    assert!(
-        snapshot.contains("Room") || snapshot.contains("Thread"),
-        "{snapshot}"
-    );
     assert!(snapshot.contains("Urgent room sorted-first"), "{snapshot}");
     assert!(!snapshot.contains("Completed room raw-first"), "{snapshot}");
+    assert!(
+        snapshot.contains("Message") || snapshot.contains("›"),
+        "room composer missing:\n{snapshot}"
+    );
 }

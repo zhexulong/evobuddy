@@ -1,254 +1,199 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync, statSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import {
-  addTaskRoomParticipant,
-  appendTaskRoomMessage,
-  archiveTaskRoom,
-  createDurableTaskRoom,
-  createTaskRoomHandoffInStore,
-  listTaskRooms,
+  ensureTaskRoomLayout,
+  writeTaskRoom,
   readTaskRoom,
-  readTaskRoomJsonl,
-  stopTaskRoomSession,
+  listTaskRooms,
+  updateTaskRoom,
 } from '../../src/core/evobuddy-taskroom-store.mjs';
+import { createTaskRoom } from '../../src/core/evobuddy-taskroom-record.mjs';
 import { ensureEvobuddyProjectState, resolveEvobuddyProjectState } from '../../src/core/evobuddy-project-state.mjs';
 
-function roomInput(overrides = {}) {
-  return {
-    roomId: 'taskroom:alpha',
-    title: 'Alpha room',
-    objective: 'Ship explicit taskroom ownership',
-    createdAt: '2026-07-20T12:00:00.000Z',
-    participants: [],
+function sampleRoom(overrides = {}) {
+  return createTaskRoom({
+    roomId: 'room-1',
+    title: 'Ship TUI',
+    objective: 'Make attach real',
+    createdAt: '2026-07-21T00:00:00.000Z',
+    participants: [{
+      participantId: 'instance-1',
+      actorName: 'builder',
+      actorKind: 'team-agent',
+      role: 'builder',
+      runtime: 'codex',
+    }],
     ...overrides,
-  };
+  });
 }
 
-describe('evobuddy taskroom durable store', () => {
-  it('creates durable room layout atomically with empty participants by default', async () => {
-    const projectRoot = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-create-'));
+describe('evobuddy durable taskroom store', () => {
+  it('writeTaskRoom persists validated room and index entry', async () => {
+    const tmpProject = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-store-write-'));
     try {
-      await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-      const room = await createDurableTaskRoom(projectRoot, roomInput());
+      await ensureEvobuddyProjectState({ projectRoot: tmpProject, seedProductBuddyPresets: false });
+      const room = sampleRoom();
+      await writeTaskRoom(tmpProject, room);
+      assert.equal((await readTaskRoom(tmpProject, 'room-1')).title, 'Ship TUI');
+      assert.deepEqual((await listTaskRooms(tmpProject)).map((r) => r.roomId), ['room-1']);
 
-      assert.equal(room.roomId, 'taskroom:alpha');
-      assert.equal(room.status, 'active');
-      assert.equal(room.participants.length, 0);
-      assert.match(room.digest, /^sha256:/);
-
-      const state = resolveEvobuddyProjectState({ projectRoot });
-      const roomDir = join(state.taskroomsPath, 'taskroom:alpha');
-      assert.equal(existsSync(join(roomDir, 'room.json')), true);
-      assert.equal(existsSync(join(roomDir, 'instances.jsonl')), true);
-      assert.equal(existsSync(join(roomDir, 'messages.jsonl')), true);
-      assert.equal(existsSync(join(roomDir, 'forks.jsonl')), true);
-      assert.equal(existsSync(join(roomDir, 'handoffs.jsonl')), true);
-      assert.equal(existsSync(join(roomDir, 'wakes.jsonl')), true);
-      assert.equal(existsSync(join(roomDir, 'artifacts')), true);
-
-      const stored = JSON.parse(readFileSync(join(roomDir, 'room.json'), 'utf8'));
-      assert.equal(stored.digest, room.digest);
-      assert.deepEqual(stored.participants, []);
+      const state = resolveEvobuddyProjectState({ projectRoot: tmpProject });
+      const roomPath = join(state.taskroomsPath, 'room-1', 'room.json');
+      assert.equal(existsSync(roomPath), true);
+      assert.equal(statSync(roomPath).mode & 0o777, 0o600);
+      const index = JSON.parse(readFileSync(state.taskroomsIndexPath, 'utf8'));
+      assert.equal(index.schema, 'evobuddy.taskroom-index.v1');
+      assert.deepEqual(index.roomIds, ['room-1']);
+      assert.equal(existsSync(join(state.taskroomsPath, 'room-1', 'handoffs')), true);
     } finally {
-      rmSync(projectRoot, { recursive: true, force: true });
+      rmSync(tmpProject, { recursive: true, force: true });
     }
   });
 
-  it('does not create implicit participants when objective-only free text is stored', async () => {
-    const projectRoot = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-no-implicit-'));
+  it('ensureTaskRoomLayout creates taskrooms root, index, and room handoffs dirs', async () => {
+    const tmpProject = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-layout-'));
     try {
-      await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-      const room = await createDurableTaskRoom(projectRoot, roomInput({
-        objective: 'please add a reviewer and open codex automatically',
+      await ensureEvobuddyProjectState({ projectRoot: tmpProject, seedProductBuddyPresets: false });
+      const layout = await ensureTaskRoomLayout(tmpProject);
+      const state = resolveEvobuddyProjectState({ projectRoot: tmpProject });
+      assert.equal(layout.taskroomsPath, state.taskroomsPath);
+      assert.equal(existsSync(state.taskroomsPath), true);
+      assert.equal(existsSync(state.taskroomsIndexPath), true);
+      assert.equal(statSync(state.taskroomsIndexPath).mode & 0o777, 0o600);
+      const index = JSON.parse(readFileSync(state.taskroomsIndexPath, 'utf8'));
+      assert.equal(index.schema, 'evobuddy.taskroom-index.v1');
+      assert.equal(index.version, 1);
+      assert.deepEqual(index.roomIds, []);
+    } finally {
+      rmSync(tmpProject, { recursive: true, force: true });
+    }
+  });
+
+  it('updateTaskRoom applies mutator and rewrites room atomically', async () => {
+    const tmpProject = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-update-'));
+    try {
+      await ensureEvobuddyProjectState({ projectRoot: tmpProject, seedProductBuddyPresets: false });
+      const created = await writeTaskRoom(tmpProject, sampleRoom());
+      const updated = await updateTaskRoom(tmpProject, 'room-1', (room) => ({
+        ...room,
+        title: 'Ship TUI v2',
+        status: 'blocked',
+        digest: undefined,
       }));
-      assert.equal(room.participants.length, 0);
-      const listed = await listTaskRooms(projectRoot);
-      assert.equal(listed.length, 1);
-      assert.equal(listed[0].participants.length, 0);
-    } finally {
-      rmSync(projectRoot, { recursive: true, force: true });
-    }
-  });
-
-  it('adds participants explicitly and recomputes room digest', async () => {
-    const projectRoot = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-participant-'));
-    try {
-      await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-      const created = await createDurableTaskRoom(projectRoot, roomInput());
-      const updated = await addTaskRoomParticipant(projectRoot, 'taskroom:alpha', {
-        participantId: 'participant:builder:1',
-        actorName: 'builder',
-        actorKind: 'team-agent',
-        role: 'builder',
-        runtime: 'opencode',
-      });
-
-      assert.equal(updated.participants.length, 1);
-      assert.equal(updated.participants[0].participantId, 'participant:builder:1');
+      assert.equal(updated.title, 'Ship TUI v2');
+      assert.equal(updated.status, 'blocked');
       assert.notEqual(updated.digest, created.digest);
-
-      const reloaded = await readTaskRoom(projectRoot, 'taskroom:alpha');
+      const reloaded = await readTaskRoom(tmpProject, 'room-1');
+      assert.equal(reloaded.title, 'Ship TUI v2');
+      assert.equal(reloaded.status, 'blocked');
       assert.equal(reloaded.digest, updated.digest);
-      assert.equal(reloaded.participants.length, 1);
     } finally {
-      rmSync(projectRoot, { recursive: true, force: true });
+      rmSync(tmpProject, { recursive: true, force: true });
     }
   });
 
-  it('appends messages and handoffs as append-only jsonl records', async () => {
-    const projectRoot = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-append-'));
+  it('listTaskRooms returns rooms sorted by roomId and recovers from index gaps', async () => {
+    const tmpProject = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-list-'));
     try {
-      await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-      await createDurableTaskRoom(projectRoot, roomInput());
-      await addTaskRoomParticipant(projectRoot, 'taskroom:alpha', {
-        participantId: 'participant:builder:1',
-        actorName: 'builder',
-        actorKind: 'team-agent',
-        role: 'builder',
-      });
-      await addTaskRoomParticipant(projectRoot, 'taskroom:alpha', {
-        participantId: 'participant:reviewer:1',
-        actorName: 'reviewer',
-        actorKind: 'team-agent',
-        role: 'reviewer',
-      });
-
-      const message = await appendTaskRoomMessage(projectRoot, 'taskroom:alpha', {
-        messageId: 'msg:1',
-        roomId: 'taskroom:alpha',
-        fromParticipantId: 'participant:builder:1',
-        toParticipantIds: ['participant:reviewer:1'],
-        kind: 'handoff',
-        body: 'Patch ready',
-        artifactRefs: [],
-        createdAt: '2026-07-20T12:01:00.000Z',
-      });
-      assert.equal(message.messageId, 'msg:1');
-
-      const handoff = await createTaskRoomHandoffInStore(projectRoot, 'taskroom:alpha', {
-        handoffId: 'handoff:1',
-        roomId: 'taskroom:alpha',
-        fromInstanceId: 'instance:builder:1',
-        toInstanceId: 'instance:reviewer:1',
-        handoffKind: 'review-request',
-        artifactRefs: [],
-        evidenceRefs: [],
-        createdAt: '2026-07-20T12:02:00.000Z',
-      });
-      assert.equal(handoff.handoffId, 'handoff:1');
-
-      const messages = await readTaskRoomJsonl(projectRoot, 'taskroom:alpha', 'messages');
-      const handoffs = await readTaskRoomJsonl(projectRoot, 'taskroom:alpha', 'handoffs');
-      assert.equal(messages.length, 1);
-      assert.equal(handoffs.length, 1);
-
-      await appendTaskRoomMessage(projectRoot, 'taskroom:alpha', {
-        messageId: 'msg:2',
-        roomId: 'taskroom:alpha',
-        fromParticipantId: 'participant:reviewer:1',
-        toParticipantIds: ['participant:builder:1'],
-        kind: 'review-findings',
-        body: 'Needs tests',
-        artifactRefs: [],
-        createdAt: '2026-07-20T12:03:00.000Z',
-      });
-      const messagesAfter = await readTaskRoomJsonl(projectRoot, 'taskroom:alpha', 'messages');
-      assert.equal(messagesAfter.length, 2);
-      assert.equal(messagesAfter[0].messageId, 'msg:1');
-      assert.equal(messagesAfter[1].messageId, 'msg:2');
+      await ensureEvobuddyProjectState({ projectRoot: tmpProject, seedProductBuddyPresets: false });
+      await writeTaskRoom(tmpProject, sampleRoom({ roomId: 'room-b', title: 'B' }));
+      await writeTaskRoom(tmpProject, sampleRoom({
+        roomId: 'room-a',
+        title: 'A',
+        participants: [{
+          participantId: 'instance-a',
+          actorName: 'builder',
+          actorKind: 'team-agent',
+          role: 'builder',
+          runtime: 'codex',
+        }],
+      }));
+      const listed = await listTaskRooms(tmpProject);
+      assert.deepEqual(listed.map((r) => r.roomId), ['room-a', 'room-b']);
     } finally {
-      rmSync(projectRoot, { recursive: true, force: true });
+      rmSync(tmpProject, { recursive: true, force: true });
     }
   });
 
-  it('stops a session instance without archiving the room (detach is not stop)', async () => {
-    const projectRoot = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-stop-'));
+  it('rejects path traversal room ids', async () => {
+    const tmpProject = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-traversal-'));
     try {
-      await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-      await createDurableTaskRoom(projectRoot, roomInput());
-      const stopped = await stopTaskRoomSession(projectRoot, {
-        roomId: 'taskroom:alpha',
-        instanceId: 'instance:builder:1',
-        actorName: 'builder',
-        actorKind: 'team-agent',
-        role: 'builder',
-        createdAt: '2026-07-20T12:00:00.000Z',
-        reason: 'user-stop',
-        destroyedAt: '2026-07-20T12:10:00.000Z',
-      });
-
-      assert.equal(stopped.lifecycle, 'destroyed');
-      assert.equal(stopped.destroyReason, 'user-stop');
-      assert.notEqual(stopped.destroyReason, 'detach');
-
-      const room = await readTaskRoom(projectRoot, 'taskroom:alpha');
-      assert.equal(room.status, 'active');
-
-      const instances = await readTaskRoomJsonl(projectRoot, 'taskroom:alpha', 'instances');
-      assert.equal(instances.at(-1).lifecycle, 'destroyed');
-    } finally {
-      rmSync(projectRoot, { recursive: true, force: true });
-    }
-  });
-
-  it('archives a room and updates digest', async () => {
-    const projectRoot = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-archive-'));
-    try {
-      await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-      const created = await createDurableTaskRoom(projectRoot, roomInput());
-      const archived = await archiveTaskRoom(projectRoot, 'taskroom:alpha', {
-        archivedAt: '2026-07-20T13:00:00.000Z',
-      });
-
-      assert.equal(archived.status, 'archived');
-      assert.equal(archived.archivedAt, '2026-07-20T13:00:00.000Z');
-      assert.notEqual(archived.digest, created.digest);
-
-      const reloaded = await readTaskRoom(projectRoot, 'taskroom:alpha');
-      assert.equal(reloaded.status, 'archived');
-    } finally {
-      rmSync(projectRoot, { recursive: true, force: true });
-    }
-  });
-
-  it('rejects duplicate room create and missing room mutations', async () => {
-    const projectRoot = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-errors-'));
-    try {
-      await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-      await createDurableTaskRoom(projectRoot, roomInput());
+      await ensureEvobuddyProjectState({ projectRoot: tmpProject, seedProductBuddyPresets: false });
       await assert.rejects(
-        () => createDurableTaskRoom(projectRoot, roomInput()),
-        /exists|duplicate/i,
+        () => writeTaskRoom(tmpProject, sampleRoom({ roomId: '../escape' })),
+        /path traversal|invalid roomId/i,
       );
       await assert.rejects(
-        () => addTaskRoomParticipant(projectRoot, 'taskroom:missing', {
-          participantId: 'participant:x',
-          actorName: 'x',
-          actorKind: 'user',
-          role: 'user',
-        }),
-        /not found|missing/i,
+        () => writeTaskRoom(tmpProject, sampleRoom({ roomId: 'room/../x' })),
+        /path traversal|invalid roomId/i,
       );
+      await assert.rejects(
+        () => readTaskRoom(tmpProject, '..\\windows'),
+        /path traversal|invalid roomId/i,
+      );
+      await assert.rejects(
+        () => updateTaskRoom(tmpProject, 'a/b', (room) => room),
+        /path traversal|invalid roomId/i,
+      );
+      const state = resolveEvobuddyProjectState({ projectRoot: tmpProject });
+      assert.equal(existsSync(join(tmpProject, '.evobuddy', 'escape')), false);
+      assert.equal(existsSync(join(state.taskroomsPath, '..')), true);
     } finally {
-      rmSync(projectRoot, { recursive: true, force: true });
+      rmSync(tmpProject, { recursive: true, force: true });
     }
   });
 
-  it('writes only under .evobuddy/taskrooms and leaves no tmp files', async () => {
-    const projectRoot = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-atomic-'));
+  it('rejects missing rooms on read and update', async () => {
+    const tmpProject = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-missing-'));
     try {
-      await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-      await createDurableTaskRoom(projectRoot, roomInput());
-      const state = resolveEvobuddyProjectState({ projectRoot });
-      const roomDir = join(state.taskroomsPath, 'taskroom:alpha');
+      await ensureEvobuddyProjectState({ projectRoot: tmpProject, seedProductBuddyPresets: false });
+      await ensureTaskRoomLayout(tmpProject);
+      await assert.rejects(() => readTaskRoom(tmpProject, 'missing-room'), /not found/i);
+      await assert.rejects(
+        () => updateTaskRoom(tmpProject, 'missing-room', (room) => room),
+        /not found/i,
+      );
+    } finally {
+      rmSync(tmpProject, { recursive: true, force: true });
+    }
+  });
+
+  it('leaves no temp files after atomic writes and never stores secret-like keys', async () => {
+    const tmpProject = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-atomic-'));
+    try {
+      await ensureEvobuddyProjectState({ projectRoot: tmpProject, seedProductBuddyPresets: false });
+      await writeTaskRoom(tmpProject, sampleRoom());
+      const state = resolveEvobuddyProjectState({ projectRoot: tmpProject });
+      const roomDir = join(state.taskroomsPath, 'room-1');
       const leftovers = readdirSync(roomDir).filter((name) => name.endsWith('.tmp'));
       assert.deepEqual(leftovers, []);
+      const raw = readFileSync(join(roomDir, 'room.json'), 'utf8');
+      assert.doesNotMatch(raw, /apiKey|password|token|secret/i);
+      const stored = JSON.parse(raw);
+      assert.equal(stored.schema, 'evobuddy-taskroom.v1');
+      assert.match(stored.digest, /^sha256:/);
     } finally {
-      rmSync(projectRoot, { recursive: true, force: true });
+      rmSync(tmpProject, { recursive: true, force: true });
+    }
+  });
+
+  it('project setup exposes taskroomsRoot and creates taskrooms directory', async () => {
+    const tmpProject = mkdtempSync(join(tmpdir(), 'evobuddy-taskroom-project-state-'));
+    try {
+      const state = await ensureEvobuddyProjectState({ projectRoot: tmpProject, seedProductBuddyPresets: false });
+      assert.equal(state.taskroomsPath, join(tmpProject, '.evobuddy', 'taskrooms'));
+      assert.equal(state.taskroomsIndexPath, join(tmpProject, '.evobuddy', 'taskrooms', 'index.json'));
+      assert.equal(existsSync(state.taskroomsPath), true);
+      const schema = JSON.parse(readFileSync(state.stateSchemaPath, 'utf8'));
+      assert.equal(schema.taskroomsRoot, '.evobuddy/taskrooms');
+      assert.equal(state.taskroomPath('room-1'), join(state.taskroomsPath, 'room-1'));
+      assert.equal(state.taskroomRoomJsonPath('room-1'), join(state.taskroomsPath, 'room-1', 'room.json'));
+    } finally {
+      rmSync(tmpProject, { recursive: true, force: true });
     }
   });
 });

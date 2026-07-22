@@ -23,7 +23,6 @@ fn session_request() -> CreateSessionRequest {
             safety_mode: "workspace-write".to_string(),
             detach_shortcut: "Ctrl+B d".to_string(),
         },
-        project_root: PathBuf::from("/repo"),
     }
 }
 

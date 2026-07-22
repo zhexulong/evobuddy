@@ -5,6 +5,7 @@ use std::process::Command;
 use anyhow::{bail, Context, Result};
 use serde::Deserialize;
 
+use crate::app::{CreateHandoffDraft, CreateTaskRoomDraft};
 use crate::model::{parse_workbench_state, WorkbenchState};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -323,67 +324,48 @@ pub fn session_reconcile_command(project: &Path) -> BackendCommand {
     }
 }
 
-pub fn taskroom_create_command(
-    project: &Path,
-    room_id: &str,
-    title: &str,
-    objective: &str,
-    created_at: Option<&str>,
-) -> BackendCommand {
+pub fn session_list_command(project: &Path) -> BackendCommand {
+    BackendCommand {
+        program: "node".to_string(),
+        args: vec![
+            "scripts/evobuddy/evobuddy.mjs".to_string(),
+            "taskroom".to_string(),
+            "session".to_string(),
+            "list".to_string(),
+            "--project".to_string(),
+            project.display().to_string(),
+            "--json".to_string(),
+        ],
+    }
+}
+
+pub fn taskroom_create_command(project: &Path, draft: &CreateTaskRoomDraft) -> BackendCommand {
     let mut args = vec![
         "scripts/evobuddy/evobuddy.mjs".to_string(),
         "taskroom".to_string(),
         "create".to_string(),
         "--project".to_string(),
         project.display().to_string(),
-        "--room".to_string(),
-        room_id.to_string(),
-        "--title".to_string(),
-        title.to_string(),
         "--objective".to_string(),
-        objective.to_string(),
+        draft.objective.clone(),
+        "--runtime".to_string(),
+        draft.runtime.clone(),
     ];
-    if let Some(created_at) = created_at {
-        args.push("--created-at".to_string());
-        args.push(created_at.to_string());
+    if !draft.acceptance_criteria.trim().is_empty() {
+        args.push("--acceptance".to_string());
+        args.push(draft.acceptance_criteria.clone());
     }
-    args.push("--json".to_string());
-    BackendCommand {
-        program: "node".to_string(),
-        args,
+    if !draft.workspace.trim().is_empty() {
+        args.push("--workspace".to_string());
+        args.push(draft.workspace.clone());
     }
-}
-
-pub fn taskroom_participant_add_command(
-    project: &Path,
-    room_id: &str,
-    participant_id: &str,
-    actor_name: &str,
-    actor_kind: &str,
-    role: &str,
-    runtime: Option<&str>,
-) -> BackendCommand {
-    let mut args = vec![
-        "scripts/evobuddy/evobuddy.mjs".to_string(),
-        "taskroom".to_string(),
-        "participant".to_string(),
-        "add".to_string(),
-        "--project".to_string(),
-        project.display().to_string(),
-        "--room".to_string(),
-        room_id.to_string(),
-        "--participant-id".to_string(),
-        participant_id.to_string(),
-        "--actor-name".to_string(),
-        actor_name.to_string(),
-        "--actor-kind".to_string(),
-        actor_kind.to_string(),
-        "--role".to_string(),
-        role.to_string(),
-    ];
-    if let Some(runtime) = runtime {
-        args.push("--runtime".to_string());
-        args.push(runtime.to_string());
+    if !draft.actor.trim().is_empty() {
+        args.push("--actor".to_string());
+        args.push(draft.actor.clone());
+    }
+    if !draft.safety_mode.trim().is_empty() {
+        args.push("--safety-mode".to_string());
+        args.push(draft.safety_mode.clone());
     }
     args.push("--json".to_string());
     BackendCommand {
@@ -395,74 +377,37 @@ pub fn taskroom_participant_add_command(
 pub fn taskroom_handoff_create_command(
     project: &Path,
     room_id: &str,
-    handoff_id: &str,
-    from_instance: &str,
-    to_instance: &str,
-    handoff_kind: &str,
-    created_at: Option<&str>,
-) -> BackendCommand {
-    let mut args = vec![
-        "scripts/evobuddy/evobuddy.mjs".to_string(),
-        "taskroom".to_string(),
-        "handoff".to_string(),
-        "create".to_string(),
-        "--project".to_string(),
-        project.display().to_string(),
-        "--room".to_string(),
-        room_id.to_string(),
-        "--handoff-id".to_string(),
-        handoff_id.to_string(),
-        "--from-instance".to_string(),
-        from_instance.to_string(),
-        "--to-instance".to_string(),
-        to_instance.to_string(),
-        "--handoff-kind".to_string(),
-        handoff_kind.to_string(),
-    ];
-    if let Some(created_at) = created_at {
-        args.push("--created-at".to_string());
-        args.push(created_at.to_string());
-    }
-    args.push("--json".to_string());
-    BackendCommand {
-        program: "node".to_string(),
-        args,
-    }
-}
-
-pub fn taskroom_session_stop_command(
-    project: &Path,
-    room_id: &str,
-    instance_id: &str,
-    reason: &str,
+    draft: &CreateHandoffDraft,
 ) -> BackendCommand {
     BackendCommand {
         program: "node".to_string(),
         args: vec![
             "scripts/evobuddy/evobuddy.mjs".to_string(),
             "taskroom".to_string(),
-            "session".to_string(),
-            "stop".to_string(),
+            "handoff".to_string(),
+            "create".to_string(),
             "--project".to_string(),
             project.display().to_string(),
             "--room".to_string(),
             room_id.to_string(),
-            "--instance".to_string(),
-            instance_id.to_string(),
-            "--reason".to_string(),
-            reason.to_string(),
+            "--from".to_string(),
+            draft.sender.clone(),
+            "--to".to_string(),
+            draft.receiver.clone(),
+            "--body".to_string(),
+            draft.body.clone(),
             "--json".to_string(),
         ],
     }
 }
 
-pub fn taskroom_archive_command(project: &Path, room_id: &str) -> BackendCommand {
+pub fn taskroom_refresh_command(project: &Path, room_id: &str) -> BackendCommand {
     BackendCommand {
         program: "node".to_string(),
         args: vec![
             "scripts/evobuddy/evobuddy.mjs".to_string(),
             "taskroom".to_string(),
-            "archive".to_string(),
+            "refresh".to_string(),
             "--project".to_string(),
             project.display().to_string(),
             "--room".to_string(),
@@ -472,7 +417,7 @@ pub fn taskroom_archive_command(project: &Path, room_id: &str) -> BackendCommand
     }
 }
 
-pub fn run_backend_command(command: &BackendCommand, project: &Path) -> Result<String> {
+pub fn run_backend_command(project: &Path, command: &BackendCommand) -> Result<String> {
     let output = Command::new(&command.program)
         .args(&command.args)
         .current_dir(project)
@@ -492,83 +437,4 @@ pub fn run_backend_command(command: &BackendCommand, project: &Path) -> Result<S
         );
     }
     String::from_utf8(output.stdout).context("backend command stdout was not valid UTF-8")
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum DestructiveLifecycleAction {
-    Detach,
-    StopProcess,
-    TerminateSession,
-    Archive,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LifecycleActionEffects {
-    pub process: &'static str,
-    pub provider_conversation: &'static str,
-    pub worktree: &'static str,
-    pub evidence: &'static str,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct LifecycleActionDescription {
-    pub action: &'static str,
-    pub requires_confirmation: bool,
-    pub effects: LifecycleActionEffects,
-}
-
-pub fn describe_lifecycle_action(action: DestructiveLifecycleAction) -> LifecycleActionDescription {
-    match action {
-        DestructiveLifecycleAction::Detach => LifecycleActionDescription {
-            action: "detach",
-            requires_confirmation: false,
-            effects: LifecycleActionEffects {
-                process: "retained",
-                provider_conversation: "retained",
-                worktree: "retained",
-                evidence: "retained",
-            },
-        },
-        DestructiveLifecycleAction::StopProcess => LifecycleActionDescription {
-            action: "stop-process",
-            requires_confirmation: true,
-            effects: LifecycleActionEffects {
-                process: "stopped",
-                provider_conversation: "retained",
-                worktree: "retained",
-                evidence: "retained",
-            },
-        },
-        DestructiveLifecycleAction::TerminateSession => LifecycleActionDescription {
-            action: "terminate-session",
-            requires_confirmation: true,
-            effects: LifecycleActionEffects {
-                process: "stopped",
-                provider_conversation: "retained",
-                worktree: "retained",
-                evidence: "retained",
-            },
-        },
-        DestructiveLifecycleAction::Archive => LifecycleActionDescription {
-            action: "archive",
-            requires_confirmation: true,
-            effects: LifecycleActionEffects {
-                process: "stopped-if-running",
-                provider_conversation: "archived-reference",
-                worktree: "retained",
-                evidence: "retained",
-            },
-        },
-    }
-}
-
-pub fn confirm_lifecycle_action(
-    action: DestructiveLifecycleAction,
-    confirmed: bool,
-) -> Result<LifecycleActionDescription> {
-    let description = describe_lifecycle_action(action);
-    if description.requires_confirmation && !confirmed {
-        bail!("confirmation required for {}", description.action);
-    }
-    Ok(description)
 }

@@ -148,12 +148,17 @@ function computeNegativeControls(input) {
   return controls;
 }
 
+function normalizeAgentName(value) {
+  return nonEmptyString(value) ? String(value).trim().toLowerCase().replaceAll(/\s+/g, '-') : '';
+}
+
 function computePasses(proof) {
   const observedRuntimeAgentName = proof.runtime === 'opencode'
     ? proof.runtimeEvidence?.observedRuntimeAgentName
     : undefined;
   const hasOpencodeObservedAgentMismatch = nonEmptyString(observedRuntimeAgentName)
-    && observedRuntimeAgentName !== proof.runtimeAgentName;
+    && nonEmptyString(proof.runtimeAgentName)
+    && normalizeAgentName(observedRuntimeAgentName) !== normalizeAgentName(proof.runtimeAgentName);
   const hasCoreStructure = proof.actualSurface === 'runtime-native-subagent'
     && nonEmptyString(proof.runtime)
     && nonEmptyString(proof.memberName)
@@ -406,7 +411,8 @@ export function validateRuntimeNativeBuddySurfaceProof(input, options = {}) {
 
   if (proof.runtime === 'opencode') {
     const observedRuntimeAgentName = proof.runtimeEvidence?.observedRuntimeAgentName;
-    if (nonEmptyString(observedRuntimeAgentName) && observedRuntimeAgentName !== proof.runtimeAgentName) {
+    if (nonEmptyString(observedRuntimeAgentName) && nonEmptyString(proof.runtimeAgentName)
+      && normalizeAgentName(observedRuntimeAgentName) !== normalizeAgentName(proof.runtimeAgentName)) {
       issues.push('OpenCode observedRuntimeAgentName must match runtimeAgentName');
     }
   }

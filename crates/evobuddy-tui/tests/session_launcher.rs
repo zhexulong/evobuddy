@@ -31,8 +31,6 @@ fn sample_plan() -> LaunchPlan {
         context_packet_ref: Some("context-packet-1".to_string()),
         safety_mode: "workspace-write".to_string(),
         digest: String::new(),
-        consumed: false,
-        consumed_at: None,
     }
 }
 

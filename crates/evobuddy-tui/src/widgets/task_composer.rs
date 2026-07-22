@@ -10,30 +10,54 @@ pub fn render_task_composer(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rec
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(5),
+            Constraint::Length(6),
             Constraint::Min(5),
             Constraint::Length(2),
         ])
         .split(area);
-    frame.render_widget(
-        Paragraph::new(vec![
-            Line::from(Span::styled("Action Progress", selected_style())),
-            Line::from("Destination: typed workbench effect"),
-            Line::from("Effect: deterministic command or durable draft only"),
-        ])
-        .block(surface_block("Action Progress", true)),
-        rows[0],
-    );
-    let body = app
+
+    let status = app
         .action_status
         .clone()
         .unwrap_or_else(|| "No action recorded".to_string());
+    let destination = if status.contains("Created TaskRoom") {
+        "Durable TaskRoom store"
+    } else if status.contains("Created handoff") {
+        "Durable handoff record"
+    } else if status.contains("opening native")
+        || status.contains("attaching")
+        || status.contains("returned from")
+    {
+        "Native runtime / tmux session"
+    } else if status.contains("refresh") || status.contains("evidence") {
+        "Evidence refresh"
+    } else if status.contains("continued with candidate") {
+        "Heuristic resume candidate"
+    } else {
+        "Workbench action"
+    };
+
     frame.render_widget(
-        Paragraph::new(body).block(surface_block("Status", false)),
+        Paragraph::new(vec![
+            Line::from(Span::styled("Working…", selected_style())),
+            Line::from(format!("Where: {destination}")),
+            Line::from(Span::styled(
+                "If this fails, Esc returns — status explains why",
+                muted_style(),
+            )),
+        ])
+        .block(surface_block("Working", true)),
+        rows[0],
+    );
+    frame.render_widget(
+        Paragraph::new(status).block(surface_block("Status", false)),
         rows[1],
     );
     frame.render_widget(
-        Paragraph::new(Line::from(Span::styled("Esc back", muted_style()))),
+        Paragraph::new(Line::from(Span::styled(
+            "Esc back · Ctrl+C quit",
+            muted_style(),
+        ))),
         rows[2],
     );
 }

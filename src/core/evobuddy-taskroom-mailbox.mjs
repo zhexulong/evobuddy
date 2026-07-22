@@ -1,4 +1,5 @@
 const CONTENT_FIELDS = new Set(['body', 'text', 'content', 'message', 'messages', 'artifact', 'artifacts', 'patch', 'review']);
+const WAKE_REASONS = new Set(['handoff-ready', 'review-needed', 'resume', 'result-ready', 'budget-available']);
 
 function requireString(value, name) {
   if (typeof value !== 'string' || value.trim().length === 0) throw new Error(`required non-empty string: ${name}`);
@@ -16,6 +17,12 @@ function stringArray(value, name) {
   return value.map((item, index) => requireString(item, `${name}[${index}]`));
 }
 
+function enumValue(value, name, allowed) {
+  const normalized = requireString(value, name);
+  if (!allowed.has(normalized)) throw new Error(`invalid ${name}: ${normalized}`);
+  return normalized;
+}
+
 export function createTaskRoomWake(input) {
   rejectContentFields(input);
   return {
@@ -24,6 +31,7 @@ export function createTaskRoomWake(input) {
     messageId: requireString(input?.messageId, 'messageId'),
     participantId: requireString(input?.participantId, 'participantId'),
     occurredAt: requireString(input?.occurredAt, 'occurredAt'),
+    reason: enumValue(input?.reason, 'reason', WAKE_REASONS),
   };
 }
 

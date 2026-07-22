@@ -7,8 +7,6 @@ export function createOpenCodeNativeSessionAdapter(deps = {}) {
     binaryEnv: 'EVOBUDDY_OPENCODE_BIN',
     exact: (providerConversationRef) => ['--session', providerConversationRef],
     heuristic: { args: ['--continue'], source: '--continue' },
-    // Source-qualified attention via classifyAttention / refreshEvidence (Task 15).
-    evidenceDefaultStaleMs: 5 * 60 * 1000,
   }, deps);
 }
 

@@ -64,6 +64,7 @@ export function resolveEvobuddyProjectState({ projectRoot }) {
     locksPath,
     evidenceRefreshPath,
     taskroomsPath,
+    taskroomsIndexPath: join(taskroomsPath, 'index.json'),
     teamPolicyMarkdownPath: join(stateRoot, 'team-policy.md'),
     teamPolicyIndexPath: join(stateRoot, 'team-policy.json'),
     importPath(id) { return join(stateRoot, 'imports', id); },
@@ -127,6 +128,7 @@ export async function ensureEvobuddyProjectState({ projectRoot, seedProductBuddy
   if (!existsSync(state.knowledgeFactsPath)) writeFileSync(state.knowledgeFactsPath, '# EvoBuddy Knowledge Facts\n\n## Project\n', 'utf8');
   if (!existsSync(state.recentUpdatesPath)) writeFileSync(state.recentUpdatesPath, `${JSON.stringify({ version: 1, updates: [] }, null, 2)}\n`, 'utf8');
   if (!existsSync(state.nativeSessionsIndexPath)) atomicWriteTextSync(state.nativeSessionsIndexPath, `${JSON.stringify({ schema: 'evobuddy.native-session-index.v1', version: 1, descriptorIds: [] }, null, 2)}\n`);
+  if (!existsSync(state.taskroomsIndexPath)) atomicWriteTextSync(state.taskroomsIndexPath, `${JSON.stringify({ schema: 'evobuddy.taskroom-index.v1', version: 1, roomIds: [] }, null, 2)}\n`);
   if (!existsSync(state.teamPolicyMarkdownPath)) writeFileSync(state.teamPolicyMarkdownPath, defaultTeamPolicyMarkdown(), 'utf8');
   const existingSchema = readExistingSchema(state.stateSchemaPath);
   const nextSchema = { ...existingSchema, ...DEFAULT_STATE_SCHEMA };

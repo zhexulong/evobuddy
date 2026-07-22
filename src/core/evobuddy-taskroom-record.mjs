@@ -4,7 +4,7 @@ const ACTOR_KINDS = new Set(['team-agent', 'subagent-buddy', 'user', 'external']
 const PARTICIPANT_ROLES = new Set(['builder', 'reviewer', 'coordinator', 'evolution', 'researcher', 'user', 'other']);
 const MESSAGE_KINDS = new Set(['user-request', 'assignment', 'handoff', 'review-findings', 'fix-summary', 'status', 'final-result', 'evolution-request']);
 const ARTIFACT_KINDS = new Set(['patch-summary', 'review-findings', 'test-output', 'decision', 'risk', 'source-ref', 'evolution-proposal']);
-const TASKROOM_STATUSES = new Set(['active', 'completed', 'blocked', 'archived']);
+const TASKROOM_STATUSES = new Set(['active', 'completed', 'blocked', 'needs-review']);
 
 function requireString(value, name) {
   if (typeof value !== 'string' || value.trim().length === 0) throw new Error(`required non-empty string: ${name}`);
@@ -96,13 +96,12 @@ export function createTaskRoom(input) {
     objective: requireString(input.objective, 'objective'),
     status: input.status === undefined ? 'active' : enumValue(input.status, 'status', TASKROOM_STATUSES),
     createdAt: requireString(input.createdAt, 'createdAt'),
+    ownerParticipantId: optionalString(input.ownerParticipantId, 'ownerParticipantId'),
+    claimedAt: optionalString(input.claimedAt, 'claimedAt'),
     participants: (input.participants ?? []).map(createTaskRoomParticipant),
     messages: (input.messages ?? []).map(createTaskRoomMessage),
     artifacts: (input.artifacts ?? []).map(createTaskRoomArtifact),
   };
-  if (input.archivedAt !== undefined && input.archivedAt !== null) {
-    room.archivedAt = requireString(input.archivedAt, 'archivedAt');
-  }
   room.digest = digestTaskRoomRecord({ ...room, digest: undefined });
   return room;
 }

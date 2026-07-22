@@ -48,6 +48,9 @@ pub fn execute_open_native_runtime(
     let open_result = match router.open_native_session(&request) {
         Ok(result) => result,
         Err(error) => {
+            if app.view_mode == crate::views::ViewMode::ActionProgress {
+                app.pop_view();
+            }
             app.action_status = Some(format!("native open failed: {error:#}"));
             app.restore_selection(&snapshot);
             return Ok(());
@@ -56,6 +59,9 @@ pub fn execute_open_native_runtime(
 
     match open_result {
         RuntimeSessionResult::NeedsChoice { plan } => {
+            if app.view_mode == crate::views::ViewMode::ActionProgress {
+                app.pop_view();
+            }
             app.action_status = Some(format!(
                 "choose continuation ({} candidates)",
                 plan.continuation.candidate_count
@@ -64,6 +70,9 @@ pub fn execute_open_native_runtime(
             return Ok(());
         }
         RuntimeSessionResult::Unsupported { reason, .. } => {
+            if app.view_mode == crate::views::ViewMode::ActionProgress {
+                app.pop_view();
+            }
             app.action_status = Some(format!("native runtime disabled: {reason}"));
             app.restore_selection(&snapshot);
             return Ok(());
@@ -75,6 +84,9 @@ pub fn execute_open_native_runtime(
             ..
         } => {
             let RuntimeSessionAction::Attach { session_ref } = action else {
+                if app.view_mode == crate::views::ViewMode::ActionProgress {
+                    app.pop_view();
+                }
                 app.action_status = Some("native runtime action is not attachable".to_string());
                 app.restore_selection(&snapshot);
                 return Ok(());

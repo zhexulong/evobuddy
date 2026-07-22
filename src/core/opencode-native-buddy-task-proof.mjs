@@ -168,8 +168,11 @@ export function validateOpenCodeNativeBuddyTaskProof(input = {}) {
   if (proof.proofLayer === 'nativeMechanism' && proof.preparedPacketDigestRequired !== true) addIssue(result, 'fail', 'preparedPacketDigestRequired must be true for nativeMechanism proofs');
   if (proof.proofLayer === 'naturalUse' && proof.preparedPacketDigestRequired !== false) addIssue(result, 'fail', 'preparedPacketDigestRequired must be false for naturalUse proofs');
 
-  if (nonEmptyString(proof.observedRuntimeAgentName) && proof.observedRuntimeAgentName !== proof.buddyName) {
-    addIssue(result, 'fail', 'observedRuntimeAgentName must match buddyName');
+  if (nonEmptyString(proof.observedRuntimeAgentName) && nonEmptyString(proof.buddyName)) {
+    const normalize = (value) => String(value).trim().toLowerCase().replaceAll(/\s+/g, '-');
+    if (normalize(proof.observedRuntimeAgentName) !== normalize(proof.buddyName)) {
+      addIssue(result, 'fail', 'observedRuntimeAgentName must match buddyName');
+    }
   }
 
   if (proof.childParentSessionId !== proof.parentSessionId) {

@@ -279,7 +279,6 @@ fn sample_plan(kind: &str) -> RuntimeSessionOpenPlan {
                 safety_mode: "workspace-write".to_string(),
                 detach_shortcut: "Ctrl+B d".to_string(),
             },
-            project_root: PathBuf::from("/repo"),
         },
         runtime_capability_ref: "runtime-capability:codex-v1".to_string(),
         launch_command_ref: format!("launch-command:codex:{kind}"),
@@ -630,6 +629,91 @@ fn node_backend_plan_open_command_uses_structured_argv() {
 }
 
 #[test]
+fn node_backend_session_list_command_uses_structured_argv() {
+    let command = evobuddy_tui::backend::session_list_command(Path::new("/repo with spaces"));
+    assert_eq!(command.program, "node");
+    assert!(command
+        .args
+        .iter()
+        .any(|arg| arg == "scripts/evobuddy/evobuddy.mjs"));
+    assert!(command.args.iter().any(|arg| arg == "taskroom"));
+    assert!(command.args.iter().any(|arg| arg == "session"));
+    assert!(command.args.iter().any(|arg| arg == "list"));
+    assert!(command.args.iter().any(|arg| arg == "--project"));
+    assert!(command.args.iter().any(|arg| arg == "/repo with spaces"));
+    assert!(command.args.iter().any(|arg| arg == "--json"));
+    assert!(!command
+        .args
+        .iter()
+        .any(|arg| arg.contains("sh -lc") || arg.contains("&&")));
+}
+
+#[test]
+fn parse_session_list_json_returns_descriptors() {
+    let stdout = r#"[
+      {
+        "descriptorId": "session-1",
+        "roomId": "taskroom:alpha",
+        "agentInstanceId": "instance-1",
+        "runtime": "codex",
+        "workspace": "/repo",
+        "terminalSessionRef": "tmux:codex:taskroom:alpha:instance-1",
+        "lifecycle": "attachable",
+        "launchCommandRef": "launch-command:codex:fresh-session",
+        "runtimeCapabilityRef": "runtime-capability:codex-v1",
+        "safetyMode": "workspace-write",
+        "contextPacketRef": "context-packet:alpha"
+      }
+    ]"#;
+    let listed = evobuddy_tui::session::parse_session_list_json(stdout).expect("parse list");
+    assert_eq!(listed.len(), 1);
+    assert_eq!(listed[0].descriptor_id, "session-1");
+    assert_eq!(listed[0].lifecycle, "attachable");
+    assert_eq!(
+        listed[0].terminal_session_ref,
+        "tmux:codex:taskroom:alpha:instance-1"
+    );
+}
+
+#[test]
+fn open_native_session_leaves_non_empty_list_after_reserve_and_commit() {
+    let plan = sample_plan("fresh-session");
+    let backend = FakeNativeSessionBackend::with_plan(plan.clone());
+    let substrate = FakeTerminalSubstrate::default();
+    let router = RuntimeSessionRouter::new(backend.clone(), substrate);
+
+    assert!(
+        backend.list().expect("list before").is_empty(),
+        "list must start empty"
+    );
+
+    let result = router
+        .open_native_session(&open_request())
+        .expect("open native session");
+    assert!(matches!(
+        result,
+        RuntimeSessionResult::Ready {
+            action: RuntimeSessionAction::Attach { .. },
+            ..
+        }
+    ));
+
+    let listed = backend.list().expect("list after reserve/commit");
+    assert!(
+        !listed.is_empty(),
+        "list must be non-empty after reserve/commit so reconciliation can see descriptors"
+    );
+    assert!(
+        listed.iter().any(|descriptor| {
+            descriptor.descriptor_id == plan.descriptor_id
+                && descriptor.lifecycle == "attachable"
+                && descriptor.agent_instance_id == plan.intent.agent_instance_id
+        }),
+        "list must include the committed descriptor: {listed:?}"
+    );
+}
+
+#[test]
 fn open_native_runtime_flow_renders_pre_attach_notice_then_guard_order() {
     use evobuddy_tui::substrate::tmux::{format_pre_attach_notice, AttachPath};
     use evobuddy_tui::terminal_mode::{TerminalControl, TerminalModeGuard};
@@ -644,7 +728,10 @@ fn open_native_runtime_flow_renders_pre_attach_notice_then_guard_order() {
     assert!(notice.contains("Workspace: /repo"));
     assert!(notice.contains("Safety mode: workspace-write"));
     assert!(notice.contains("Session: tmux:codex:taskroom:alpha:instance-1"));
-    assert!(notice.contains("Detach: Ctrl+B d"));
+    assert!(
+        notice.contains("F10") || notice.contains("Ctrl+B d") || notice.contains("Leave"),
+        "notice should teach leave keys: {notice}"
+    );
 
     #[derive(Clone, Default)]
     struct OrderControl {

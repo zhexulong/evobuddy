@@ -7,8 +7,6 @@ export function createClaudeNativeSessionAdapter(deps = {}) {
     binaryEnv: 'EVOBUDDY_CLAUDE_BIN',
     exact: (providerConversationRef) => ['--resume', providerConversationRef],
     heuristic: { args: ['--continue'], source: '--continue' },
-    // Source-qualified attention via classifyAttention / refreshEvidence (Task 15).
-    evidenceDefaultStaleMs: 5 * 60 * 1000,
   }, deps);
 }
 

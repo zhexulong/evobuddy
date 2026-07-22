@@ -35,7 +35,7 @@ describe('evobuddy runtime session router', () => {
         roomId: 'taskroom:alpha',
         agentInstanceId: 'instance-1',
         runtime: 'claude',
-        workspace: projectRoot,
+        workspace: '/repo',
         providerConversationRef: 'claude-session-1',
         providerConversationRefValidated: true,
         terminalSessionRef: 'tmux:alpha:instance-1',
@@ -62,7 +62,7 @@ describe('evobuddy runtime session router', () => {
       assert.equal(plan.intent.launchMode, 'exact-resume');
       assert.equal(plan.createSessionRequest.program, 'claude');
       assert.deepEqual(plan.createSessionRequest.args, ['--resume', 'claude-session-1']);
-      assert.equal(plan.createSessionRequest.cwd, projectRoot);
+      assert.equal(plan.createSessionRequest.cwd, '/repo');
       assert.equal(plan.createSessionRequest.display.detachShortcut, 'Ctrl+B d');
 
       const launcherPlan = loadRuntimeLaunchPlan(projectRoot, plan.createSessionRequest.launcherPlanRef.replace(/^launch-plan:/, ''));
@@ -82,7 +82,7 @@ describe('evobuddy runtime session router', () => {
         roomId: 'taskroom:beta',
         agentInstanceId: 'instance-2',
         runtime: 'codex',
-        workspace: projectRoot,
+        workspace: '/repo',
         terminalSessionRef: 'tmux:beta:instance-2',
         contextPacketRef: 'context-packet:beta',
         safetyMode: 'workspace-write',

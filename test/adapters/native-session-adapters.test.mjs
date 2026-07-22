@@ -22,6 +22,14 @@ function fakeSessions(runtime) {
   ];
 }
 
+async function importPiNativeSessionModule() {
+  try {
+    return await import('../../src/adapters/pi-native-session.mjs');
+  } catch (error) {
+    assert.fail(`expected pi native session adapter module to load: ${error instanceof Error ? error.message : String(error)}`);
+  }
+}
+
 describe('native session adapters', () => {
   it('opencode builds exact and heuristic argv and probes supported capability', async () => {
     const adapter = createOpenCodeNativeSessionAdapter({
@@ -72,5 +80,77 @@ describe('native session adapters', () => {
     assert.equal(capability.heuristicResume.supported, true);
     assert.deepEqual(adapter.buildExactResumeArgv({ workspace: '/repo', providerConversationRef: '550e8400-e29b-41d4-a716-446655440000', safetyMode: 'workspace-write' }), ['gemini', '--resume', '550e8400-e29b-41d4-a716-446655440000']);
     assert.deepEqual(adapter.buildHeuristicResumeArgv({ workspace: '/repo', safetyMode: 'workspace-write' }), ['gemini', '--resume']);
+  });
+
+  it('pi probes supported capability with the pi runtime', async () => {
+    const { createPiNativeSessionAdapter, piNativeSessionAdapter, default: defaultAdapter } = await importPiNativeSessionModule();
+    const adapter = createPiNativeSessionAdapter({
+      runCommand() { return { status: 0, stdout: 'pi 0.80.10\n', stderr: '' }; },
+      listNativeSessions: async () => fakeSessions('pi'),
+    });
+
+    const capability = await adapter.probe({ projectRoot: '/repo' });
+
+    assert.equal(capability.runtime, 'pi');
+    assert.equal(capability.supportsFreshSession, true);
+    assert.equal(piNativeSessionAdapter.runtime, 'pi');
+    assert.equal(defaultAdapter.runtime, 'pi');
+  });
+
+  it('pi builds fresh launch argv without heuristic continuation by default', async () => {
+    const { createPiNativeSessionAdapter } = await importPiNativeSessionModule();
+    const adapter = createPiNativeSessionAdapter({
+      runCommand() { return { status: 0, stdout: 'pi 0.80.10\n', stderr: '' }; },
+      listNativeSessions: async () => fakeSessions('pi'),
+    });
+
+    const argv = adapter.buildLaunchArgv({ workspace: '/repo', contextPacketRef: 'context-packet:1', safetyMode: 'workspace-write' });
+
+    assert.equal(argv[0], 'pi');
+    assert.equal(argv.includes('--continue'), false);
+  });
+
+  it('pi builds exact resume argv with --session', async () => {
+    const { createPiNativeSessionAdapter } = await importPiNativeSessionModule();
+    const adapter = createPiNativeSessionAdapter({
+      runCommand() { return { status: 0, stdout: 'pi 0.80.10\n', stderr: '' }; },
+      listNativeSessions: async () => fakeSessions('pi'),
+    });
+
+    assert.deepEqual(adapter.buildExactResumeArgv({ workspace: '/repo', providerConversationRef: 'pi-session-1', safetyMode: 'workspace-write' }), ['pi', '--session', 'pi-session-1']);
+  });
+
+  it('pi builds heuristic resume argv with --continue', async () => {
+    const { createPiNativeSessionAdapter } = await importPiNativeSessionModule();
+    const adapter = createPiNativeSessionAdapter({
+      runCommand() { return { status: 0, stdout: 'pi 0.80.10\n', stderr: '' }; },
+      listNativeSessions: async () => fakeSessions('pi'),
+    });
+
+    assert.deepEqual(adapter.buildHeuristicResumeArgv({ workspace: '/repo', safetyMode: 'workspace-write' }), ['pi', '--continue']);
+  });
+
+  it('pi builds rpc launch argv with no session using resolved binary', async () => {
+    const { createPiNativeSessionAdapter } = await importPiNativeSessionModule();
+    const adapter = createPiNativeSessionAdapter({
+      binary: '/opt/bin/pi-dev',
+      runCommand() { return { status: 0, stdout: 'pi 0.80.10\n', stderr: '' }; },
+      listNativeSessions: async () => fakeSessions('pi'),
+    });
+
+    assert.deepEqual(adapter.buildRpcLaunchArgv(), ['/opt/bin/pi-dev', '--mode', 'rpc', '--no-session']);
+  });
+
+  it('pi probe reports unsupported fresh sessions when the binary is missing', async () => {
+    const { createPiNativeSessionAdapter } = await importPiNativeSessionModule();
+    const adapter = createPiNativeSessionAdapter({
+      runCommand() { return { status: 1, stdout: '', stderr: 'not found' }; },
+      listNativeSessions: async () => fakeSessions('pi'),
+    });
+
+    const capability = await adapter.probe({ projectRoot: '/repo' });
+
+    assert.equal(capability.runtime, 'pi');
+    assert.equal(capability.supportsFreshSession, false);
   });
 });

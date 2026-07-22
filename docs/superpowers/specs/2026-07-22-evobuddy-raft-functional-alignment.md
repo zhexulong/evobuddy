@@ -15,6 +15,8 @@
 | `docs/superpowers/specs/2026-07-22-pi-first-raft-room-release-status.md` | G0 density honesty |
 | `docs/superpowers/specs/2026-07-17-evobuddy-raft-agent-team-and-omo-subagent-design.md` | Team / wake design |
 | `docs/superpowers/specs/2026-07-22-evobuddy-tui-visual-craft.md` | TUI **look/feel + key modes** (OpenCode/Grok direction); craft epic separate from R-FINAL |
+| `docs/superpowers/specs/2026-07-22-evobuddy-tui-grok-visual-alignment.md` | **Grok Build** craft bar: GrokNight palette, shortcuts, action bar; local `ref/grok-build-docs/` |
+| `docs/superpowers/specs/2026-07-22-evobuddy-crew-room-surface-alignment.md` | **Crew growth + enter-room surface** (gradual agents; Enter≠Attach); **C-FINAL**; **subagents = runtime-only, not EvoBuddy** |
 
 ### Relationship to prior “L1 FINAL”
 

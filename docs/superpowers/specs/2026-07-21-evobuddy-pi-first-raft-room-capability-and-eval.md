@@ -245,7 +245,11 @@ Out of scope for this bar: Raft web UI clone, mobile PWA, full MCP suite on ever
 - Raft tasks/activity/agents: docs.raft.build  
 - EvoBuddy TUI product: `docs/superpowers/specs/2026-07-21-evobuddy-tui-product-spec-v1.md`  
 - Team design: `docs/superpowers/specs/2026-07-17-evobuddy-raft-agent-team-and-omo-subagent-design.md`  
-- Host samples (2026-07-21): pi idle ~160–180MB; opencode tree ~1.2GB+
+- Host samples (2026-07-21): pi idle ~160–180MB; opencode tree ~1.2GB+  
+- Gate status (2026-07-22): `docs/superpowers/specs/2026-07-22-pi-first-raft-room-release-status.md`  
+- Post–PR #9 TUI↔backend alignment audit + joint eval J1–J5: `docs/superpowers/specs/2026-07-22-evobuddy-tui-backend-raft-alignment-audit.md`  
+- Raft **functional** alignment (message→task, background runtime, R-FINAL): `docs/superpowers/specs/2026-07-22-evobuddy-raft-functional-alignment.md`  
+- **Crew + room surface** (gradual team, Enter≠Attach, C-FINAL): `docs/superpowers/specs/2026-07-22-evobuddy-crew-room-surface-alignment.md`
 
 ---
 

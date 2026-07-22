@@ -10,6 +10,9 @@
 - Team design: `docs/superpowers/specs/2026-07-17-evobuddy-raft-agent-team-and-omo-subagent-design.md`
 - Plan: `docs/superpowers/plans/2026-07-22-evobuddy-tui-backend-raft-alignment.md`
 - Joint report: `evobuddy-tui-backend-joint-eval-report.json` (`npm run evobuddy:eval-tui-backend-joint`)
+- **Raft functional alignment (next epic):** `docs/superpowers/specs/2026-07-22-evobuddy-raft-functional-alignment.md` — message→task, Activity, **background runtime (attach optional)**; R0–R5 / **R-FINAL** (this L1 FINAL ≠ R-FINAL)
+- **Grok visual/keyboard craft:** `docs/superpowers/specs/2026-07-22-evobuddy-tui-grok-visual-alignment.md` — GrokNight palette + compose-safe keys; refs `ref/grok-build-docs/` (gitignore)
+- **Crew + room surface (enter = team present):** `docs/superpowers/specs/2026-07-22-evobuddy-crew-room-surface-alignment.md` — gradual crew, solo default, Enter≠Attach; **C-FINAL**
 
 ### Pass summary (read this first)
 

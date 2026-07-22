@@ -48,3 +48,25 @@ There is no required install path that makes pi packages own team state. Spot-ch
 - D6 roster strip polish (optional chrome)
 - SubagentBuddy as primary
 - Mobile / Raft web clone
+
+## Follow-on (post PR #9)
+
+TUI shell restore does **not** close daily TUI→backend wire-through. See:
+
+**`docs/superpowers/specs/2026-07-22-evobuddy-tui-backend-raft-alignment-audit.md`**
+
+— gaps vs Raft, overdone chrome, TUI↔Pi break points (create seats, choose-seat attach, handoff/wake), joint eval IDs **J1–J5**, and **pass ladder**:
+
+| Gate | Meaning | Now |
+|---|---|---|
+| **G0** | Pi-first backend eval gate (this doc) | **PASS** (S3 may skip) |
+| **G1** | Raft Home shell (Enter=Attach, inbox) | **PASS** |
+| **G2** | TUI→backend wire-through | NOT PASS |
+| **G3** | Product-path handoff/wake | NOT PASS |
+| **G4** | Joint L1 J1–J5 | NOT PASS |
+| **FINAL** | Raft-aligned daily loop (G0–G4 all pass) | NOT PASS |
+
+Do not announce wire-through FINAL until audit §9.3 F1–F8 hold. G0 pass alone is not that FINAL.
+
+**Further:** Raft **functional** alignment (channel intake, no forced agent TUI, Activity thread) is a **separate** ladder — see  
+`docs/superpowers/specs/2026-07-22-evobuddy-raft-functional-alignment.md` (**R-FINAL**). L1 wire-through FINAL ≠ R-FINAL.

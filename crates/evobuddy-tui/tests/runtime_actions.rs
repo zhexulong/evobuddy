@@ -55,6 +55,7 @@ fn sample_room() -> TaskRoom {
         returned_to: None,
         artifacts_summary: Vec::new(),
         summary: "active".to_string(),
+        timeline: Vec::new(),
     }
 }
 

@@ -12,7 +12,9 @@ import { appendNativeSessionEvidenceRef, classifySessionReconciliation, commitNa
 import { createRuntimeSessionOpenPlan, getRuntimeSessionAdapter, buildManagedTerminalSessionRef } from '../../src/core/evobuddy-runtime-session-router.mjs';
 import {
   addTaskRoomParticipant,
+  appendTaskRoomMessage,
   archiveTaskRoom,
+  readTaskRoom,
   stopTaskRoomSession,
 } from '../../src/core/evobuddy-taskroom-store.mjs';
 import {
@@ -189,6 +191,7 @@ function parseFlags(argv) {
     else if (arg === '--to-instance') parsed.toInstance = requireValue(argv, i += 1, arg);
     else if (arg === '--handoff-kind') parsed.handoffKind = requireValue(argv, i += 1, arg);
     else if (arg === '--body') parsed.body = requireValue(argv, i += 1, arg);
+    else if (arg === '--from') parsed.from = requireValue(argv, i += 1, arg);
     else if (arg === '--outcome') parsed.outcome = requireValue(argv, i += 1, arg);
     else if (arg === '--note') parsed.note = requireValue(argv, i += 1, arg);
     else if (arg === '--reason') parsed.reason = requireValue(argv, i += 1, arg);
@@ -213,7 +216,8 @@ function parseFlags(argv) {
 
 function taskroomSessionHelp() {
   return `Usage:
-  evobuddy taskroom create --project <path> --room <id> --title <text> --objective <text> [--runtime pi] [--created-at <iso>] [--json]
+  evobuddy taskroom create --project <path> --room <id> [--title <text>] [--objective <text>] [--runtime pi] [--created-at <iso>] [--json]
+  evobuddy taskroom message send --project <path> --room <id> --body <text> [--from <participant-id>] [--json]
   evobuddy taskroom participant add --project <path> --room <id> --participant-id <id> --actor-name <name> --actor-kind <kind> --role <role> [--runtime <name>] [--json]
   evobuddy taskroom handoff create --project <path> --room <id> --handoff-id <id> --from-instance <id> --to-instance <id> --handoff-kind <kind> [--body <text>] [--created-at <iso>] [--json]
   evobuddy taskroom review complete --project <path> --room <id> [--outcome done|changes-requested] [--json]
@@ -233,17 +237,57 @@ async function taskroomCreate(argv) {
   const args = parseFlags(argv);
   if (!args.project) throw new Error('missing value for --project');
   if (!args.room) throw new Error('missing value for --room');
-  if (!args.objective && !args.title) throw new Error('missing value for --objective or --title');
-  const objective = args.objective ?? args.title;
+  // Empty create is allowed: room opens first; human describes work as in-room messages.
+  const objective = args.objective ?? args.title ?? 'new room';
   const runtime = String(args.runtime ?? 'pi').toLowerCase();
   const room = await createPiFirstTaskRoom(resolve(args.project), {
     roomId: args.room,
-    title: args.title,
+    title: args.title ?? objective,
     objective,
     runtime,
     createdAt: args.createdAt ?? isoNow(),
   });
   return { stdout: args.json ? `${JSON.stringify(room)}\n` : `${room.roomId}\n` };
+}
+
+async function taskroomMessageSend(argv) {
+  if (argv.includes('--help') || argv.includes('-h')) return { stdout: taskroomSessionHelp() };
+  const args = parseFlags(argv);
+  if (!args.project) throw new Error('missing value for --project');
+  if (!args.room) throw new Error('missing value for --room');
+  if (!args.body) throw new Error('missing value for --body');
+  const projectRoot = resolve(args.project);
+  const room = await readTaskRoom(projectRoot, args.room);
+  const builder = (room.participants ?? []).find((p) => p.role === 'builder')
+    ?? room.participants?.[0];
+  const from = args.fromInstance ?? args.from ?? builder?.participantId;
+  if (!from) throw new Error('missing from participant (no seats in room)');
+  const createdAt = args.createdAt ?? isoNow();
+  const message = await appendTaskRoomMessage(projectRoot, args.room, {
+    messageId: `message:user:${randomUUID()}`,
+    fromParticipantId: from,
+    toParticipantIds: [from],
+    kind: 'user-request',
+    body: args.body,
+    artifactRefs: [],
+    createdAt,
+  });
+  // Elevate first human message into task title/objective when still untitled.
+  if (room.objective === 'new room' || room.title === 'new room' || room.title === room.roomId) {
+    const title = args.body.length > 80 ? `${args.body.slice(0, 77)}...` : args.body;
+    room.title = title;
+    room.objective = args.body;
+    if (room.task) {
+      room.task.status = room.task.status === 'Queued' ? 'Working' : room.task.status;
+    }
+    room.raftStatus = room.raftStatus === 'Queued' ? 'Working' : (room.raftStatus ?? 'Working');
+    const { writeFile } = await import('node:fs/promises');
+    const { resolveEvobuddyProjectState } = await import('../../src/core/evobuddy-project-state.mjs');
+    const { validateTaskRoom } = await import('../../src/core/evobuddy-taskroom-record.mjs');
+    const state = resolveEvobuddyProjectState({ projectRoot });
+    await writeFile(state.taskroomRoomJsonPath(args.room), `${JSON.stringify(validateTaskRoom(room), null, 2)}\n`, 'utf8');
+  }
+  return { stdout: args.json ? `${JSON.stringify(message)}\n` : `${message.messageId}\n` };
 }
 
 async function taskroomParticipantAdd(argv) {
@@ -827,6 +871,7 @@ async function dispatch(argv) {
   if (command === 'doctor') return doctor(argv.slice(1));
   if (command === 'workbench') return workbench(argv.slice(1));
   if (command === 'taskroom' && subcommand === 'create') return taskroomCreate([action, ...rest].filter((value) => value !== undefined));
+  if (command === 'taskroom' && subcommand === 'message' && action === 'send') return taskroomMessageSend(rest);
   if (command === 'taskroom' && subcommand === 'participant' && action === 'add') return taskroomParticipantAdd(rest);
   if (command === 'taskroom' && subcommand === 'handoff' && action === 'create') return taskroomHandoffCreate(rest);
   if (command === 'taskroom' && subcommand === 'review' && action === 'complete') return taskroomReviewComplete(rest);

@@ -34,7 +34,11 @@ pub enum KeyInput {
 fn is_form_view(mode: &ViewMode) -> bool {
     matches!(
         mode,
-        ViewMode::TaskRoomForm | ViewMode::HandoffForm | ViewMode::StructuredQuestion | ViewMode::ConfirmAction
+        ViewMode::TaskRoomForm
+            | ViewMode::HandoffForm
+            | ViewMode::StructuredQuestion
+            | ViewMode::ConfirmAction
+            | ViewMode::Detail(crate::views::DetailView::TaskRoom)
     )
 }
 
@@ -63,6 +67,11 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
                 app.submit_task_room_form()
             } else if app.view_mode == ViewMode::HandoffForm {
                 app.submit_handoff_form()
+            } else if matches!(
+                app.view_mode,
+                ViewMode::Detail(crate::views::DetailView::TaskRoom)
+            ) {
+                app.submit_room_composer()
             } else if app.view_mode == ViewMode::StructuredQuestion {
                 let index = app
                     .structured_question
@@ -131,17 +140,16 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
         KeyInput::Actions => {
             if matches!(
                 app.view_mode,
-                ViewMode::Dashboard | ViewMode::TaskRoomWorkspace
+                ViewMode::Dashboard
+                    | ViewMode::TaskRoomWorkspace
+                    | ViewMode::Detail(crate::views::DetailView::TaskRoom)
             ) {
                 app.open_native_runtime_effect()
             } else {
                 WorkbenchEffect::None
             }
         }
-        KeyInput::NewRoom => {
-            app.open_task_room_form();
-            WorkbenchEffect::None
-        }
+        KeyInput::NewRoom => app.create_and_enter_room(),
         KeyInput::ChooseSeat => {
             if matches!(
                 app.view_mode,
@@ -198,7 +206,10 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
                 }
             } else if matches!(
                 app.view_mode,
-                ViewMode::TaskRoomForm | ViewMode::HandoffForm | ViewMode::StructuredQuestion
+                ViewMode::TaskRoomForm
+                    | ViewMode::HandoffForm
+                    | ViewMode::StructuredQuestion
+                    | ViewMode::Detail(crate::views::DetailView::TaskRoom)
             ) {
                 app.append_to_active_input(ch);
             }
@@ -212,7 +223,10 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
                 app.search_query.pop();
             } else if matches!(
                 app.view_mode,
-                ViewMode::TaskRoomForm | ViewMode::HandoffForm | ViewMode::StructuredQuestion
+                ViewMode::TaskRoomForm
+                    | ViewMode::HandoffForm
+                    | ViewMode::StructuredQuestion
+                    | ViewMode::Detail(crate::views::DetailView::TaskRoom)
             ) {
                 app.backspace_active_input();
             }

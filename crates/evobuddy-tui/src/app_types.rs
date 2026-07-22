@@ -131,6 +131,10 @@ pub enum WorkbenchEffect {
         room_id: String,
         instance_id: String,
     },
+    SendRoomMessage {
+        room_id: String,
+        body: String,
+    },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

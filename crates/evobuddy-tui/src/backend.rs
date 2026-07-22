@@ -359,6 +359,35 @@ pub fn taskroom_create_command(
     }
 }
 
+pub fn taskroom_message_send_command(
+    project: &Path,
+    room_id: &str,
+    body: &str,
+    from: Option<&str>,
+) -> BackendCommand {
+    let mut args = vec![
+        "scripts/evobuddy/evobuddy.mjs".to_string(),
+        "taskroom".to_string(),
+        "message".to_string(),
+        "send".to_string(),
+        "--project".to_string(),
+        project.display().to_string(),
+        "--room".to_string(),
+        room_id.to_string(),
+        "--body".to_string(),
+        body.to_string(),
+    ];
+    if let Some(from) = from {
+        args.push("--from".to_string());
+        args.push(from.to_string());
+    }
+    args.push("--json".to_string());
+    BackendCommand {
+        program: "node".to_string(),
+        args,
+    }
+}
+
 pub fn title_from_objective(objective: &str, fallback: &str) -> String {
     let trimmed = objective.trim();
     if trimmed.is_empty() {

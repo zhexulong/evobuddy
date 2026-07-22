@@ -15,6 +15,34 @@ impl WorkbenchApp {
         self.task_room_form_field = 0;
         self.push_view(ViewMode::TaskRoomForm);
     }
+
+    pub fn create_and_enter_room(&mut self) -> WorkbenchEffect {
+        self.task_room_form = CreateTaskRoomDraft {
+            objective: String::new(),
+            acceptance_criteria: String::new(),
+            workspace: self.state.project_root.clone(),
+            actor: String::new(),
+            runtime: "pi".to_string(),
+            safety_mode: "workspace-write".to_string(),
+        };
+        self.room_composer.clear();
+        self.action_status = Some("creating room…".to_string());
+        WorkbenchEffect::CreateTaskRoom(self.task_room_form.clone())
+    }
+
+    pub fn submit_room_composer(&mut self) -> WorkbenchEffect {
+        let body = self.room_composer.trim().to_string();
+        if body.is_empty() {
+            return WorkbenchEffect::None;
+        }
+        let Some(room) = self.selected_task_room() else {
+            return WorkbenchEffect::None;
+        };
+        let room_id = room.id.clone();
+        self.room_composer.clear();
+        self.action_status = Some("sending message…".to_string());
+        WorkbenchEffect::SendRoomMessage { room_id, body }
+    }
     pub fn open_handoff_form(&mut self) {
         self.handoff_form = CreateHandoffDraft {
             sender: String::new(),
@@ -45,6 +73,9 @@ impl WorkbenchApp {
                 self.handoff_form_field = 0;
                 self.handoff_form.body.push(ch);
             }
+            ViewMode::Detail(crate::views::DetailView::TaskRoom) => {
+                self.room_composer.push(ch);
+            }
             ViewMode::StructuredQuestion => {
                 if let Some(question) = &mut self.structured_question {
                     if question.allows_free_text {
@@ -62,6 +93,9 @@ impl WorkbenchApp {
             }
             ViewMode::HandoffForm => {
                 self.handoff_form.body.pop();
+            }
+            ViewMode::Detail(crate::views::DetailView::TaskRoom) => {
+                self.room_composer.pop();
             }
             ViewMode::StructuredQuestion => {
                 if let Some(question) = &mut self.structured_question {

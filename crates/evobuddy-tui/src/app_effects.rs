@@ -96,10 +96,7 @@ impl WorkbenchApp {
                 self.push_view(ViewMode::Detail(DetailView::RuntimeSetup));
                 WorkbenchEffect::ExecuteCommand(DeterministicCommand::ShowRuntimeSetup)
             }
-            DeterministicCommand::CreateTaskRoom => {
-                self.open_task_room_form();
-                WorkbenchEffect::ExecuteCommand(DeterministicCommand::CreateTaskRoom)
-            }
+            DeterministicCommand::CreateTaskRoom => self.create_and_enter_room(),
             DeterministicCommand::CreateHandoff => {
                 self.open_handoff_form();
                 WorkbenchEffect::ExecuteCommand(DeterministicCommand::CreateHandoff)

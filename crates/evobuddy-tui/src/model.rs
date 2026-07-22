@@ -78,6 +78,18 @@ pub struct TaskRoom {
     #[serde(rename = "artifactsSummary")]
     pub artifacts_summary: Vec<String>,
     pub summary: String,
+    #[serde(default)]
+    pub timeline: Vec<TimelineEntry>,
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
+pub struct TimelineEntry {
+    #[serde(default)]
+    pub kind: String,
+    #[serde(default)]
+    pub at: String,
+    #[serde(default)]
+    pub summary: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]

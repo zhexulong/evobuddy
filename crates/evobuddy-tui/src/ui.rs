@@ -10,10 +10,11 @@ use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use crate::app::{WorkbenchApp, WorkbenchEffect};
 use crate::backend::{
-    run_backend_command, taskroom_archive_command, taskroom_create_command,
-    taskroom_handoff_create_command, taskroom_participant_add_command,
-    taskroom_session_stop_command,
+    load_workbench_state, run_backend_command, taskroom_archive_command, taskroom_create_command,
+    taskroom_handoff_create_command, taskroom_message_send_command,
+    taskroom_participant_add_command, taskroom_session_stop_command, BackendOptions,
 };
+use crate::views::DetailView;
 use crate::input::{handle_key_event, KeyInput};
 use crate::terminal_mode::{CrosstermTerminalControl, TerminalControl};
 use crate::views::ViewMode;
@@ -89,7 +90,25 @@ pub fn render_frame(frame: &mut ratatui::Frame<'_>, app: &WorkbenchApp) {
     }
 }
 
+fn is_quit_chord(key: KeyEvent) -> bool {
+    if key.code == KeyCode::Char('c') && key.modifiers.contains(KeyModifiers::CONTROL) {
+        return true;
+    }
+    if key.code == KeyCode::Char('d') && key.modifiers.contains(KeyModifiers::CONTROL) {
+        return true;
+    }
+    if key.code == KeyCode::Char('q')
+        && (key.modifiers.is_empty() || key.modifiers.contains(KeyModifiers::CONTROL))
+    {
+        return true;
+    }
+    false
+}
+
 fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
+    if is_quit_chord(key) {
+        return Some(KeyInput::Quit);
+    }
     match key.code {
         KeyCode::Up => Some(KeyInput::Up),
         KeyCode::Down => Some(KeyInput::Down),
@@ -119,7 +138,7 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
         KeyCode::Char('h') if key.modifiers.is_empty() => Some(KeyInput::Handoff),
         KeyCode::Char('?') => Some(KeyInput::Help),
         KeyCode::Char('a') if key.modifiers.is_empty() => Some(KeyInput::Actions),
-        KeyCode::Char('r') => Some(KeyInput::Trace),
+        KeyCode::Char('r') if key.modifiers.is_empty() => Some(KeyInput::Trace),
         KeyCode::Char('u') if key.modifiers.is_empty() => Some(KeyInput::Updates),
         KeyCode::Char('b') if key.modifiers.contains(KeyModifiers::CONTROL) => {
             Some(KeyInput::ToggleTaskRooms)
@@ -127,7 +146,6 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
         KeyCode::Char('t') if key.modifiers.contains(KeyModifiers::CONTROL) => {
             Some(KeyInput::ToggleUpdates)
         }
-        KeyCode::Char('q') if key.modifiers.is_empty() => Some(KeyInput::Quit),
         KeyCode::Char(ch @ '1'..='9') if key.modifiers.is_empty() => Some(
             KeyInput::StructuredAnswer(ch.to_digit(10).unwrap_or(1) as u8),
         ),
@@ -135,6 +153,24 @@ fn map_key_event(key: KeyEvent) -> Option<KeyInput> {
             Some(KeyInput::Char(ch))
         }
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod quit_chord_tests {
+    use super::*;
+    use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+    #[test]
+    fn ctrl_c_d_q_and_plain_q_map_to_quit() {
+        let ctrl_c = KeyEvent::new(KeyCode::Char('c'), KeyModifiers::CONTROL);
+        let ctrl_d = KeyEvent::new(KeyCode::Char('d'), KeyModifiers::CONTROL);
+        let ctrl_q = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::CONTROL);
+        let plain_q = KeyEvent::new(KeyCode::Char('q'), KeyModifiers::NONE);
+        assert_eq!(map_key_event(ctrl_c), Some(KeyInput::Quit));
+        assert_eq!(map_key_event(ctrl_d), Some(KeyInput::Quit));
+        assert_eq!(map_key_event(ctrl_q), Some(KeyInput::Quit));
+        assert_eq!(map_key_event(plain_q), Some(KeyInput::Quit));
     }
 }
 
@@ -212,7 +248,11 @@ fn execute_workbench_effect(
                     .map(|duration| duration.as_millis())
                     .unwrap_or(0)
             );
-            let objective = draft.objective.clone();
+            let objective = if draft.objective.trim().is_empty() {
+                "new room".to_string()
+            } else {
+                draft.objective.clone()
+            };
             let title = crate::backend::title_from_objective(&objective, &room_id);
             let runtime = if draft.runtime.trim().is_empty() {
                 "pi"
@@ -229,7 +269,52 @@ fn execute_workbench_effect(
             );
             run_backend_command(&command, &project)?;
             app.durable_writes.push(format!("created {room_id}"));
-            app.action_status = Some(format!("created {room_id}"));
+            app.action_status = Some(format!("created {room_id} · type a message"));
+            if let Ok(state) = load_workbench_state(&BackendOptions {
+                project: project.clone(),
+                state_json: None,
+                input_root: None,
+                aggregate_report: None,
+                plan1_report: None,
+                plan2_report: None,
+                taskroom_reports: vec![],
+                backend_command: None,
+            }) {
+                app.state = state;
+                if let Some(idx) = app.state.task_rooms.iter().position(|r| r.id == room_id) {
+                    app.selected_task_room = idx;
+                } else if !app.state.task_rooms.is_empty() {
+                    app.selected_task_room = app.state.task_rooms.len() - 1;
+                }
+            }
+            app.focus = crate::app::FocusPane::TaskRooms;
+            app.room_composer.clear();
+            app.push_view(ViewMode::Detail(DetailView::TaskRoom));
+            Ok(())
+        }
+        WorkbenchEffect::SendRoomMessage { room_id, body } => {
+            let project = project_root(app);
+            let command = taskroom_message_send_command(&project, &room_id, &body, None);
+            run_backend_command(&command, &project)?;
+            app.durable_writes
+                .push(format!("message in {room_id}"));
+            app.action_status = Some("message sent".to_string());
+            if let Ok(state) = load_workbench_state(&BackendOptions {
+                project: project.clone(),
+                state_json: None,
+                input_root: None,
+                aggregate_report: None,
+                plan1_report: None,
+                plan2_report: None,
+                taskroom_reports: vec![],
+                backend_command: None,
+            }) {
+                let selected_id = room_id.clone();
+                app.state = state;
+                if let Some(idx) = app.state.task_rooms.iter().position(|r| r.id == selected_id) {
+                    app.selected_task_room = idx;
+                }
+            }
             Ok(())
         }
         WorkbenchEffect::CreateHandoff(draft) => {

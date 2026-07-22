@@ -22,19 +22,13 @@ fn load_app(name: &str) -> WorkbenchApp {
 }
 
 #[test]
-fn create_taskroom_form_sends_immediately_without_confirmation() {
+fn new_room_key_creates_without_confirmation_or_form() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
-    handle_key_event(&mut app, KeyInput::NewRoom);
-    handle_key_event(&mut app, KeyInput::Char('M'));
-    handle_key_event(&mut app, KeyInput::Char('V'));
-    handle_key_event(&mut app, KeyInput::Char('D'));
-    handle_key_event(&mut app, KeyInput::Char('o'));
-
-    let effect = handle_key_event(&mut app, KeyInput::Enter);
+    let effect = handle_key_event(&mut app, KeyInput::NewRoom);
     assert_ne!(app.view_mode, ViewMode::ConfirmAction);
+    assert_ne!(app.view_mode, ViewMode::TaskRoomForm);
     match effect {
         WorkbenchEffect::CreateTaskRoom(draft) => {
-            assert!(draft.objective.contains('M') || draft.objective.contains("MV"));
             assert_eq!(draft.runtime, "pi");
         }
         other => panic!("expected CreateTaskRoom, got {other:?}"),

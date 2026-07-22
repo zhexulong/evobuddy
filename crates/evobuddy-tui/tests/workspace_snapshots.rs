@@ -179,32 +179,21 @@ fn trace_drawer_snapshot_keeps_diagnostics_behind_drawer() {
 }
 
 #[test]
-fn taskroom_form_snapshot_names_destination_fields_and_effect() {
+fn task_room_detail_shows_thread_and_composer() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
-    handle_key_event(&mut app, KeyInput::NewRoom);
+    app.push_view(ViewMode::Detail(DetailView::TaskRoom));
     handle_key_event(&mut app, KeyInput::Char('m'));
     handle_key_event(&mut app, KeyInput::Char('a'));
     handle_key_event(&mut app, KeyInput::Char('p'));
 
-    let snapshot = render_current_snapshot(&app, 120, 40).expect("render task room form snapshot");
-    for landmark in [
-        "New room",
-        "message",
-        "Compose",
-        "map",
-        "Enter send",
-        "Esc cancel",
-    ] {
+    let snapshot = render_current_snapshot(&app, 120, 40).expect("render room thread");
+    for landmark in ["Room", "Thread", "Composer", "map", "Enter send"] {
         assert!(
             snapshot.contains(landmark),
-            "missing task composer landmark `{landmark}` in snapshot:\n{snapshot}"
+            "missing room thread landmark `{landmark}` in snapshot:\n{snapshot}"
         );
     }
-    for forbidden in [
-        "Acceptance criteria",
-        "Safety mode",
-        "TaskRoom Form",
-    ] {
+    for forbidden in ["Acceptance criteria", "Safety mode", "TaskRoom Form"] {
         assert!(
             !snapshot.contains(forbidden),
             "field wall remnant `{forbidden}` still shown:\n{snapshot}"
@@ -241,7 +230,10 @@ fn taskroom_detail_view_uses_sorted_selected_room_not_raw_fixture_order() {
 
     let snapshot = render_current_snapshot(&app, 80, 20).expect("render detail snapshot");
 
-    assert!(snapshot.contains("TaskRoom Detail"), "{snapshot}");
+    assert!(
+        snapshot.contains("Room") || snapshot.contains("Thread"),
+        "{snapshot}"
+    );
     assert!(snapshot.contains("Urgent room sorted-first"), "{snapshot}");
     assert!(!snapshot.contains("Completed room raw-first"), "{snapshot}");
 }

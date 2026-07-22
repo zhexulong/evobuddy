@@ -161,38 +161,53 @@ fn dashboard_text_input_does_not_open_generic_prompt_or_capture_text() {
 }
 
 #[test]
-fn new_room_form_opens_from_dashboard_and_submits_typed_effect() {
+fn new_room_creates_immediately_without_compose_modal() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
-    handle_key_event(&mut app, KeyInput::NewRoom);
-    assert_eq!(app.view_mode, ViewMode::TaskRoomForm);
-    for ch in "Ship it".chars() {
-        handle_key_event(&mut app, KeyInput::Char(ch));
-    }
-    let effect = handle_key_event(&mut app, KeyInput::Enter);
+    let effect = handle_key_event(&mut app, KeyInput::NewRoom);
     match effect {
         WorkbenchEffect::CreateTaskRoom(CreateTaskRoomDraft { objective, runtime, .. }) => {
-            assert_eq!(objective, "Ship it");
+            assert!(objective.is_empty() || objective == "new room");
             assert_eq!(runtime, "pi");
         }
-        other => panic!("expected CreateTaskRoom, got {other:?}"),
+        other => panic!("expected CreateTaskRoom on n, got {other:?}"),
     }
+    assert_ne!(app.view_mode, ViewMode::TaskRoomForm);
     assert_ne!(app.view_mode, ViewMode::ConfirmAction);
     assert!(app.durable_writes.is_empty());
 }
 
 #[test]
-fn compose_backspace_deletes_typed_chars_in_new_room_and_handoff() {
+fn room_detail_composer_sends_message_effect() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
-    handle_key_event(&mut app, KeyInput::NewRoom);
+    app.push_view(ViewMode::Detail(DetailView::TaskRoom));
+    for ch in "Ship it".chars() {
+        handle_key_event(&mut app, KeyInput::Char(ch));
+    }
+    assert_eq!(app.room_composer, "Ship it");
+    let effect = handle_key_event(&mut app, KeyInput::Enter);
+    match effect {
+        WorkbenchEffect::SendRoomMessage { body, room_id } => {
+            assert_eq!(body, "Ship it");
+            assert!(!room_id.is_empty());
+        }
+        other => panic!("expected SendRoomMessage, got {other:?}"),
+    }
+    assert!(app.room_composer.is_empty());
+}
+
+#[test]
+fn compose_backspace_deletes_typed_chars_in_room_and_handoff() {
+    let mut app = load_app("evobuddy-workbench-state-v1.json");
+    app.push_view(ViewMode::Detail(DetailView::TaskRoom));
     for ch in "abc".chars() {
         handle_key_event(&mut app, KeyInput::Char(ch));
     }
-    assert_eq!(app.task_room_form.objective, "abc");
+    assert_eq!(app.room_composer, "abc");
     handle_key_event(&mut app, KeyInput::Backspace);
-    assert_eq!(app.task_room_form.objective, "ab");
+    assert_eq!(app.room_composer, "ab");
     handle_key_event(&mut app, KeyInput::Backspace);
     handle_key_event(&mut app, KeyInput::Backspace);
-    assert!(app.task_room_form.objective.is_empty());
+    assert!(app.room_composer.is_empty());
 
     handle_key_event(&mut app, KeyInput::Escape);
     app.push_view(ViewMode::TaskRoomWorkspace);

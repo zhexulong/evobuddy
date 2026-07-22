@@ -1,5 +1,14 @@
 const CONTENT_FIELDS = new Set(['body', 'text', 'content', 'message', 'messages', 'artifact', 'artifacts', 'patch', 'review']);
-const WAKE_REASONS = new Set(['handoff-ready', 'review-needed', 'resume', 'result-ready', 'budget-available']);
+const WAKE_REASONS = new Set([
+  'handoff-ready',
+  'review-needed',
+  'resume',
+  'result-ready',
+  'budget-available',
+  'room-message',
+  'as-task',
+  'activation',
+]);
 
 function requireString(value, name) {
   if (typeof value !== 'string' || value.trim().length === 0) throw new Error(`required non-empty string: ${name}`);

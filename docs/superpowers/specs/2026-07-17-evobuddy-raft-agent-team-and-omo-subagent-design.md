@@ -10,6 +10,13 @@ Subagent / specialist delegate layer: follow OMO.
 Evolution / knowledge substrate: follow EvoBuddy's existing Trellis/GenericAgent-informed direction.
 ```
 
+**2026-07-22 product/TUI follow-through (crew growth + room enter surface):**  
+`docs/superpowers/specs/2026-07-22-evobuddy-crew-room-surface-alignment.md`  
+— Gradual project **crew** (Raft Create-agent path); TaskRoom membership from crew; **Enter opens roster+composer**, Attach secondary. Ladder: **C0–C5 / C-FINAL**.
+
+**2026-07-22 scope correction — subagents:**  
+Product and TUI **do not manage** subagents / Claude Agent Teams / OMO-style specialist rosters. Those are **agent-runtime-controlled**. EvoBuddy product surface is **TeamAgent crew + TaskRooms only**. Historical SubagentBuddy projection text in this design remains optional backend/reference material, **not** a daily product requirement or C-FINAL gate.
+
 The design principle is:
 
 ```text

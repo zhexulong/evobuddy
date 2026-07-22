@@ -7,7 +7,10 @@ use ratatui::Frame;
 use crate::action_hints::short_primary_action_label;
 use crate::app::WorkbenchApp;
 use crate::model::{TaskRoom, TaskRoomStatus};
-use crate::theme::{muted_style, pane_block, selected_style, status_glyph, task_room_status_style};
+use crate::theme::{
+    muted_style, pane_block, selected_marker_style, selected_style, status_glyph,
+    task_room_status_style,
+};
 
 pub fn render_work_inbox(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect, focused: bool) {
     let rooms = visible_rooms(app);
@@ -28,18 +31,22 @@ pub fn render_work_inbox(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect, 
         .iter()
         .enumerate()
         .map(|(index, room)| {
-            let marker = if index == selected { "❯ " } else { "  " };
             let glyph = status_glyph(&room.status);
             let status = format_status(&room.status);
             let runtime = primary_runtime(room);
             let title = truncate(&room.title, area_title_width(area));
-            let line = format!("{marker}{glyph} {status:<8} {title}  {runtime}");
-            let style = if index == selected {
-                selected_style()
+            let body = format!("{glyph} {status:<8} {title}  {runtime}");
+            if index == selected {
+                ListItem::new(Line::from(vec![
+                    Span::styled("❯ ", selected_marker_style()),
+                    Span::styled(body, selected_style()),
+                ]))
             } else {
-                task_room_status_style(&room.status)
-            };
-            ListItem::new(Line::from(Span::styled(line, style)))
+                ListItem::new(Line::from(vec![
+                    Span::raw("  "),
+                    Span::styled(body, task_room_status_style(&room.status)),
+                ]))
+            }
         })
         .collect();
 
@@ -61,11 +68,11 @@ pub fn render_selected_task_room_detail(
     let Some(room) = app.selected_task_room() else {
         frame.render_widget(
             Paragraph::new(vec![
-                Line::from(Span::styled("Selected TaskRoom", selected_style())),
+                Line::from(Span::styled("Room", selected_style())),
                 Line::from("No room selected"),
                 Line::from(Span::styled("Press n to create a room", muted_style())),
             ])
-            .block(pane_block("Selected TaskRoom", focused)),
+            .block(pane_block("Room", focused)),
             area,
         );
         return;
@@ -94,6 +101,11 @@ pub fn render_selected_task_room_detail(
     };
     let session_line = room_session_line(app, room);
     let enter_line = primary_enter_line(room);
+    let work = if room.objective.is_empty() || room.objective == "new room" {
+        "—".to_string()
+    } else {
+        truncate(&room.objective, 72)
+    };
 
     let lines = vec![
         Line::from(Span::styled(
@@ -109,22 +121,21 @@ pub fn render_selected_task_room_detail(
             format!("Now · {attention}"),
             Style::default().add_modifier(Modifier::BOLD),
         )),
-        Line::from(format!("Session: {session_line}")),
-        Line::from(format!("Who: {}", truncate(&who, 72))),
-        Line::from(format!("Work: {}", truncate(&room.objective, 72))),
-        Line::from(format!(
-            "Done when: {}",
-            truncate(&room.acceptance_criteria, 56)
-        )),
         Line::from(Span::styled(
-            "Enter",
-            Style::default().add_modifier(Modifier::BOLD),
+            format!("Members · {}", truncate(&who, 64)),
+            muted_style(),
         )),
-        Line::from(enter_line),
+        Line::from(format!("Work · {work}")),
+        Line::from(Span::styled(
+            format!("Session · {session_line}"),
+            muted_style(),
+        )),
+        Line::from(""),
+        Line::from(Span::styled(enter_line, Style::default().add_modifier(Modifier::BOLD))),
     ];
 
     frame.render_widget(
-        Paragraph::new(lines).block(pane_block("Selected TaskRoom", focused)),
+        Paragraph::new(lines).block(pane_block("Room", focused)),
         area,
     );
 }

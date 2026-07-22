@@ -25,15 +25,21 @@ pub enum KeyInput {
     ToggleTaskRooms,
     ToggleUpdates,
     Quit,
+    SoftQuit,
     StructuredAnswer(u8),
     Char(char),
+    Backspace,
 }
 
 
 fn is_form_view(mode: &ViewMode) -> bool {
     matches!(
         mode,
-        ViewMode::TaskRoomForm | ViewMode::HandoffForm | ViewMode::StructuredQuestion | ViewMode::ConfirmAction
+        ViewMode::TaskRoomForm
+            | ViewMode::HandoffForm
+            | ViewMode::StructuredQuestion
+            | ViewMode::ConfirmAction
+            | ViewMode::Detail(crate::views::DetailView::TaskRoom)
     )
 }
 
@@ -62,6 +68,11 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
                 app.submit_task_room_form()
             } else if app.view_mode == ViewMode::HandoffForm {
                 app.submit_handoff_form()
+            } else if matches!(
+                app.view_mode,
+                ViewMode::Detail(crate::views::DetailView::TaskRoom)
+            ) {
+                app.submit_room_composer()
             } else if app.view_mode == ViewMode::StructuredQuestion {
                 let index = app
                     .structured_question
@@ -71,10 +82,13 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
                 app.submit_structured_answer(index)
             } else if app.view_mode == ViewMode::CommandPalette {
                 app.execute_selected_command()
-            } else if matches!(
-                app.view_mode,
-                ViewMode::Dashboard | ViewMode::TaskRoomWorkspace
-            ) && app.focus == FocusPane::TaskRooms
+            } else if matches!(app.view_mode, ViewMode::Dashboard)
+                && app.focus == FocusPane::TaskRooms
+            {
+                app.push_view(ViewMode::Detail(app.current_detail_view()));
+                WorkbenchEffect::None
+            } else if app.view_mode == ViewMode::TaskRoomWorkspace
+                && app.focus == FocusPane::TaskRooms
             {
                 app.open_native_runtime_effect()
             } else if app.focus == FocusPane::TeamBuddies {
@@ -127,17 +141,16 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
         KeyInput::Actions => {
             if matches!(
                 app.view_mode,
-                ViewMode::Dashboard | ViewMode::TaskRoomWorkspace
+                ViewMode::Dashboard
+                    | ViewMode::TaskRoomWorkspace
+                    | ViewMode::Detail(crate::views::DetailView::TaskRoom)
             ) {
                 app.open_native_runtime_effect()
             } else {
                 WorkbenchEffect::None
             }
         }
-        KeyInput::NewRoom => {
-            app.open_task_room_form();
-            WorkbenchEffect::None
-        }
+        KeyInput::NewRoom => app.create_and_enter_room(),
         KeyInput::ChooseSeat => {
             if matches!(
                 app.view_mode,
@@ -194,13 +207,33 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
                 }
             } else if matches!(
                 app.view_mode,
-                ViewMode::TaskRoomForm | ViewMode::HandoffForm | ViewMode::StructuredQuestion
+                ViewMode::TaskRoomForm
+                    | ViewMode::HandoffForm
+                    | ViewMode::StructuredQuestion
+                    | ViewMode::Detail(crate::views::DetailView::TaskRoom)
             ) {
                 app.append_to_active_input(ch);
             }
             WorkbenchEffect::None
         }
-        KeyInput::Quit => WorkbenchEffect::None,
+        KeyInput::Backspace => {
+            if app.view_mode == ViewMode::CommandPalette {
+                app.command_query.pop();
+                app.selected_command = 0;
+            } else if app.view_mode == ViewMode::Search {
+                app.search_query.pop();
+            } else if matches!(
+                app.view_mode,
+                ViewMode::TaskRoomForm
+                    | ViewMode::HandoffForm
+                    | ViewMode::StructuredQuestion
+                    | ViewMode::Detail(crate::views::DetailView::TaskRoom)
+            ) {
+                app.backspace_active_input();
+            }
+            WorkbenchEffect::None
+        }
+        KeyInput::Quit | KeyInput::SoftQuit => WorkbenchEffect::None,
     }
 }
 
@@ -224,20 +257,23 @@ fn move_selection(app: &mut WorkbenchApp, delta: isize) {
     }
 }
 
-fn next_focus(current: FocusPane) -> FocusPane {
-    match current {
-        FocusPane::TeamBuddies => FocusPane::TaskRooms,
-        FocusPane::TaskRooms => FocusPane::RuntimeSetup,
-        FocusPane::RuntimeSetup => FocusPane::Updates,
-        FocusPane::Updates => FocusPane::TeamBuddies,
-    }
+fn next_focus(_current: FocusPane) -> FocusPane {
+    FocusPane::TaskRooms
 }
 
-fn previous_focus(current: FocusPane) -> FocusPane {
-    match current {
-        FocusPane::TeamBuddies => FocusPane::Updates,
-        FocusPane::TaskRooms => FocusPane::TeamBuddies,
-        FocusPane::RuntimeSetup => FocusPane::TaskRooms,
-        FocusPane::Updates => FocusPane::RuntimeSetup,
+fn previous_focus(_current: FocusPane) -> FocusPane {
+    FocusPane::TaskRooms
+}
+
+#[cfg(test)]
+mod focus_tests {
+    use super::*;
+
+    #[test]
+    fn tab_stays_on_task_rooms_activity_first() {
+        assert_eq!(next_focus(FocusPane::TaskRooms), FocusPane::TaskRooms);
+        assert_eq!(next_focus(FocusPane::TeamBuddies), FocusPane::TaskRooms);
+        assert_eq!(next_focus(FocusPane::RuntimeSetup), FocusPane::TaskRooms);
+        assert_eq!(previous_focus(FocusPane::Updates), FocusPane::TaskRooms);
     }
 }

@@ -48,3 +48,29 @@ There is no required install path that makes pi packages own team state. Spot-ch
 - D6 roster strip polish (optional chrome)
 - SubagentBuddy as primary
 - Mobile / Raft web clone
+
+## Follow-on ladder (authoritative with audit)
+
+Canonical gate table lives in:
+
+**`docs/superpowers/specs/2026-07-22-evobuddy-tui-backend-raft-alignment-audit.md`**
+
+Synced status (2026-07-22 L1 closeout on `fix/visual-raft-home` / PR #10):
+
+| Gate | Meaning | Now |
+|---|---|---|
+| **G0** | Pi-first backend eval gate (this doc) | **PASS** (S3 may skip) |
+| **G1** | Raft Home shell (inbox + Enter opens **room surface**; Attach secondary) | **PASS** |
+| **G2** | TUI→backend wire-through | **PASS** (J1–J3 L1) |
+| **G3** | Product-path handoff/wake | **PASS** (J4–J5 L1) |
+| **G4** | Joint L1 J1–J5 | **PASS** (`npm run evobuddy:eval-tui-backend-joint`) |
+| **FINAL** | Raft-aligned daily loop (G0–G4 all pass) | **PASS (L1)** — L2 PTY recommended only |
+
+**Product notes that supersede older PR #7 wording:**
+
+- Default create = **solo** pi primary; multi-seat = `--template pair` (not forced duo).
+- **Enter** opens room surface (roster + thread + composer). **Attach** is explicit (`a` / Actions / choose-seat).
+- Do not re-claim “Enter=Attach” as G1 identity.
+
+**Further:** Raft **functional** alignment (channel intake, no forced agent TUI, Activity thread) is a **separate** ladder — see  
+`docs/superpowers/specs/2026-07-22-evobuddy-raft-functional-alignment.md` (**R-FINAL**). L1 wire-through FINAL ≠ R-FINAL.

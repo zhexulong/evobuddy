@@ -7,6 +7,7 @@ use evobuddy_tui::app::{
 use evobuddy_tui::backend::{
     taskroom_archive_command, taskroom_create_command, taskroom_handoff_create_command,
     taskroom_participant_add_command, taskroom_session_stop_command, BackendCommand,
+    TaskroomHandoffCreateRequest,
 };
 use evobuddy_tui::input::{handle_key_event, KeyInput};
 use evobuddy_tui::model::parse_workbench_state;
@@ -22,31 +23,16 @@ fn load_app(name: &str) -> WorkbenchApp {
 }
 
 #[test]
-fn create_taskroom_form_requests_confirmation_with_target_and_effect() {
+fn new_room_key_creates_without_confirmation_or_form() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
-    handle_key_event(&mut app, KeyInput::NewRoom);
-    handle_key_event(&mut app, KeyInput::Char('M'));
-    handle_key_event(&mut app, KeyInput::Char('V'));
-    handle_key_event(&mut app, KeyInput::NextField);
-    handle_key_event(&mut app, KeyInput::Char('D'));
-    handle_key_event(&mut app, KeyInput::Char('o'));
-
-    let effect = handle_key_event(&mut app, KeyInput::Enter);
-    assert_eq!(app.view_mode, ViewMode::ConfirmAction);
+    let effect = handle_key_event(&mut app, KeyInput::NewRoom);
+    assert_ne!(app.view_mode, ViewMode::ConfirmAction);
+    assert_ne!(app.view_mode, ViewMode::TaskRoomForm);
     match effect {
-        WorkbenchEffect::RequestConfirmation(PendingConfirmation {
-            target,
-            effect_label,
-            action,
-        }) => {
-            assert!(target.contains("MV") || target.contains("taskroom") || !target.is_empty());
-            assert!(
-                effect_label.to_lowercase().contains("create")
-                    || effect_label.to_lowercase().contains("taskroom")
-            );
-            assert!(matches!(action, ConfirmedAction::CreateTaskRoom(_)));
+        WorkbenchEffect::CreateTaskRoom(draft) => {
+            assert_eq!(draft.runtime, "pi");
         }
-        other => panic!("expected RequestConfirmation, got {other:?}"),
+        other => panic!("expected CreateTaskRoom, got {other:?}"),
     }
     assert!(app.durable_writes.is_empty());
 }
@@ -133,23 +119,20 @@ fn stop_and_archive_require_confirmation_and_are_not_detach() {
 }
 
 #[test]
-fn handoff_form_requests_confirmation_before_create_effect() {
+fn handoff_form_sends_immediately_without_confirmation() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     app.push_view(ViewMode::TaskRoomWorkspace);
     handle_key_event(&mut app, KeyInput::Handoff);
-    handle_key_event(&mut app, KeyInput::Char('B'));
-    handle_key_event(&mut app, KeyInput::NextField);
-    handle_key_event(&mut app, KeyInput::Char('R'));
-    handle_key_event(&mut app, KeyInput::NextField);
     handle_key_event(&mut app, KeyInput::Char('O'));
+    handle_key_event(&mut app, KeyInput::Char('K'));
 
     let effect = handle_key_event(&mut app, KeyInput::Enter);
-    assert_eq!(app.view_mode, ViewMode::ConfirmAction);
+    assert_ne!(app.view_mode, ViewMode::ConfirmAction);
     match effect {
-        WorkbenchEffect::RequestConfirmation(PendingConfirmation { action, .. }) => {
-            assert!(matches!(action, ConfirmedAction::CreateHandoff(_)));
+        WorkbenchEffect::CreateHandoff(draft) => {
+            assert_eq!(draft.body, "OK");
         }
-        other => panic!("expected handoff confirmation, got {other:?}"),
+        other => panic!("expected CreateHandoff, got {other:?}"),
     }
 }
 
@@ -184,6 +167,7 @@ fn backend_commands_use_structured_argv_only() {
             "taskroom:alpha",
             "Alpha",
             "Ship ownership",
+            Some("pi"),
             Some("2026-07-20T12:00:00.000Z"),
         ),
         BackendCommand {
@@ -200,6 +184,8 @@ fn backend_commands_use_structured_argv_only() {
                 "Alpha".to_string(),
                 "--objective".to_string(),
                 "Ship ownership".to_string(),
+                "--runtime".to_string(),
+                "pi".to_string(),
                 "--created-at".to_string(),
                 "2026-07-20T12:00:00.000Z".to_string(),
                 "--json".to_string(),
@@ -246,12 +232,15 @@ fn backend_commands_use_structured_argv_only() {
     assert_eq!(
         taskroom_handoff_create_command(
             &project,
-            "taskroom:alpha",
-            "handoff:1",
-            "instance:builder:1",
-            "instance:reviewer:1",
-            "review-request",
-            Some("2026-07-20T12:02:00.000Z"),
+            TaskroomHandoffCreateRequest {
+                room_id: "taskroom:alpha",
+                handoff_id: "handoff:1",
+                from_instance: "instance:builder:1",
+                to_instance: "instance:reviewer:1",
+                handoff_kind: "review-request",
+                body: Some("please review"),
+                created_at: Some("2026-07-20T12:02:00.000Z"),
+            },
         ),
         BackendCommand {
             program: "node".to_string(),
@@ -272,6 +261,8 @@ fn backend_commands_use_structured_argv_only() {
                 "instance:reviewer:1".to_string(),
                 "--handoff-kind".to_string(),
                 "review-request".to_string(),
+                "--body".to_string(),
+                "please review".to_string(),
                 "--created-at".to_string(),
                 "2026-07-20T12:02:00.000Z".to_string(),
                 "--json".to_string(),

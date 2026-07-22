@@ -11,7 +11,7 @@ import { listTaskRoomActivity } from '../../src/core/evobuddy-taskroom-activity-
 test('handoff writes content-free wake and activity, pull returns body', async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-wake-'));
   await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-  const room = await createPiFirstTaskRoom(projectRoot, { objective: 'handoff wake' });
+  const room = await createPiFirstTaskRoom(projectRoot, { objective: 'handoff wake', template: 'pair' });
   const builder = room.participants.find((p) => p.role === 'builder');
   const reviewer = room.participants.find((p) => p.role === 'reviewer');
   await handoffWithWake(projectRoot, {

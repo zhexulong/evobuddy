@@ -10,7 +10,7 @@ import { spawnSeatOnWake } from '../../src/core/evobuddy-taskroom-spawn-on-wake.
 test('spawnSeatOnWake starts pi rpc when reviewer has wake and no live session', async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-spawn-'));
   await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-  const room = await createPiFirstTaskRoom(projectRoot, { objective: 'spawn' });
+  const room = await createPiFirstTaskRoom(projectRoot, { objective: 'spawn', template: 'pair' });
   const builder = room.participants.find((p) => p.role === 'builder');
   const reviewer = room.participants.find((p) => p.role === 'reviewer');
   await handoffWithWake(projectRoot, {

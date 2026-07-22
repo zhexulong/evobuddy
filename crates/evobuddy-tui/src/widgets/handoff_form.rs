@@ -10,44 +10,33 @@ pub fn render_handoff_form(frame: &mut Frame<'_>, app: &WorkbenchApp, area: Rect
     let rows = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
-            Constraint::Length(5),
-            Constraint::Min(8),
+            Constraint::Length(4),
+            Constraint::Min(6),
             Constraint::Length(2),
         ])
         .split(area);
 
     frame.render_widget(
         Paragraph::new(vec![
-            Line::from(Span::styled("Handoff Form", selected_style())),
-            Line::from("Destination: durable HandoffRecord"),
-            Line::from("Effect: record handoff only"),
+            Line::from(Span::styled("Handoff · message", selected_style())),
+            Line::from("Body only · defaults builder → reviewer · Enter sends"),
         ])
-        .block(surface_block("Handoff Form", true)),
+        .block(surface_block("Compose", true)),
         rows[0],
     );
 
-    let body = [
-        format!("Sender: {}", app.handoff_form.sender),
-        format!("Receiver: {}", app.handoff_form.receiver),
-        format!("Body: {}", app.handoff_form.body),
-        format!("Artifact refs: {}", app.handoff_form.artifact_refs),
-        format!(
-            "Expected next action: {}",
-            app.handoff_form.expected_next_action
-        ),
-        format!(
-            "Return destination: {}",
-            app.handoff_form.return_destination
-        ),
-    ]
-    .join("\n");
+    let body = if app.handoff_form.body.is_empty() {
+        "What should the reviewer know…".to_string()
+    } else {
+        app.handoff_form.body.clone()
+    };
     frame.render_widget(
-        Paragraph::new(body).block(surface_block("Fields", false)),
+        Paragraph::new(body).block(surface_block("Message", false)),
         rows[1],
     );
     frame.render_widget(
         Paragraph::new(Line::from(Span::styled(
-            "Enter submit · Esc cancel · Ctrl+Tab next field",
+            "Enter send · Esc cancel",
             muted_style(),
         ))),
         rows[2],

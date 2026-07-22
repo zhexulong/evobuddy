@@ -96,10 +96,7 @@ impl WorkbenchApp {
                 self.push_view(ViewMode::Detail(DetailView::RuntimeSetup));
                 WorkbenchEffect::ExecuteCommand(DeterministicCommand::ShowRuntimeSetup)
             }
-            DeterministicCommand::CreateTaskRoom => {
-                self.open_task_room_form();
-                WorkbenchEffect::ExecuteCommand(DeterministicCommand::CreateTaskRoom)
-            }
+            DeterministicCommand::CreateTaskRoom => self.create_and_enter_room(),
             DeterministicCommand::CreateHandoff => {
                 self.open_handoff_form();
                 WorkbenchEffect::ExecuteCommand(DeterministicCommand::CreateHandoff)
@@ -114,6 +111,12 @@ impl WorkbenchApp {
         let Some(room) = self.selected_task_room() else {
             return WorkbenchEffect::None;
         };
+        if room.participants.is_empty() {
+            self.action_status = Some(
+                "No seats in this room — create a Pi team room or add seats.".to_string(),
+            );
+            return WorkbenchEffect::None;
+        }
         let Some(action) = room.available_actions.iter().find(|action| action.enabled) else {
             return WorkbenchEffect::None;
         };
@@ -153,6 +156,7 @@ impl WorkbenchApp {
             })
             .collect::<Vec<_>>();
         let count = choices.len();
+        let room_id = room.id.clone();
         self.structured_question = Some(StructuredQuestion {
             prompt: format!(
                 "Choose seat ({} participant{})",
@@ -165,6 +169,7 @@ impl WorkbenchApp {
             free_text: String::new(),
             destination_label: room.title.clone(),
             effect_label: "Open selected seat".to_string(),
+            attach_room_id: Some(room_id),
         });
         self.push_view(ViewMode::StructuredQuestion);
         self.action_status = Some("choose seat…".to_string());

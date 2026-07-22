@@ -13,8 +13,7 @@ pub struct ActionHint {
 pub fn action_hints(app: &WorkbenchApp) -> Vec<ActionHint> {
     match &app.view_mode {
         ViewMode::TaskRoomForm | ViewMode::HandoffForm => vec![
-            hint("Enter", "Submit", true, None),
-            hint("Tab", "Next field", true, None),
+            hint("Enter", "Send", true, None),
             hint("Esc", "Cancel", true, None),
         ],
         ViewMode::StructuredQuestion => vec![
@@ -31,6 +30,11 @@ pub fn action_hints(app: &WorkbenchApp) -> Vec<ActionHint> {
         ],
         ViewMode::CommandPalette => vec![
             hint("Enter", "Run", true, None),
+            hint("Esc", "Back", true, None),
+        ],
+        ViewMode::Detail(crate::views::DetailView::TaskRoom) => vec![
+            hint("Enter", "Send", true, None),
+            hint("^A", "Attach", true, None),
             hint("Esc", "Back", true, None),
         ],
         ViewMode::Help
@@ -63,14 +67,24 @@ fn dashboard_hints(app: &WorkbenchApp) -> Vec<ActionHint> {
         .selected_task_room()
         .map(|room| room.participants.len() > 1)
         .unwrap_or(false);
+    let has_room = app.selected_task_room().is_some();
     let mut hints = vec![
-        open_hint(app),
+        hint(
+            "Enter",
+            "Open".to_string(),
+            has_room,
+            if has_room {
+                None
+            } else {
+                Some("No room selected".to_string())
+            },
+        ),
         hint("n", "New room", true, None),
     ];
     if multi_seat {
         hints.push(hint("m", "Choose seat", true, None));
     } else {
-        hints.push(hint("/", "Search", true, None));
+        hints.push(hint("a", "Attach", has_room, None));
     }
     hints.push(hint("?", "Help", true, None));
     hints

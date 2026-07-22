@@ -10,6 +10,8 @@ import { createRuntimeCapabilityDescriptor, deriveContinuationAction } from './e
 import { readEvobuddyWorkbenchArtifacts } from './evobuddy-workbench-artifacts.mjs';
 import { resolveEvobuddyProjectState } from './evobuddy-project-state.mjs';
 import { readRecentUpdateSummary } from './evobuddy-update-summary.mjs';
+import { listTaskRooms } from './evobuddy-taskroom-store.mjs';
+import { listWakes } from './evobuddy-taskroom-wake-store.mjs';
 
 const TEAM_AGENT_ROLE_FALLBACKS = Object.freeze({
   builder: 'Builds and revises changes',
@@ -514,6 +516,107 @@ async function readArtifactsForWorkbenchState({ projectRoot, inputRoot, aggregat
   };
 }
 
+async function projectDurableTaskRooms(projectRoot, generatedAt) {
+  let rooms = [];
+  try {
+    rooms = await listTaskRooms(projectRoot);
+  } catch {
+    return [];
+  }
+  const out = [];
+  for (const room of rooms) {
+    if (String(room.status ?? '').toLowerCase() === 'archived') continue;
+    let wakes = [];
+    try {
+      wakes = await listWakes(projectRoot, room.roomId);
+    } catch {
+      wakes = [];
+    }
+    const hasHandoffWake = wakes.some((w) => w.reason === 'handoff-ready' || w.reason === 'review-needed');
+    const raft = cleanString(room.raftStatus) ?? cleanString(room.task?.status);
+    let status = 'Queued';
+    if (hasHandoffWake) status = 'NeedsReview';
+    else if (raft === 'Completed' || raft === 'Returned') status = raft === 'Returned' ? 'Returned' : 'Completed';
+    else if (raft === 'Working') status = 'Working';
+    else if (raft === 'NeedsReview') status = 'NeedsReview';
+    else if (raft === 'Queued') status = 'Queued';
+    const firstRuntime = room.participants?.find((p) => p.runtime)?.runtime;
+    const runtime = normalizeRuntime(firstRuntime) ?? 'pi';
+    const seatCount = room.participants?.length ?? 0;
+    let timeline = [];
+    try {
+      const { readTaskRoomTimeline } = await import('./evobuddy-taskroom-timeline.mjs');
+      const tl = await readTaskRoomTimeline(projectRoot, room.roomId);
+      timeline = Array.isArray(tl) ? tl : list(tl?.entries);
+    } catch {
+      timeline = [];
+    }
+    out.push({
+      id: room.roomId,
+      title: sanitizeText(room.title ?? room.objective ?? room.roomId),
+      runtime,
+      status,
+      objective: sanitizeText(room.objective ?? room.title ?? ''),
+      acceptanceCriteria: sanitizeText(room.objective ?? ''),
+      participants: list(room.participants).map((p) => ({
+        id: cleanString(p.participantId) ?? 'participant',
+        displayName: titleCase(cleanString(p.actorName) ?? cleanString(p.participantId) ?? 'participant'),
+        kind: p.actorKind ?? 'team-agent',
+        status: status === 'NeedsReview' && p.role === 'reviewer'
+          ? 'Needs input'
+          : status === 'Working'
+            ? 'Working'
+            : 'Available',
+        role: p.role ?? '',
+        runtime: normalizeRuntime(p.runtime) ?? runtime,
+        crewAgentId: cleanString(p.crewAgentId) ?? null,
+      })),
+      rounds: [],
+      handoffs: [],
+      reviewerContinuity: { status: 'unknown', summary: '' },
+      evolutionHandoff: { status: 'unknown', summary: '' },
+      attention: {
+        state: status,
+        sourceKind: 'durable-taskroom',
+        sourceRef: room.roomId,
+        observedAt: generatedAt,
+        confidence: 'high',
+        staleAfter: generatedAt,
+      },
+      availableActions: seatCount > 0
+        ? [
+          { id: 'open-room', label: 'Open', enabled: true, disabledReason: null },
+          { id: 'open-native-runtime', label: 'Attach', enabled: true, disabledReason: null },
+        ]
+        : [{ id: 'open-native-runtime', label: 'Attach', enabled: false, disabledReason: 'No seats in room' }],
+      returnedTo: null,
+      artifactsSummary: [],
+      summary: sanitizeText(room.objective ?? room.title ?? room.roomId),
+      task: room.task ?? null,
+      backgroundRun: room.backgroundRun ?? null,
+      timeline: list(timeline).map((entry) => ({
+        kind: entry.kind,
+        at: entry.at,
+        summary: sanitizeText(entry.summary ?? ''),
+      })),
+      review: room.review ?? null,
+    });
+  }
+  return out;
+}
+
+function mergeTaskRooms(reportRooms, durableRooms) {
+  const byId = new Map();
+  for (const room of list(reportRooms)) {
+    byId.set(room.id, room);
+  }
+  for (const room of list(durableRooms)) {
+    // Durable store is product authority when both exist.
+    byId.set(room.id, room);
+  }
+  return [...byId.values()];
+}
+
 export async function exportEvobuddyWorkbenchState({
   projectRoot,
   inputRoot,
@@ -541,11 +644,21 @@ export async function exportEvobuddyWorkbenchState({
   const buddiesRegistry = readJsonIfExists(state.registryPath, [], undefined) ?? { version: '1', members: [] };
   const nativeSessionBlockedReasons = [];
   const nativeSessions = await buildNativeSessions(resolvedProjectRoot, nativeSessionBlockedReasons);
-  const runtimeSetup = buildRuntimeSetup(artifacts.plan2, normalizeTaskRooms(artifacts.taskRoomReports, [], generatedAt, resolvedProjectRoot), artifacts.blockedReasons);
+  const durableRooms = await projectDurableTaskRooms(resolvedProjectRoot, generatedAt);
+  const reportRoomsSeed = normalizeTaskRooms(artifacts.taskRoomReports, [], generatedAt, resolvedProjectRoot);
+  const runtimeSetup = buildRuntimeSetup(artifacts.plan2, mergeTaskRooms(reportRoomsSeed, durableRooms), artifacts.blockedReasons);
   const runtimeCapabilities = buildRuntimeCapabilities(runtimeSetup);
-  const taskRooms = normalizeTaskRooms(artifacts.taskRoomReports, runtimeCapabilities, generatedAt, resolvedProjectRoot);
+  const reportRooms = normalizeTaskRooms(artifacts.taskRoomReports, runtimeCapabilities, generatedAt, resolvedProjectRoot);
+  const taskRooms = mergeTaskRooms(reportRooms, durableRooms);
   const teamAgentNames = deriveTeamAgentNames(artifacts, taskRooms);
   const focusedBuddyNames = deriveFocusedBuddyNames(artifacts, buddiesRegistry);
+  let crew = [];
+  try {
+    const { listCrewAgents } = await import('./evobuddy-crew-store.mjs');
+    crew = await listCrewAgents(resolvedProjectRoot);
+  } catch {
+    crew = [];
+  }
 
   return {
     schema: 'evobuddy.workbench.state.v1',
@@ -555,6 +668,14 @@ export async function exportEvobuddyWorkbenchState({
       teamAgents: buildTeamAgents(teamAgentNames, taskRooms),
       focusedBuddies: buildFocusedBuddies(focusedBuddyNames, buddiesRegistry),
     },
+    crew: list(crew).map((a) => ({
+      agentId: cleanString(a.agentId) ?? 'crew:unknown',
+      displayName: titleCase(cleanString(a.displayName) ?? 'agent'),
+      description: sanitizeText(a.description ?? ''),
+      runtime: normalizeRuntime(a.runtime) ?? 'pi',
+      kind: a.kind ?? 'team-agent',
+      status: a.status ?? 'idle',
+    })),
     taskRooms,
     nativeSessions,
     runtimeCapabilities,

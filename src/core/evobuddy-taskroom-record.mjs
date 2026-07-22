@@ -58,6 +58,7 @@ export function createTaskRoomParticipant(input) {
     runtime: optionalString(input.runtime, 'runtime'),
     runtimeSessionRef: optionalString(input.runtimeSessionRef, 'runtimeSessionRef'),
     nativeSessionDescriptorId: optionalString(input.nativeSessionDescriptorId, 'nativeSessionDescriptorId'),
+    crewAgentId: optionalString(input.crewAgentId, 'crewAgentId'),
   };
 }
 
@@ -103,7 +104,26 @@ export function createTaskRoom(input) {
   if (input.archivedAt !== undefined && input.archivedAt !== null) {
     room.archivedAt = requireString(input.archivedAt, 'archivedAt');
   }
-  room.digest = digestTaskRoomRecord({ ...room, digest: undefined });
+  if (input.task !== undefined && input.task !== null) room.task = input.task;
+  if (input.raftStatus !== undefined && input.raftStatus !== null) {
+    room.raftStatus = requireString(input.raftStatus, 'raftStatus');
+  }
+  if (input.backgroundRun !== undefined && input.backgroundRun !== null) {
+    room.backgroundRun = input.backgroundRun;
+  }
+  if (input.review !== undefined && input.review !== null) room.review = input.review;
+  if (input.template !== undefined && input.template !== null) {
+    room.template = requireString(input.template, 'template');
+  }
+  room.digest = digestTaskRoomRecord({
+    ...room,
+    digest: undefined,
+    task: undefined,
+    raftStatus: undefined,
+    backgroundRun: undefined,
+    review: undefined,
+    template: undefined,
+  });
   return room;
 }
 

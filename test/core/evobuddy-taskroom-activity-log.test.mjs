@@ -10,7 +10,7 @@ import { listTaskRoomActivity } from '../../src/core/evobuddy-taskroom-activity-
 test('handoff writes activity evidence for handoff and wake', async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-activity-'));
   await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
-  const room = await createPiFirstTaskRoom(projectRoot, { objective: 'activity evidence' });
+  const room = await createPiFirstTaskRoom(projectRoot, { objective: 'activity evidence', template: 'pair' });
   const builder = room.participants.find((p) => p.role === 'builder');
   const reviewer = room.participants.find((p) => p.role === 'reviewer');
   await handoffWithWake(projectRoot, {

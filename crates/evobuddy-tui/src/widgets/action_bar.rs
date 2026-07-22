@@ -74,7 +74,7 @@ pub fn render_action_bar(
     }
     if spans.is_empty() {
         spans.push(Span::styled(
-            " Enter Open   n New room   / Search   ? Help ",
+            " enter open · n new · a attach · / search · ? help · q quit ",
             Style::default()
                 .fg(tokens.action_bar_fg)
                 .bg(tokens.action_bar_bg),

@@ -71,7 +71,7 @@ fn home_snapshot_omits_promoted_handoff_and_evidence_actions() {
 }
 
 #[test]
-fn home_enter_hint_is_short_attach_not_open_native_runtime() {
+fn home_enter_hint_is_open_thread_attach_is_secondary() {
     use evobuddy_tui::action_hints::{action_hints, short_primary_action_label};
     use evobuddy_tui::model::ActionAvailability;
 
@@ -88,14 +88,14 @@ fn home_enter_hint_is_short_attach_not_open_native_runtime() {
         .into_iter()
         .find(|h| h.key == "Enter")
         .expect("Enter hint");
-    assert_eq!(enter.label, "Attach");
+    assert_eq!(enter.label, "Open");
     assert!(enter.enabled);
 
     let frame = render_dashboard_snapshot(&app, 120, 40).unwrap();
-    assert!(frame.contains("Attach"), "{frame}");
+    assert!(frame.contains("Open"), "{frame}");
     assert!(
         !frame.contains("Open native runtime"),
-        "bar/peek must short-label open-native-runtime:\n{frame}"
+        "bar/peek must not show eng open-native-runtime label:\n{frame}"
     );
 }
 
@@ -150,6 +150,33 @@ fn home_m_key_opens_seat_choice_for_multi_seat_room() {
     let effect = handle_key_event(&mut app, KeyInput::ChooseSeat);
     assert_eq!(effect, WorkbenchEffect::None);
     assert_eq!(app.view_mode, ViewMode::StructuredQuestion);
+}
+
+#[test]
+fn seat_choice_submit_opens_selected_participant_without_action_progress() {
+    let mut app = load_app();
+    let room_id = app.selected_task_room().expect("room").id.clone();
+    app.present_seat_choice();
+    let question = app.structured_question.as_ref().expect("seat question");
+    assert_eq!(question.attach_room_id.as_deref(), Some(room_id.as_str()));
+    let reviewer_index = question
+        .choices
+        .iter()
+        .position(|c| c.label.to_lowercase().contains("reviewer") || c.id.to_lowercase().contains("reviewer"))
+        .expect("reviewer choice");
+    let reviewer_id = question.choices[reviewer_index].id.clone();
+    let effect = app.submit_structured_answer(reviewer_index);
+    match effect {
+        WorkbenchEffect::OpenNativeRuntime {
+            instance_id,
+            room_id: effect_room,
+        } => {
+            assert_eq!(instance_id, reviewer_id);
+            assert_eq!(effect_room, room_id);
+        }
+        other => panic!("expected OpenNativeRuntime, got {other:?}"),
+    }
+    assert_ne!(app.view_mode, ViewMode::ActionProgress);
 }
 
 #[test]

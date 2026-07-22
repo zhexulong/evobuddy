@@ -112,9 +112,73 @@ fn read_state_file(path: &Path) -> Result<WorkbenchState> {
     parse_workbench_state(&text)
 }
 
-fn build_state_export_args(options: &BackendOptions) -> Vec<String> {
+pub fn package_root() -> Result<PathBuf> {
+    if let Ok(raw) = std::env::var("EVOBUDDY_PACKAGE_ROOT") {
+        let candidate = PathBuf::from(raw);
+        if is_package_root(&candidate) {
+            return Ok(candidate.canonicalize().unwrap_or(candidate));
+        }
+        bail!(
+            "EVOBUDDY_PACKAGE_ROOT is set but is not an EvoBuddy package root: {}",
+            candidate.display()
+        );
+    }
+    if let Ok(exe) = std::env::current_exe() {
+        if let Some(root) = find_package_root_from(&exe) {
+            return Ok(root);
+        }
+    }
+    if let Ok(cwd) = std::env::current_dir() {
+        if let Some(root) = find_package_root_from(&cwd) {
+            return Ok(root);
+        }
+    }
+    let manifest_fallback = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../..");
+    if let Ok(root) = manifest_fallback.canonicalize() {
+        if is_package_root(&root) {
+            return Ok(root);
+        }
+    }
+    bail!(
+        "could not resolve EvoBuddy package root (set EVOBUDDY_PACKAGE_ROOT or run from a checkout that contains scripts/context-tree/export-evobuddy-workbench-state.mjs)"
+    )
+}
+
+fn is_package_root(path: &Path) -> bool {
+    path.join("scripts/context-tree/export-evobuddy-workbench-state.mjs")
+        .is_file()
+        && path.join("scripts/evobuddy/evobuddy.mjs").is_file()
+}
+
+fn find_package_root_from(start: &Path) -> Option<PathBuf> {
+    let mut cur = if start.is_file() {
+        start.parent()?.to_path_buf()
+    } else {
+        start.to_path_buf()
+    };
+    loop {
+        if is_package_root(&cur) {
+            return Some(cur.canonicalize().unwrap_or(cur));
+        }
+        if !cur.pop() {
+            return None;
+        }
+    }
+}
+
+pub fn package_script(relative: &str) -> Result<PathBuf> {
+    let root = package_root()?;
+    let path = root.join(relative);
+    if !path.is_file() {
+        bail!("package script missing: {}", path.display());
+    }
+    Ok(path)
+}
+
+fn build_state_export_args(options: &BackendOptions) -> Result<Vec<String>> {
+    let export_script = package_script("scripts/context-tree/export-evobuddy-workbench-state.mjs")?;
     let mut args = vec![
-        "scripts/context-tree/export-evobuddy-workbench-state.mjs".to_string(),
+        export_script.display().to_string(),
         "--project".to_string(),
         options.project.display().to_string(),
     ];
@@ -138,14 +202,14 @@ fn build_state_export_args(options: &BackendOptions) -> Vec<String> {
         args.push("--taskroom-report".to_string());
         args.push(path.display().to_string());
     }
-    args
+    Ok(args)
 }
 
-pub fn backend_state_command(options: &BackendOptions) -> BackendCommand {
-    BackendCommand {
+pub fn backend_state_command(options: &BackendOptions) -> Result<BackendCommand> {
+    Ok(BackendCommand {
         program: "node".to_string(),
-        args: build_state_export_args(options),
-    }
+        args: build_state_export_args(options)?,
+    })
 }
 
 pub fn load_workbench_state(options: &BackendOptions) -> Result<WorkbenchState> {
@@ -153,10 +217,11 @@ pub fn load_workbench_state(options: &BackendOptions) -> Result<WorkbenchState> 
         return read_state_file(state_json);
     }
 
-    let command = options
-        .backend_command
-        .clone()
-        .unwrap_or_else(|| backend_state_command(options));
+    let command = if let Some(command) = options.backend_command.clone() {
+        command
+    } else {
+        backend_state_command(options)?
+    };
 
     let output = Command::new(&command.program)
         .args(&command.args)

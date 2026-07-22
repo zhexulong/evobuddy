@@ -112,23 +112,90 @@ fn backend_state_command_uses_argv_not_shell_string_for_default_exporter() {
         taskroom_reports: vec![PathBuf::from("reports/task room.json")],
     };
 
-    assert_eq!(
-        backend_state_command(&options),
-        BackendCommand {
-            program: "node".to_string(),
-            args: vec![
-                "scripts/context-tree/export-evobuddy-workbench-state.mjs".to_string(),
-                "--project".to_string(),
-                "/repo with spaces; rm -rf nope".to_string(),
-                "--input-root".to_string(),
-                "fixtures/input root".to_string(),
-                "--plan1-report".to_string(),
-                "reports/plan one.json".to_string(),
-                "--taskroom-report".to_string(),
-                "reports/task room.json".to_string(),
-            ],
-        }
+    let command = backend_state_command(&options).expect("resolve package export command");
+    assert_eq!(command.program, "node");
+    assert!(
+        Path::new(&command.args[0]).is_absolute(),
+        "export script must be package-absolute, got {}",
+        command.args[0]
     );
+    assert!(
+        command.args[0].ends_with("scripts/context-tree/export-evobuddy-workbench-state.mjs"),
+        "unexpected export script {}",
+        command.args[0]
+    );
+    assert_eq!(
+        &command.args[1..],
+        &[
+            "--project".to_string(),
+            "/repo with spaces; rm -rf nope".to_string(),
+            "--input-root".to_string(),
+            "fixtures/input root".to_string(),
+            "--plan1-report".to_string(),
+            "reports/plan one.json".to_string(),
+            "--taskroom-report".to_string(),
+            "reports/task room.json".to_string(),
+        ]
+    );
+}
+
+#[test]
+fn load_workbench_state_from_external_project_without_state_json() {
+    use std::process::Command;
+    use std::time::{SystemTime, UNIX_EPOCH};
+
+    let package = repo_root();
+    let stamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|d| d.as_millis())
+        .unwrap_or(0);
+    let external = std::env::temp_dir().join(format!("evobuddy-tui-external-{stamp}"));
+    fs::create_dir_all(&external).expect("create external project");
+
+    let setup = Command::new("node")
+        .args([
+            package
+                .join("scripts/evobuddy/evobuddy.mjs")
+                .to_str()
+                .expect("utf8 path"),
+            "setup",
+            "--project",
+            external.to_str().expect("utf8 path"),
+            "--runtime",
+            "opencode",
+            "--json",
+        ])
+        .current_dir(&external)
+        .output()
+        .expect("run setup");
+    assert!(
+        setup.status.success(),
+        "setup failed: {}",
+        String::from_utf8_lossy(&setup.stderr)
+    );
+
+    let options = BackendOptions {
+        project: external.clone(),
+        state_json: None,
+        backend_command: None,
+        input_root: None,
+        aggregate_report: None,
+        plan1_report: None,
+        plan2_report: None,
+        taskroom_reports: vec![],
+    };
+    let state = load_workbench_state(&options)
+        .expect("export workbench state from external project without --state-json");
+    assert_eq!(state.schema, "evobuddy.workbench.state.v1");
+    assert!(
+        state
+            .project_root
+            .contains(external.file_name().unwrap().to_str().unwrap()),
+        "project_root should reflect external dir, got {}",
+        state.project_root
+    );
+
+    let _ = fs::remove_dir_all(&external);
 }
 
 #[test]

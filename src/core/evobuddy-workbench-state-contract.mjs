@@ -533,10 +533,24 @@ async function projectDurableTaskRooms(projectRoot, generatedAt) {
       wakes = [];
     }
     const hasHandoffWake = wakes.some((w) => w.reason === 'handoff-ready' || w.reason === 'review-needed');
-    const status = hasHandoffWake ? 'NeedsReview' : 'Queued';
+    const raft = cleanString(room.raftStatus) ?? cleanString(room.task?.status);
+    let status = 'Queued';
+    if (hasHandoffWake) status = 'NeedsReview';
+    else if (raft === 'Completed' || raft === 'Returned') status = raft === 'Returned' ? 'Returned' : 'Completed';
+    else if (raft === 'Working') status = 'Working';
+    else if (raft === 'NeedsReview') status = 'NeedsReview';
+    else if (raft === 'Queued') status = 'Queued';
     const firstRuntime = room.participants?.find((p) => p.runtime)?.runtime;
     const runtime = normalizeRuntime(firstRuntime) ?? 'pi';
     const seatCount = room.participants?.length ?? 0;
+    let timeline = [];
+    try {
+      const { readTaskRoomTimeline } = await import('./evobuddy-taskroom-timeline.mjs');
+      const tl = await readTaskRoomTimeline(projectRoot, room.roomId);
+      timeline = Array.isArray(tl) ? tl : list(tl?.entries);
+    } catch {
+      timeline = [];
+    }
     out.push({
       id: room.roomId,
       title: sanitizeText(room.title ?? room.objective ?? room.roomId),
@@ -570,6 +584,14 @@ async function projectDurableTaskRooms(projectRoot, generatedAt) {
       returnedTo: null,
       artifactsSummary: [],
       summary: sanitizeText(room.objective ?? room.title ?? room.roomId),
+      task: room.task ?? null,
+      backgroundRun: room.backgroundRun ?? null,
+      timeline: list(timeline).map((entry) => ({
+        kind: entry.kind,
+        at: entry.at,
+        summary: sanitizeText(entry.summary ?? ''),
+      })),
+      review: room.review ?? null,
     });
   }
   return out;

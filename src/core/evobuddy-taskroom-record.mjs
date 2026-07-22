@@ -103,7 +103,22 @@ export function createTaskRoom(input) {
   if (input.archivedAt !== undefined && input.archivedAt !== null) {
     room.archivedAt = requireString(input.archivedAt, 'archivedAt');
   }
-  room.digest = digestTaskRoomRecord({ ...room, digest: undefined });
+  if (input.task !== undefined && input.task !== null) room.task = input.task;
+  if (input.raftStatus !== undefined && input.raftStatus !== null) {
+    room.raftStatus = requireString(input.raftStatus, 'raftStatus');
+  }
+  if (input.backgroundRun !== undefined && input.backgroundRun !== null) {
+    room.backgroundRun = input.backgroundRun;
+  }
+  if (input.review !== undefined && input.review !== null) room.review = input.review;
+  room.digest = digestTaskRoomRecord({
+    ...room,
+    digest: undefined,
+    task: undefined,
+    raftStatus: undefined,
+    backgroundRun: undefined,
+    review: undefined,
+  });
   return room;
 }
 

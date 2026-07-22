@@ -15,7 +15,11 @@ import {
   archiveTaskRoom,
   stopTaskRoomSession,
 } from '../../src/core/evobuddy-taskroom-store.mjs';
-import { createPiFirstTaskRoom, handoffWithWake } from '../../src/core/evobuddy-taskroom-pi-defaults.mjs';
+import {
+  completeTaskReview,
+  createPiFirstTaskRoom,
+  handoffWithWake,
+} from '../../src/core/evobuddy-taskroom-pi-defaults.mjs';
 import { installOpenCodeMemberInstructions } from '../../src/install/opencode-member-instructions.mjs';
 import { generateRecentUpdateSummary, readRecentUpdateSummary } from '../../src/core/evobuddy-update-summary.mjs';
 
@@ -185,6 +189,8 @@ function parseFlags(argv) {
     else if (arg === '--to-instance') parsed.toInstance = requireValue(argv, i += 1, arg);
     else if (arg === '--handoff-kind') parsed.handoffKind = requireValue(argv, i += 1, arg);
     else if (arg === '--body') parsed.body = requireValue(argv, i += 1, arg);
+    else if (arg === '--outcome') parsed.outcome = requireValue(argv, i += 1, arg);
+    else if (arg === '--note') parsed.note = requireValue(argv, i += 1, arg);
     else if (arg === '--reason') parsed.reason = requireValue(argv, i += 1, arg);
     else if (arg === '--json-out') parsed.jsonOut = requireValue(argv, i += 1, arg);
     else if (arg === '--input-root') parsed.inputRoot = requireValue(argv, i += 1, arg);
@@ -210,6 +216,7 @@ function taskroomSessionHelp() {
   evobuddy taskroom create --project <path> --room <id> --title <text> --objective <text> [--runtime pi] [--created-at <iso>] [--json]
   evobuddy taskroom participant add --project <path> --room <id> --participant-id <id> --actor-name <name> --actor-kind <kind> --role <role> [--runtime <name>] [--json]
   evobuddy taskroom handoff create --project <path> --room <id> --handoff-id <id> --from-instance <id> --to-instance <id> --handoff-kind <kind> [--body <text>] [--created-at <iso>] [--json]
+  evobuddy taskroom review complete --project <path> --room <id> [--outcome done|changes-requested] [--json]
   evobuddy taskroom session stop --project <path> --room <id> --instance <id> --reason <text> [--json]
   evobuddy taskroom archive --project <path> --room <id> [--json]
   evobuddy taskroom session reserve --project <path> --room <id> --instance <id> --runtime <name> [--workspace <path>] [--participant <name>] [--json]
@@ -275,6 +282,21 @@ async function taskroomHandoffCreate(argv) {
     createdAt: args.createdAt ?? isoNow(),
   });
   return { stdout: args.json ? `${JSON.stringify(result)}\n` : `${result.handoffId}\n` };
+}
+
+async function taskroomReviewComplete(argv) {
+  if (argv.includes('--help') || argv.includes('-h')) return { stdout: taskroomSessionHelp() };
+  const args = parseFlags(argv);
+  if (!args.project) throw new Error('missing value for --project');
+  if (!args.room) throw new Error('missing value for --room');
+  const room = await completeTaskReview(resolve(args.project), {
+    roomId: args.room,
+    outcome: args.outcome ?? 'done',
+    note: args.note ?? null,
+    actorId: args.actorName ?? args.participant ?? null,
+    completedAt: args.createdAt ?? isoNow(),
+  });
+  return { stdout: args.json ? `${JSON.stringify(room)}\n` : `${room.raftStatus ?? room.status}\n` };
 }
 
 async function taskroomSessionStop(argv) {
@@ -807,6 +829,7 @@ async function dispatch(argv) {
   if (command === 'taskroom' && subcommand === 'create') return taskroomCreate([action, ...rest].filter((value) => value !== undefined));
   if (command === 'taskroom' && subcommand === 'participant' && action === 'add') return taskroomParticipantAdd(rest);
   if (command === 'taskroom' && subcommand === 'handoff' && action === 'create') return taskroomHandoffCreate(rest);
+  if (command === 'taskroom' && subcommand === 'review' && action === 'complete') return taskroomReviewComplete(rest);
   if (command === 'taskroom' && subcommand === 'archive') return taskroomArchive([action, ...rest].filter((value) => value !== undefined));
   if (command === 'taskroom' && subcommand === 'session' && action === 'stop') return taskroomSessionStop(rest);
   if (command === 'taskroom' && subcommand === 'session' && action === 'reserve') return taskroomSessionReserve(rest);

@@ -111,7 +111,8 @@
     "evobuddy:tui-clippy": "cargo clippy -p evobuddy-tui --all-targets -- -D warnings",
     "evobuddy:eval-pi-first-raft-room": "node scripts/context-tree/run-evobuddy-pi-first-raft-room-eval.mjs",
     "evobuddy:eval-pi-tmux-attach": "node scripts/context-tree/run-evobuddy-pi-tmux-attach-eval.mjs",
-    "evobuddy:eval-tui-backend-joint": "node scripts/context-tree/run-evobuddy-tui-backend-joint-eval.mjs"
+    "evobuddy:eval-tui-backend-joint": "node scripts/context-tree/run-evobuddy-tui-backend-joint-eval.mjs",
+    "evobuddy:eval-raft-functional-alignment": "node scripts/context-tree/run-evobuddy-raft-functional-alignment-eval.mjs"
   },
   "engines": {
     "node": ">=20"

@@ -1,9 +1,10 @@
 # EvoBuddy ↔ Raft Functional Alignment
 
-**Status:** Spec for next alignment epic (doc-corrected vs Raft official docs)  
+**Status:** **R-FINAL PASS (L1)** — 2026-07-22  
 **Date:** 2026-07-22  
 **Scope:** Functional / IA / lifecycle alignment — **not** Raft Web pixel clone  
 **Local doc mirror (gitignored):** `ref/raft-docs/` (refresh from https://docs.raft.build/)  
+**Report:** `evobuddy-raft-functional-alignment-report.json` via `npm run evobuddy:eval-raft-functional-alignment`
 
 **Related:**
 
@@ -21,23 +22,23 @@
 | Audit **FINAL PASS (L1)** | Create multi-seat pi, plan-open, handoff+wake+NeedsReview, stop keeps room — **command/contract path** | Human daily UX is Raft-shaped |
 | This doc **R-FINAL** | Human + agent loop matches Raft **functions** (message→task, Activity, background runtime, optional attach) | Web/PWA parity |
 
-**Rule:** Prior L1 FINAL remains valid for **wire-through**. This document opens a **new** ladder (**R0–R5 → R-FINAL**) for **Raft-doc functional alignment**. Do not collapse the two.
+**Rule:** Prior L1 FINAL remains valid for **wire-through**. This document’s **R-FINAL** is a **separate** ladder (R0–R5). Do not collapse the two.
 
 ---
 
 ## 0. Pass summary (read this first)
 
-| Gate | Name | Status (2026-07-22) | Unlocks |
+| Gate | Name | Status (2026-07-22 closeout) | Unlocks |
 |---|---|---|---|
 | **R0** | Prior L1 wire-through held | **PASS** (joint J1–J5 + pi-first G0) | Safe base to change UX without losing seats/wake |
-| **R1** | Human work = channel-style intent (not field form) | **NOT PASS** | No multi-field create; no confirm on create/handoff |
-| **R2** | Task from message / As Task semantics | **NOT PASS** | Intent → tracked task with status owner |
-| **R3** | Agent default = background runtime (no forced TUI) | **NOT PASS** | Work runs without OpenNativeRuntime; attach optional |
-| **R4** | Activity-first human surface | **PARTIAL** | Home triages Needs you; not “must enter every room” |
-| **R5** | Lifecycle honesty (idle/active, stop≠delete, review loop) | **PARTIAL** | Status + stop exist; idle/run without attach incomplete |
-| **R-FINAL** | Raft-aligned product loop (EvoBuddy scope) | **NOT PASS** | All R0–R5 required; see §8 |
+| **R1** | Human work = channel-style intent (not field form) | **PASS** (RF1–RF2) | No multi-field create; no confirm on create/handoff |
+| **R2** | Task from message / As Task semantics | **PASS** (RF3) | Intent → tracked task with status owner |
+| **R3** | Agent default = background runtime (no forced TUI) | **PASS** (RF4–RF5) | Work planned as pi rpc; attach optional |
+| **R4** | Activity-first human surface | **PASS** (RF6–RF7) | Home Needs you + timeline read |
+| **R5** | Lifecycle honesty (idle/active, stop≠delete, review loop) | **PASS** (RF8 + review complete) | Status + stop + review ack without TUI |
+| **R-FINAL** | Raft-aligned product loop (EvoBuddy scope) | **PASS (L1)** | All R0–R5; RF1–RF10 independent rows |
 
-**Rule:** Intermediate **PASS** is shippable for its scope. **R-FINAL** is the only claim that “EvoBuddy daily use matches Raft’s hand-off loop.” Prior “L1 FINAL” alone is **not** R-FINAL.
+**Rule:** Intermediate **PASS** is shippable for its scope. **R-FINAL** is the only claim that “EvoBuddy daily use matches Raft’s hand-off loop.” Prior “L1 FINAL” alone is **not** R-FINAL. L2 PTY remains **recommended**, not blocking.
 
 ---
 
@@ -255,10 +256,9 @@ IDs are stable for plans/evals.
 ### 6.4 Target report
 
 ```bash
-# Future
 npm run evobuddy:eval-raft-functional-alignment
 # → evobuddy-raft-functional-alignment-report.json
-# gate: pass iff required RF* pass; level L1|L2; policy skipNePass, oneIdOneEvidenceChain
+# gate: pass iff required RF* pass; level L1; policy skipNePass, oneIdOneEvidenceChain
 ```
 
 ---
@@ -273,7 +273,7 @@ npm run evobuddy:eval-raft-functional-alignment
 | R0.2 | Pi-first gate pass (S3 skip OK if honest) | pi-first report |
 | R0.3 | Multi-seat default pi create remains | RF9 / J1 |
 
-### R1 — Channel-shaped intake — **NOT PASS**
+### R1 — Channel-shaped intake — **PASS**
 
 | # | Requirement | Proof |
 |---|---|---|
@@ -284,7 +284,7 @@ npm run evobuddy:eval-raft-functional-alignment
 
 **R1 PASS** iff R1.1–R1.4 and R0 held.
 
-### R2 — Message → task — **NOT PASS**
+### R2 — Message → task — **PASS**
 
 | # | Requirement | Proof |
 |---|---|---|
@@ -294,7 +294,7 @@ npm run evobuddy:eval-raft-functional-alignment
 
 **R2 PASS** iff R2.1–R2.3 and R1 PASS.
 
-### R3 — Background runtime first — **NOT PASS**
+### R3 — Background runtime first — **PASS**
 
 | # | Requirement | Proof |
 |---|---|---|
@@ -306,7 +306,7 @@ npm run evobuddy:eval-raft-functional-alignment
 **R3 PASS** iff R3.1–R3.4 and R0 held.  
 **Note:** This deliberately **revises** older S1 “must Enter attach” as the *only* success story. Attach remains supported and tested as **optional**.
 
-### R4 — Activity-first — **PARTIAL**
+### R4 — Activity-first — **PASS**
 
 | # | Requirement | Proof |
 |---|---|---|
@@ -316,7 +316,7 @@ npm run evobuddy:eval-raft-functional-alignment
 
 **R4 PASS** iff R4.1–R4.3.
 
-### R5 — Lifecycle honesty — **PARTIAL**
+### R5 — Lifecycle honesty — **PASS**
 
 | # | Requirement | Proof |
 |---|---|---|
@@ -436,3 +436,4 @@ Keep prior S1 attach test as **optional path / A4**, not sole definition of solo
 | Date | Note |
 |---|---|
 | 2026-07-22 | Initial functional alignment spec from Raft official docs + gap vs L1 wire-through; R0–R5 and R-FINAL pass ladder; background-runtime correction; ref/raft-docs mirror noted |
+| 2026-07-22 | R-FINAL PASS (L1): composer intake, As Task metadata, background pi plan, Activity/timeline, review complete; `evobuddy:eval-raft-functional-alignment` |

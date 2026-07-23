@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * First agent + reply loop eval (OE0–OE11). Skip ≠ pass.
+ * First agent + reply loop eval (OE0–OE11). Pi L2 density evidence stays raw
+ * and advisory for this L1 reply-loop gate; it is never relabeled as pass.
  * One eval ID → one evidence chain. planned-only background ≠ O3.
  *
  * Usage:
@@ -18,18 +19,16 @@ const outArgIndex = process.argv.indexOf('--out');
 const outPath = outArgIndex >= 0
   ? resolve(process.argv[outArgIndex + 1])
   : join(REPO, 'evobuddy-first-agent-reply-loop-eval-report.json');
+const PI_DENSITY_ADVISORY_IDS = new Set([
+  'eval-pi-rpc-lifecycle-live',
+  'eval-pi-rpc-x2-density',
+  'S3',
+  'eval-memory-contrast',
+]);
 
 function entry(id, status, detail = {}) {
   // status last so detail fields like activation.status cannot overwrite pass/fail
   return { id, method: 'l1-contract', ...detail, status };
-}
-
-function runCli(args, opts = {}) {
-  return spawnSync(process.execPath, [join(REPO, 'scripts/evobuddy/evobuddy.mjs'), ...args], {
-    cwd: REPO,
-    encoding: 'utf8',
-    timeout: opts.timeout ?? 120000,
-  });
 }
 
 function runNodeEval(scriptRel, outFile, timeout = 600000) {
@@ -84,19 +83,25 @@ async function main() {
     const jointOut = join(baseDir, 'joint.json');
     const rfOut = join(baseDir, 'rf.json');
     const crewOut = join(baseDir, 'crew.json');
+    const piOut = join(baseDir, 'pi.json');
     const joint = runNodeEval('scripts/context-tree/run-evobuddy-tui-backend-joint-eval.mjs', jointOut);
     const rf = runNodeEval('scripts/context-tree/run-evobuddy-raft-functional-alignment-eval.mjs', rfOut);
     const crew = runNodeEval('scripts/context-tree/run-evobuddy-crew-room-surface-eval.mjs', crewOut);
+    const pi = runNodeEval('scripts/context-tree/run-evobuddy-pi-first-raft-room-eval.mjs', piOut);
     let jointGate = 'fail';
     let rfGate = 'fail';
     let crewGate = 'fail';
+    let piGate = 'fail';
+    let rfReport = null;
+    let piReport = null;
     try {
       jointGate = JSON.parse(await readFile(jointOut, 'utf8')).gate ?? 'fail';
     } catch {
       jointGate = joint.status === 0 ? 'pass' : 'fail';
     }
     try {
-      rfGate = JSON.parse(await readFile(rfOut, 'utf8')).gate ?? 'fail';
+      rfReport = JSON.parse(await readFile(rfOut, 'utf8'));
+      rfGate = rfReport.gate ?? 'fail';
     } catch {
       rfGate = rf.status === 0 ? 'pass' : 'fail';
     }
@@ -105,15 +110,43 @@ async function main() {
     } catch {
       crewGate = crew.status === 0 ? 'pass' : 'fail';
     }
-    const ok = jointGate === 'pass' && rfGate === 'pass' && crewGate === 'pass';
+    try {
+      piReport = JSON.parse(await readFile(piOut, 'utf8'));
+      piGate = piReport.gate ?? 'fail';
+    } catch {
+      piGate = pi.status === 0 ? 'pass' : 'fail';
+    }
+    const rfFunctionalFailures = (rfReport?.results ?? []).filter((result) => (
+      result.id !== 'RF-R0-PI-FIRST' && result.status !== 'pass'
+    ));
+    const advisoryPiResults = (piReport?.results ?? [])
+      .filter((result) => PI_DENSITY_ADVISORY_IDS.has(result.id))
+      .map((result) => ({ ...result, nonBlockingFor: 'O-FINAL' }));
+    const blockingPiFailures = (piReport?.results ?? []).filter((result) => (
+      !PI_DENSITY_ADVISORY_IDS.has(result.id) && result.status !== 'pass'
+    ));
+    const ok = jointGate === 'pass'
+      && crewGate === 'pass'
+      && rfFunctionalFailures.length === 0
+      && blockingPiFailures.length === 0
+      && Boolean(rfReport)
+      && Boolean(piReport);
     results.push(entry('OE0', ok ? 'pass' : 'fail', {
       method: 'subprocess-gate',
       jointGate,
-      rfGate,
+      rfGateRaw: rfGate,
       crewGate,
+      piGateRaw: piGate,
+      densityAdvisory: true,
+      advisoryPiResults,
+      blockingPiFailures,
+      rfFunctionalFailures,
+      densityClaim: piReport?.releaseStatement?.densityClaim
+        ?? 'Pi density evidence unavailable; not certified by O-FINAL.',
       jointExit: joint.status,
       rfExit: rf.status,
       crewExit: crew.status,
+      piExit: pi.status,
     }));
   }
 

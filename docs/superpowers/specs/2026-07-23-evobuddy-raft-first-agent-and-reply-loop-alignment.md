@@ -1,6 +1,6 @@
 # EvoBuddy ↔ Raft First Agent + Reply Loop Alignment
 
-**Status:** Product epic (onboarding crew + “someone replies”) — **O-FINAL PASS** (L1; `npm run evobuddy:eval-first-agent-reply-loop`)  
+**Status:** Product epic (onboarding crew + “someone replies”) — **O-FINAL PASS** (L1 reply-loop only; `npm run evobuddy:eval-first-agent-reply-loop`)
 **Date:** 2026-07-23  
 **Scope:** How a **new project** gets its **first agent**, how the team grows like Raft, and how a **room message/task** produces **agent work + timeline replies without requiring Attach**  
 **Local Raft mirror (gitignored):** `ref/raft-docs/` (`meet-your-onboarding-agent`, `hand-off-your-first-task`, `build-your-agent-team`, `features_agents_lifecycle`, `features_agents_external`, …)
@@ -24,7 +24,7 @@
 | C-FINAL (L1) | Crew store, solo default, Enter≠Attach | Onboarding **Cindy-like** first agent + gradual narrative UX |
 | **This doc O-FINAL** | Raft-shaped **first agent** + **reply loop** (wake → work → thread post) | Raft Web, multi-server, Computer product clone |
 
-**Rule:** Do not collapse O-FINAL into L1 / R / C. R3 “background planned” is **necessary but not sufficient** for “someone replies in the room.” O-FINAL is the honesty gate for dogfood “I typed and waited.”
+**Rule:** Do not collapse O-FINAL into L1 / R / C. R3 “background planned” is **necessary but not sufficient** for “someone replies in the room.” O-FINAL is the honesty gate for dogfood “I typed and waited.” Pi L2 resource/density observations are reported raw under OE0 but are advisory for this L1 gate: an O-FINAL pass does **not** certify Pi density.
 
 ---
 
@@ -228,7 +228,7 @@ npm run evobuddy:eval-first-agent-reply-loop
 
 | ID | Scenario | Assertions | Gate |
 |---|---|---|---|
-| **OE0** | Joint + RF + crew still green | Subprocess or shared gate | O0 |
+| **OE0** | Joint + crew + RF functional rows green; Pi L2 density raw/advisory | Subprocess or shared gate; density never relabeled pass | O0 |
 | **OE1** | Empty project bootstrap | After bootstrap path: `crew list` length **1**; displayName/runtime set; pi default | O1 |
 | **OE2** | Second bootstrap | Still length 1; same agentId | O1 |
 | **OE3** | Solo create links crew | Participant `crewAgentId` matches first agent; seats === 1 | O1 + C4 |

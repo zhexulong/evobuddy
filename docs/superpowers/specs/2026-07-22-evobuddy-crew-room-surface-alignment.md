@@ -160,6 +160,9 @@ Home
 
 Optional wizard once: “Create first teammate” after project setup (Raft Cindy energy, not mandatory clone).
 
+**First agent bootstrap (FA1 / O1):** Empty project crew is filled by `ensureFirstCrewAgent` / `ensureBootstrapCrewAgent` on solo room create (exactly one, idempotent). Ladder:  
+`docs/superpowers/specs/2026-07-23-evobuddy-raft-first-agent-and-reply-loop-alignment.md`.
+
 ### 4.2 New work (TaskRoom)
 
 ```text

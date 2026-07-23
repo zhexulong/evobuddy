@@ -58,6 +58,30 @@ test('ensureBootstrap is idempotent', async () => {
   assert.equal((await listCrewAgents(projectRoot)).length, 1);
 });
 
+test('solo create links primary crewAgentId to first agent', async () => {
+  const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-crew-link-'));
+  await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  const solo = await createPiFirstTaskRoom(projectRoot, {
+    objective: 'link',
+    template: 'solo',
+  });
+  const crew = await listCrewAgents(projectRoot);
+  assert.equal(crew.length, 1);
+  assert.equal(solo.participants.length, 1);
+  assert.equal(solo.participants[0].crewAgentId, crew[0].agentId);
+  assert.equal(solo.participants[0].runtime, 'pi');
+});
+
+test('ensureFirstCrewAgent alias is idempotent single agent', async () => {
+  const { ensureFirstCrewAgent } = await import('../../src/core/evobuddy-crew-store.mjs');
+  const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-first-'));
+  await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  const a = await ensureFirstCrewAgent(projectRoot, {});
+  const b = await ensureFirstCrewAgent(projectRoot, {});
+  assert.equal(a.agentId, b.agentId);
+  assert.equal((await listCrewAgents(projectRoot)).length, 1);
+});
+
 test('addCrewAgentToRoom appends membership without recreating room', async () => {
   const projectRoot = await mkdtemp(join(tmpdir(), 'evobuddy-crew-invite-'));
   await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });

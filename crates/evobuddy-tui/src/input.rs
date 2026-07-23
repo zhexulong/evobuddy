@@ -22,6 +22,7 @@ pub enum KeyInput {
     RuntimeSetup,
     Trace,
     Updates,
+    RefreshTaskRoom,
     ToggleTaskRooms,
     ToggleUpdates,
     Quit,
@@ -184,6 +185,13 @@ pub fn handle_key_event(app: &mut WorkbenchApp, input: KeyInput) -> WorkbenchEff
             app.focus = FocusPane::Updates;
             app.push_view(ViewMode::Detail(DetailView::Updates));
             WorkbenchEffect::None
+        }
+        KeyInput::RefreshTaskRoom => {
+            if matches!(app.view_mode, ViewMode::Detail(DetailView::TaskRoom)) {
+                WorkbenchEffect::RefreshTaskRoom
+            } else {
+                WorkbenchEffect::None
+            }
         }
         KeyInput::ToggleTaskRooms => {
             app.task_rooms_collapsed = !app.task_rooms_collapsed;

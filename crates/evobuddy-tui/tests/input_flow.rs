@@ -199,6 +199,28 @@ fn room_detail_composer_sends_message_effect() {
 }
 
 #[test]
+fn room_detail_refresh_emits_non_destructive_effect() {
+    let mut app = load_app("evobuddy-workbench-state-v1.json");
+    let selected_room_id = app
+        .selected_task_room()
+        .expect("fixture room")
+        .id
+        .clone();
+    app.push_view(ViewMode::Detail(DetailView::TaskRoom));
+    for ch in "draft".chars() {
+        handle_key_event(&mut app, KeyInput::Char(ch));
+    }
+
+    assert_eq!(
+        handle_key_event(&mut app, KeyInput::RefreshTaskRoom),
+        WorkbenchEffect::RefreshTaskRoom
+    );
+    assert_eq!(app.room_composer, "draft");
+    assert_eq!(app.selected_task_room().expect("fixture room").id, selected_room_id);
+    assert!(app.durable_writes.is_empty());
+}
+
+#[test]
 fn compose_backspace_deletes_typed_chars_in_room_and_handoff() {
     let mut app = load_app("evobuddy-workbench-state-v1.json");
     app.push_view(ViewMode::Detail(DetailView::TaskRoom));

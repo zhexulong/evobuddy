@@ -139,6 +139,9 @@ fn map_key_event(app: &WorkbenchApp, key: KeyEvent) -> Option<KeyInput> {
             KeyCode::Char('a') if key.modifiers.contains(KeyModifiers::CONTROL) => {
                 Some(KeyInput::Actions)
             }
+            KeyCode::Char('r') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                Some(KeyInput::RefreshTaskRoom)
+            }
             KeyCode::Char(ch)
                 if key.modifiers.is_empty() || key.modifiers == KeyModifiers::SHIFT =>
             {
@@ -367,6 +370,33 @@ fn execute_workbench_effect(
                     .position(|r| r.id == selected_id)
                 {
                     app.selected_task_room = idx;
+                }
+            }
+            Ok(())
+        }
+        WorkbenchEffect::RefreshTaskRoom => {
+            let project = project_root(app);
+            let selected_id = app.selected_task_room().map(|room| room.id.clone());
+            if let Ok(state) = load_workbench_state(&BackendOptions {
+                project,
+                state_json: None,
+                input_root: None,
+                aggregate_report: None,
+                plan1_report: None,
+                plan2_report: None,
+                taskroom_reports: vec![],
+                backend_command: None,
+            }) {
+                app.state = state;
+                if let Some(selected_id) = selected_id {
+                    if let Some(idx) = app
+                        .state
+                        .task_rooms
+                        .iter()
+                        .position(|room| room.id == selected_id)
+                    {
+                        app.selected_task_room = idx;
+                    }
                 }
             }
             Ok(())

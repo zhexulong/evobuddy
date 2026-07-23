@@ -135,6 +135,7 @@ pub enum WorkbenchEffect {
         room_id: String,
         body: String,
     },
+    RefreshTaskRoom,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -161,4 +162,3 @@ pub struct NativeOpenContext {
     pub safety_mode: String,
     pub terminal_session_ref: Option<String>,
 }
-

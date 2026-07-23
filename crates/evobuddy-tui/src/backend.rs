@@ -114,7 +114,11 @@ fn read_state_file(path: &Path) -> Result<WorkbenchState> {
 
 fn build_state_export_args(options: &BackendOptions) -> Vec<String> {
     let mut args = vec![
-        "scripts/context-tree/export-evobuddy-workbench-state.mjs".to_string(),
+        std::env::current_dir()
+            .expect("EvoBuddy launcher current directory")
+            .join("scripts/context-tree/export-evobuddy-workbench-state.mjs")
+            .display()
+            .to_string(),
         "--project".to_string(),
         options.project.display().to_string(),
     ];
@@ -528,10 +532,10 @@ pub fn taskroom_archive_command(project: &Path, room_id: &str) -> BackendCommand
     }
 }
 
-pub fn run_backend_command(command: &BackendCommand, project: &Path) -> Result<String> {
+pub fn run_backend_command(command: &BackendCommand, _project: &Path) -> Result<String> {
     let output = Command::new(&command.program)
         .args(&command.args)
-        .current_dir(project)
+        .current_dir(std::env::current_dir().context("EvoBuddy launcher current directory")?)
         .output()
         .with_context(|| {
             format!(

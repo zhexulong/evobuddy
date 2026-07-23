@@ -117,7 +117,11 @@ fn backend_state_command_uses_argv_not_shell_string_for_default_exporter() {
         BackendCommand {
             program: "node".to_string(),
             args: vec![
-                "scripts/context-tree/export-evobuddy-workbench-state.mjs".to_string(),
+                std::env::current_dir()
+                    .expect("current directory")
+                    .join("scripts/context-tree/export-evobuddy-workbench-state.mjs")
+                    .display()
+                    .to_string(),
                 "--project".to_string(),
                 "/repo with spaces; rm -rf nope".to_string(),
                 "--input-root".to_string(),

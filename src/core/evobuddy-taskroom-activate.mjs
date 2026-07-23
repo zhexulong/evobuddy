@@ -94,6 +94,8 @@ export async function activatePrimaryOnRoomWork(projectRoot, input = {}, deps = 
     spawnResult = await spawnFn(projectRoot, {
       roomId,
       participantId,
+      messageId,
+      body: input.body,
       cwd: input.cwd ?? projectRoot,
     }, {
       startPiRpcWorker: deps.startPiRpcWorker,

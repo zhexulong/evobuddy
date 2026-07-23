@@ -18,6 +18,11 @@ class FakePiProcess extends EventEmitter {
     this.stdin = {
       ended: false,
       destroyed: false,
+      writes: [],
+      write: (text) => {
+        this.stdin.writes.push(String(text));
+        return true;
+      },
       end: () => {
         this.stdin.ended = true;
       },
@@ -124,6 +129,77 @@ describe('pi rpc worker lifecycle', () => {
       pid: 4200,
       alive: false,
       argv: ['/custom/bin/pi', '--mode', 'rpc', '--no-session'],
+    });
+  });
+
+  it('runs a JSONL Pi turn through get_state, prompt, and agent_settled', async () => {
+    const fake = createFakeSpawn();
+    const worker = await startPiRpcWorker({}, {
+      createPiNativeSessionAdapter: fakePiAdapter,
+      spawn: fake.spawn,
+      stopGraceMs: 0,
+    });
+    const child = fake.calls[0].child;
+
+    const turn = worker.runTurn({
+      turnId: 'turn:one',
+      message: 'Reply with OK',
+      provider: 'anthropic',
+      model: 'claude-test',
+      responseTimeoutMs: 100,
+      settleTimeoutMs: 100,
+    });
+
+    assert.deepEqual(JSON.parse(child.stdin.writes[0]), {
+      id: 'state:turn:one',
+      type: 'get_state',
+    });
+    child.stdout.emit('data', Buffer.from(`${JSON.stringify({
+      id: 'state:turn:one',
+      type: 'response',
+      command: 'get_state',
+      success: true,
+      data: { model: { provider: 'anthropic', id: 'claude-test' } },
+    })}\n`));
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.deepEqual(JSON.parse(child.stdin.writes[1]), {
+      id: 'prompt:turn:one',
+      type: 'prompt',
+      message: 'Reply with OK',
+    });
+    child.stdout.emit('data', Buffer.from([
+      JSON.stringify({ id: 'prompt:turn:one', type: 'response', command: 'prompt', success: true }),
+      JSON.stringify({
+        type: 'message_update',
+        assistantMessageEvent: { type: 'text_delta', delta: 'OK' },
+      }),
+      JSON.stringify({
+        type: 'turn_end',
+        message: {
+          role: 'assistant',
+          content: [{ type: 'text', text: 'OK' }],
+          provider: 'anthropic',
+          model: 'claude-test',
+          usage: { cost: { total: 0.001 } },
+          stopReason: 'stop',
+        },
+      }),
+      JSON.stringify({ type: 'agent_end', willRetry: false, messages: [] }),
+      JSON.stringify({ type: 'agent_settled' }),
+    ].join('\n') + '\n'));
+
+    assert.deepEqual(await turn, {
+      turnId: 'turn:one',
+      provider: 'anthropic',
+      model: 'claude-test',
+      promptAccepted: true,
+      settled: true,
+      finalText: 'OK',
+      usage: { cost: { total: 0.001 } },
+      stopReason: 'stop',
+      error: null,
+      eventCount: 6,
     });
   });
 });

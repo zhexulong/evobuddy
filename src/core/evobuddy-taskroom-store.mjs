@@ -15,7 +15,7 @@ import {
 } from './evobuddy-taskroom-fork-handoff.mjs';
 import { ensureEvobuddyProjectState, resolveEvobuddyProjectState } from './evobuddy-project-state.mjs';
 
-const JSONL_FILES = Object.freeze(['instances', 'messages', 'forks', 'handoffs', 'wakes']);
+const JSONL_FILES = Object.freeze(['instances', 'messages', 'forks', 'handoffs', 'wakes', 'turns']);
 
 function requireString(value, name) {
   if (typeof value !== 'string' || value.trim().length === 0) throw new Error(`required non-empty string: ${name}`);
@@ -177,6 +177,26 @@ export async function appendTaskRoomMessage(projectRoot, roomId, messageInput) {
   await loadRoomOrThrow(state, roomId);
   const message = createTaskRoomMessage({ ...messageInput, roomId });
   return appendJsonl(state, roomId, 'messages', message);
+}
+
+export async function appendTaskRoomTurn(projectRoot, roomId, turnInput) {
+  const state = await ensureEvobuddyProjectState({ projectRoot, seedProductBuddyPresets: false });
+  await loadRoomOrThrow(state, roomId);
+  const turnId = requireString(turnInput.turnId, 'turnId');
+  const status = requireString(turnInput.status, 'status');
+  return appendJsonl(state, roomId, 'turns', {
+    schema: 'evobuddy-taskroom-pi-turn.v1',
+    turnId,
+    status,
+    at: turnInput.at ?? new Date().toISOString(),
+    ...turnInput,
+    turnId,
+    status,
+  });
+}
+
+export async function readTaskRoomTurns(projectRoot, roomId) {
+  return readTaskRoomJsonl(projectRoot, roomId, 'turns');
 }
 
 export async function createTaskRoomHandoffInStore(projectRoot, roomId, handoffInput) {

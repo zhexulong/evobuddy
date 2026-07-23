@@ -1,5 +1,9 @@
+import { spawn as childProcessSpawn } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+
 import { listNativeSessions } from './evobuddy-native-session-store.mjs';
 import { startPiRpcWorker } from './evobuddy-pi-rpc-worker.mjs';
+import { queuePiTaskRoomTurn } from './evobuddy-taskroom-pi-runner.mjs';
 import { listWakes } from './evobuddy-taskroom-wake-store.mjs';
 import { readTaskRoom } from './evobuddy-taskroom-store.mjs';
 
@@ -47,6 +51,40 @@ export async function spawnSeatOnWake(projectRoot, input = {}, deps = {}) {
       status: 'queued-with-reason',
       reason: `spawn-on-wake only implemented for pi (got ${runtime})`,
       worker: null,
+    };
+  }
+
+  // Product sends are durable, detached one-turn jobs. The injected worker seam
+  // remains for lifecycle unit tests and direct worker callers.
+  if (input.messageId && input.body && !deps.startPiRpcWorker) {
+    const queued = await queuePiTaskRoomTurn(projectRoot, {
+      roomId,
+      participantId,
+      messageId: input.messageId,
+      body: input.body,
+    });
+    const runnerPath = fileURLToPath(new URL('../../scripts/evobuddy/taskroom-pi-turn-runner.mjs', import.meta.url));
+    const spawnRunner = deps.spawn ?? childProcessSpawn;
+    const child = spawnRunner(process.execPath, [
+      runnerPath,
+      projectRoot,
+      roomId,
+      participantId,
+      input.messageId,
+      input.body,
+      queued.turnId,
+    ], {
+      cwd: input.cwd ?? projectRoot,
+      detached: true,
+      stdio: 'ignore',
+      env: process.env,
+    });
+    child.unref?.();
+    return {
+      status: 'spawned',
+      reason: null,
+      worker: { pid: child.pid ?? null, argv: [process.execPath, runnerPath], turnId: queued.turnId },
+      wake,
     };
   }
 
